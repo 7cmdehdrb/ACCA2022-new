@@ -10,6 +10,20 @@ Autonomous driving project made by ACCA in 2022
 
 - [erp42_vehicle, erp42_velodyne, erp42_msgs](https://github.com/jdj2261/ERP42-ROS)
 
+## Package Dependency
+
+- ROS Dependencies
+
+  ```
+  $ sudo apt install ros-melodic-serial ros-melodic-velodyne* ros-melodic-pcl* ros-melodic-geodesy ros-melodic-ros-control ros-melodic-map-server ros-melodic-move-base ros-melodic-teleop-twist-keyboard ros-melodic-serial*
+  ```
+
+- Python Dependencies
+
+  ```
+  $ pip install keyboard Sphinx
+  ```
+
 ### Project Env
 
 Ubuntu 18.04.5
