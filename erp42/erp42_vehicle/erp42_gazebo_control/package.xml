@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>erp42_gazebo_control</name>
+    <version>0.0.0</version>
+    <description>The steer_bot_control package</description>
+    <maintainer email="djjin@todo.todo">djjin</maintainer>
+    <license>Unmanned Solution</license>
+    <author email="jdj2261@github.com">Daejong Jin</author>
+    <buildtool_depend>catkin</buildtool_depend>
+    <build_depend>roslaunch</build_depend>
+    <exec_depend>ackermann_steering_controller</exec_depend>
+    <exec_depend>controller_manager</exec_depend>
+    <exec_depend>joint_state_controller</exec_depend>
+    <exec_depend>robot_state_publisher</exec_depend>
+    <exec_depend>roslaunch</exec_depend>
+    <!-- <exec_depend>erp42_vehicle_description</exec_depend>
+    <exec_depend>erp42_gazebo_drive_controller</exec_depend> -->
+</package>
