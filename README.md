@@ -15,13 +15,13 @@ Autonomous driving project made by ACCA in 2022
 - ROS Dependencies
 
   ```
-  $ sudo apt install ros-melodic-serial ros-melodic-velodyne* ros-melodic-pcl* ros-melodic-geodesy ros-melodic-ros-control ros-melodic-map-server ros-melodic-move-base ros-melodic-teleop-twist-keyboard ros-melodic-serial*
+  sudo apt install ros-melodic-serial ros-melodic-velodyne* ros-melodic-pcl* ros-melodic-geodesy ros-melodic-ros-control ros-melodic-map-server ros-melodic-move-base ros-melodic-teleop-twist-keyboard ros-melodic-serial*
   ```
 
 - Python Dependencies
 
   ```
-  $ pip install keyboard Sphinx
+  pip install keyboard Sphinx
   ```
 
 ### Project Env
