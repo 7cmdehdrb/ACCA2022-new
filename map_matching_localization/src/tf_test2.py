@@ -16,12 +16,14 @@ from point_cloud import array_to_xyz_pointcloud2f
 
 
 def pclCallback(msg):
-    msg.header.frame_id = "base_link"
+    msg.header.frame_id = "velodyne"
+    msg.header.stamp = rospy.Time.now()
     pcl_pub.publish(msg)
+    rospy.loginfo("Publishing...")
 
 
 if __name__ == "__main__":
-    rospy.init_node("pcl_header")
+    rospy.init_node("velodyne2")
 
     pcl_sub = rospy.Subscriber(
         "velodyne_points", PointCloud2, callback=pclCallback)

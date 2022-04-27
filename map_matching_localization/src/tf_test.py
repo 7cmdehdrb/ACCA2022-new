@@ -46,6 +46,6 @@ if __name__ == "__main__":
             trans, rot, rospy.Time.now(), "base_link", "odom"
         )
 
-        rospy.loginfo("TF...")
+        rospy.loginfo("Publishing...")
 
         r.sleep()

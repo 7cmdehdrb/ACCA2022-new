@@ -18,7 +18,7 @@ import pygicp
 
 
 global_map_topic = rospy.get_param("global_map_topic", "cloud_pcd")
-distance_threshold = rospy.get_param("map_matching_threshold", 20)
+distance_threshold = rospy.get_param("map_matching_threshold", 25)
 
 
 class PointCloud(object):
@@ -41,6 +41,7 @@ class PointCloud(object):
         if self.topic == global_map_topic:
             if self.data is None:
                 self.data = temp[::10]
+                # self.data = temp
                 rospy.loginfo(
                     "GlobalMap is received! %d Point clouds" % len(self.data))
             else:
@@ -55,8 +56,8 @@ class PointCloud(object):
 
                 del temp
             else:
-                self.data = temp
-                # self.data = [i for i in temp if i[2] > -0.7]
+                # self.data = temp
+                self.data = [i for i in temp if i[2] > -0.7]
 
                 del temp
 
@@ -84,6 +85,10 @@ class PointCloud(object):
     def slicePointCloud(self):
         if self.slicing_point is None:
             rospy.logwarn("NO SLICING POINT")
+            return 0
+
+        if self.data is None:
+            rospy.logwarn("NO Point Clouds")
             return 0
 
         new_data = []
@@ -131,7 +136,7 @@ def doMapMatching(target, source):
     gicp.set_input_source(source)
 
     gicp.set_num_threads(8)
-    # gicp.set_max_correspondence_distance(5.0)
+    # gicp.set_max_correspondence_distance(100.0)
 
     gicp.align()
 

@@ -61,6 +61,11 @@ add_library(ndt_omp
 add_executable(align
   apps/align.cpp
 )
+
+# add_executable(test
+#   apps/test.cpp
+# )
+
 add_dependencies(align
   ndt_omp
 )
