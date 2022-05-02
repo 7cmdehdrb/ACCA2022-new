@@ -17,7 +17,7 @@ def initialPoseCallback(msg):
     # initial_pose = msg
 
     global_map.setSlicingPoint(changePWCS2PS(data=msg))
-    global_map.slicePointCloud()
+    global_map.slicePointCloud(position=velodyne.getLength)
 
 
 def changePWCS2PS(data):
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     # map_odom_tf = MapOdomTF()
 
-    rate = rospy.Rate(1)
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         try:
 
@@ -74,20 +74,20 @@ if __name__ == "__main__":
             transformed_velodyne = doTransform(
                 source=velodyne.data, tf_matrix=tf_matrix)
 
-            p1 = np.array([0, 0, 0, 1])
+            # p1 = np.array([0, 0, 0, 1])
 
-            p1p = np.dot(tf_matrix, p1)
+            # p1p = np.dot(tf_matrix, p1)
 
-            print(p1p)
+            # print(p1p)
 
-            pose = Odometry()
+            # pose = Odometry()
 
-            pose.header.frame_id = "map"
-            pose.header.stamp = rospy.Time.now()
+            # pose.header.frame_id = "map"
+            # pose.header.stamp = rospy.Time.now()
 
-            pose.pose.pose.position.x = p1p[0]
-            pose.pose.pose.position.y = p1p[1]
-            pose.pose.pose.position.z = p1p[2]
+            # pose.pose.pose.position.x = p1p[0]
+            # pose.pose.pose.position.y = p1p[1]
+            # pose.pose.pose.position.z = p1p[2]
 
             # print(tf_matrix)
 
@@ -99,12 +99,11 @@ if __name__ == "__main__":
             point_cloud_publisher.publish(data)
             point_cloud_publisher2.publish(data2)
 
-            pose_publisher.publish(pose)
+            # pose_publisher.publish(pose)
 
         except Exception as ex:
             rospy.logwarn(ex)
             print("MAIN EXCEPTION")
 
         finally:
-            # rate.sleep()
-            pass
+            rate.sleep()

@@ -35,31 +35,23 @@ class PointCloud(object):
             pcd_topic, PointCloud2, callback=self.pointCloudCallback)
 
     def pointCloudCallback(self, msg):
-        temp = list(read_points(cloud=msg, field_names=(
-            "x", "y", "z"), skip_nans=True))
-
         if self.topic == global_map_topic:
+
             if self.data is None:
-                self.data = temp[::10]
-                # self.data = temp
+                self.data = list(read_points(cloud=msg, field_names=(
+                    "x", "y", "z"), skip_nans=True))[::10]
                 rospy.loginfo(
                     "GlobalMap is received! %d Point clouds" % len(self.data))
+
             else:
                 rospy.loginfo_once(
                     "GlobalMap is received but ignored because data is already taken")
                 return
 
         else:
-            if self.doOversample is True:
-                # self.data = self.overSampling([i for i in temp if i[2] > -0.7])
-                self.data = self.overSampling(temp)
-
-                del temp
-            else:
-                # self.data = temp
-                self.data = [i for i in temp if i[2] > -0.7]
-
-                del temp
+            self.data = list(read_points(cloud=msg, field_names=(
+                "x", "y", "z"), skip_nans=True))[::10]
+            # self.data = [i for i in temp if i[2] > -0.7]
 
     def overSampling(self, data):
         if data is None:
@@ -82,7 +74,7 @@ class PointCloud(object):
 
         return res
 
-    def slicePointCloud(self):
+    def slicePointCloud(self, position=(10, 10, 0)):
         if self.slicing_point is None:
             rospy.logwarn("NO SLICING POINT")
             return 0
@@ -91,21 +83,46 @@ class PointCloud(object):
             rospy.logwarn("NO Point Clouds")
             return 0
 
+        rospy.loginfo("Slicing %d point clouds..." % len(self.data))
+
         new_data = []
 
         ix = self.slicing_point.pose.position.x
         iy = self.slicing_point.pose.position.y
         iz = self.slicing_point.pose.position.z
 
+        iox = self.slicing_point.pose.orientation.x
+        ioy = self.slicing_point.pose.orientation.y
+        ioz = self.slicing_point.pose.orientation.z
+        iow = self.slicing_point.pose.orientation.w
+
+        _, _, theta = tf.transformations.euler_from_quaternion(
+            [iox, ioy, ioz, iow])
+
+        AREA_VEC = np.array([m.cos(theta), m.sin(theta)])
+
         for p in self.data:
             x = p[0]
             y = p[1]
             z = p[2]
 
-            distance = m.sqrt((ix - x) ** 2 + (iy - y) ** 2)
+            PC_VEC = np.array([x - ix, y - iy])
+            dist = np.linalg.norm(PC_VEC)
 
-            if distance < distance_threshold:
+            cost = np.dot(AREA_VEC, PC_VEC) / \
+                (np.linalg.norm(PC_VEC) * np.linalg.norm(AREA_VEC))
+            theta2 = m.acos(cost)
+
+            xt = dist * abs(m.cos(theta2))
+            yt = dist * abs(m.sin(theta2))
+
+            if xt <= (position[0] / 2.0) and yt <= (position[1] / 2.0):
                 new_data.append(p)
+
+            # distance = m.sqrt((ix - x) ** 2 + (iy - y) ** 2)
+
+            # if distance < distance_threshold:
+            #     new_data.append(p)
 
         self.sliced_data = new_data
 
@@ -115,6 +132,20 @@ class PointCloud(object):
             return 0
 
         self.slicing_point = point
+
+    def getLength(self):
+        xmax = -float("inf")
+        ymax = -float("inf")
+
+        for i in self.data:
+            # i == [x, y, z]
+            if abs(i[0]) <= xmax:
+                xmax = abs(i[0])
+
+            if abs(i[1]) <= ymax:
+                ymax = abs(i[1])
+
+        return (2 * xmax, 2 * ymax)
 
 
 def doMapMatching(target, source):
