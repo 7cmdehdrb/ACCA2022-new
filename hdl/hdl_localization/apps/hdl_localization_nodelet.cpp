@@ -65,6 +65,7 @@ public:
     pose_pub = nh.advertise<nav_msgs::Odometry>("/odom", 5, false);
     aligned_pub = nh.advertise<sensor_msgs::PointCloud2>("/aligned_points", 5, false);
     status_pub = nh.advertise<ScanMatchingStatus>("/status", 5, false);
+    tf_pub = nh.advertise<geometry_msgs::PoseStamped>("/hdl_tf", 5, false);
 
     // global localization
     use_global_localization = private_nh.param<bool>("use_global_localization", true);
@@ -317,7 +318,7 @@ private:
     srv.request.max_num_candidates = 1;
 
     if (!query_global_localization_service.call(srv) || srv.response.poses.empty()) {
-      relocalizing = false;
+      relocalizing = false;1
       NODELET_INFO_STREAM("global localization failed");
       return false;
     }
@@ -389,6 +390,7 @@ private:
    * @param pose   odometry pose to be published
    */
   void publish_odometry(const ros::Time& stamp, const Eigen::Matrix4f& pose) {
+
     // broadcast the transform over tf
     if (tf_buffer.canTransform(robot_odom_frame_id, odom_child_frame_id, ros::Time(0))) {
       geometry_msgs::TransformStamped map_wrt_frame = tf2::eigenToTransform(Eigen::Isometry3d(pose.inverse().cast<double>()));
@@ -412,13 +414,33 @@ private:
       odom_trans.header.frame_id = "map";
       odom_trans.child_frame_id = robot_odom_frame_id;
 
-      tf_broadcaster.sendTransform(odom_trans);
+      geometry_msgs::PoseStamped odom_tf;
+      odom_tf.header.stamp = stamp;
+      odom_tf.header.frame_id = odom_child_frame_id;
+
+      odom_tf.pose.position.x = odom_trans.transform.translation.x;
+      odom_tf.pose.position.y = odom_trans.transform.translation.y;
+      odom_tf.pose.position.z = odom_trans.transform.translation.z;
+
+      odom_tf.pose.orientation.x = odom_trans.transform.rotation.x;
+      odom_tf.pose.orientation.y = odom_trans.transform.rotation.y;
+      odom_tf.pose.orientation.z = odom_trans.transform.rotation.z;
+      odom_tf.pose.orientation.w = odom_trans.transform.rotation.w;
+
+      tf_pub.publish(odom_tf);
+      // tf_broadcaster.sendTransform(odom_trans);
     } else {
-      geometry_msgs::TransformStamped odom_trans = tf2::eigenToTransform(Eigen::Isometry3d(pose.cast<double>()));
-      odom_trans.header.stamp = stamp;
-      odom_trans.header.frame_id = "map";
-      odom_trans.child_frame_id = odom_child_frame_id;
-      tf_broadcaster.sendTransform(odom_trans);
+
+      ROS_WARN("Cannot lookup transform between odom and base_link");
+
+      // MEMO: broadcast TF
+
+      // geometry_msgs::TransformStamped odom_trans = tf2::eigenToTransform(Eigen::Isometry3d(pose.cast<double>()));
+
+      // odom_trans.header.stamp = stamp;
+      // odom_trans.header.frame_id = "map";
+      // odom_trans.child_frame_id = odom_child_frame_id;
+      // tf_broadcaster.sendTransform(odom_trans);
     }
 
     // publish the transform
@@ -506,6 +528,7 @@ private:
   ros::Publisher pose_pub;
   ros::Publisher aligned_pub;
   ros::Publisher status_pub;
+  ros::Publisher tf_pub;
 
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener;

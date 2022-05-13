@@ -29,6 +29,4 @@ if __name__ == "__main__":
         "velodyne_points", PointCloud2, callback=pclCallback)
     pcl_pub = rospy.Publisher("velodyne_points2", PointCloud2, queue_size=5)
 
-    r = rospy.Rate(100)
-    while not rospy.is_shutdown():
-        rospy.spin()
+    rospy.spin()

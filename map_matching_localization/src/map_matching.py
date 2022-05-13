@@ -17,7 +17,7 @@ def initialPoseCallback(msg):
     # initial_pose = msg
 
     global_map.setSlicingPoint(changePWCS2PS(data=msg))
-    global_map.slicePointCloud(position=velodyne.getLength)
+    global_map.slicePointCloud(position=(50, 35))
 
 
 def changePWCS2PS(data):
@@ -73,6 +73,8 @@ if __name__ == "__main__":
 
             transformed_velodyne = doTransform(
                 source=velodyne.data, tf_matrix=tf_matrix)
+
+            rospy.loginfo(tf_matrix)
 
             # p1 = np.array([0, 0, 0, 1])
 

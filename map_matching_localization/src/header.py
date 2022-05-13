@@ -50,7 +50,7 @@ class PointCloud(object):
 
         else:
             self.data = list(read_points(cloud=msg, field_names=(
-                "x", "y", "z"), skip_nans=True))[::10]
+                "x", "y", "z"), skip_nans=True))
             # self.data = [i for i in temp if i[2] > -0.7]
 
     def overSampling(self, data):
@@ -145,6 +145,8 @@ class PointCloud(object):
             if abs(i[1]) <= ymax:
                 ymax = abs(i[1])
 
+        print(xmax, ymax)
+
         return (2 * xmax, 2 * ymax)
 
 
@@ -178,7 +180,7 @@ def doMapMatching(target, source):
 
 def doTransform(source, tf_matrix):
     if source is None or tf_matrix is None:
-        rospy.logwarn("No Source or TF Matrix")
+        rospy.logwarn_once("No Source or TF Matrix")
         return []
 
     res = []

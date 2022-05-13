@@ -1,17 +1,30 @@
 {
-    "configurations": [
-        {
-            "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/**"
-            ],
-            "defines": [],
-            "compilerPath": "/usr/bin/gcc",
-            "cStandard": "gnu11",
-            "cppStandard": "gnu++14",
-            "intelliSenseMode": "linux-gcc-x64",
-            "configurationProvider": "ms-vscode.cmake-tools"
-        }
-    ],
-    "version": 4
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/acca/catkin_ws/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/erp42/erp42_vehicle/erp42_hardware_gazebo/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/hdl/fast_gicp/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/hdl/hdl_global_localization/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/hdl/hdl_localization/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/hdl/ndt_omp/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/erp42/erp42_velodyne/velodyne_driver/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/erp42/erp42_velodyne/velodyne_laserscan/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/erp42/erp42_velodyne/velodyne_pcl/include/**",
+        "/home/acca/catkin_ws/src/ACCA2022-new/erp42/erp42_velodyne/velodyne_pointcloud/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
 }
