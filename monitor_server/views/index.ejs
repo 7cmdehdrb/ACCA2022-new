@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+    
+    <style>
+      .monitor {
+        margin-top: 50px;
+      }
+    </style>
+ 
+  </head>
+  <body>
+
+
+    <% include partial %>
+
+
+    <h2><%= title %></h2>
+    <h4>Welcome to <%= title %></h4>
+
+    <br>
+
+    <div>
+      
+      <form id="form" method="GET" action="/topic">
+        <div class="monitor">
+          <select style="width: max-content;" id="select" onchange="changeEvent()">
+          </select>
+        </div>
+
+        <input id="name" name="name" type="hidden">
+        <input id="type" name="type" type="hidden">
+
+        <div class="monitor">
+          <input type='submit' value='GO!'>
+        </div>
+
+      </form>
+      
+    </div>
+
+
+
+  </body>
+  <script src="/js/index.js"></script>
+</html>

@@ -3,7 +3,7 @@
     <!-- rosbag -->
     <arg name="path" default="/home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/data/" />
     <arg name="file_1" default="data_3" />
-    <node pkg="rosbag" type="play" name="player" output="screen" args="--clock $(arg path)$(arg file_1).bag --topic /velodyne_points /odometry/global"/>
+    <node pkg="rosbag" type="play" name="player" output="screen" args="--clock $(arg path)$(arg file_1).bag --loop --topic /velodyne_points /odometry/global"/>
 
     <!-- velodyne2 -->
     <node pkg="map_matching_localization" type="velodyne_points2.py" name="velodyne2" ></node>
@@ -12,6 +12,6 @@
     <node pkg="map_matching_localization" type="odom_tf.py" name="odom_tf" ></node>
 
     <!-- rviz -->
-    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find map_matching_localization)/rviz/rviz.rviz" />
+    <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find map_matching_localization)/rviz/rviz.rviz" /> -->
 
 </launch>
