@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 0 0 0 0 0 1 odom base_link 10" />
-</launch>

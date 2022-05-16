@@ -3,9 +3,22 @@
 
 import rospy
 import tf
+import threading
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from hdl_localization.msg import ScanMatchingStatus, HDL_TF
+
+
+# Param
+
+hdl_topic = rospy.get_param(
+    param_name="/hdl_tf_node/hdl_topic", default="hdl_tf")
+odom_topic = rospy.get_param(
+    param_name="/hdl_tf_node/odom_topic", default="odometry/global")
+matching_err_tol = float(rospy.get_param(
+    param_name="/hdl_tf_node/matching_err_tol", default=0.05))
+inlier_fraction_tol = float(rospy.get_param(
+    param_name="/hdl_tf_node/inlier_fraction_tol", default=0.95))
 
 
 class Queue(object):
@@ -51,8 +64,13 @@ class HDL_tf(object):
         self.matching_error = float("inf")
         self.inlier_fraction = 0.
 
+        self.temp = False
+
         self.trans = None
         self.rot = None
+
+        th = threading.Thread(target=self.loop)
+        th.start()
 
     # HDL_TF to ros tf
     def tfCallback(self, msg):
@@ -64,11 +82,13 @@ class HDL_tf(object):
         if self.matching_err_queue.isTrue(threshhold=10):
             self.trans = self.translationToArray(msg.translation)
             self.rot = self.rotationToArray(msg.rotation)
+            self.temp = False
 
         elif self.matching_err_queue.isFalse(threshhold=10):
             if self.canTransform():
-                self.relocalize()
-                rospy.logwarn("Invalid TF Relation... Trying Relocalization")
+                self.temp = True
+                # self.relocalize()
+                # rospy.logwarn("Invalid TF Relation... Trying Relocalization")
 
     # Status
     def statusCallback(self, msg):
@@ -105,6 +125,14 @@ class HDL_tf(object):
 
         else:
             rospy.logwarn("Cannot Transform Between Map and Odom")
+
+    def loop(self):
+        r = rospy.Rate(1)
+        while not rospy.is_shutdown():
+            if self.temp is True:
+                self.relocalize()
+                rospy.logwarn("Invalid TF Relation... Trying Relocalization")
+            r.sleep()
 
     # Utils
 

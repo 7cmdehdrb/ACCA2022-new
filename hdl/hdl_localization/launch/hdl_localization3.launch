@@ -18,7 +18,6 @@
   <arg name="plot_estimation_errors" value="false" />
 
   <include file="$(find hdl_localization)/launch/tf.launch" />>
-
   <include file="$(find hdl_global_localization)/launch/hdl_global_localization.launch" if="$(arg use_global_localization)" />
 
   <!-- in case you use velodyne_driver, comment out the following line -->
