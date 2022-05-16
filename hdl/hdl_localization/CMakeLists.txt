@@ -51,6 +51,7 @@ endif()
 ########################
 add_message_files(FILES
   ScanMatchingStatus.msg
+  HDL_TF.msg
 )
 generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 

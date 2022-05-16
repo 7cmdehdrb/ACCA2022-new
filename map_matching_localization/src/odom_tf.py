@@ -12,7 +12,6 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs.point_cloud2 import read_points
-from point_cloud import array_to_xyz_pointcloud2f
 
 
 def odomCallback(msg):

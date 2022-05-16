@@ -28,7 +28,9 @@
 #include <hdl_localization/pose_estimator.hpp>
 #include <hdl_localization/delta_estimater.hpp>
 
+// #include <map_matching_localization/HdlTF.h>
 #include <hdl_localization/ScanMatchingStatus.h>
+#include <hdl_localization/HDL_TF.h>
 #include <hdl_global_localization/SetGlobalMap.h>
 #include <hdl_global_localization/QueryGlobalLocalization.h>
 
@@ -65,7 +67,7 @@ public:
     pose_pub = nh.advertise<nav_msgs::Odometry>("/odom", 5, false);
     aligned_pub = nh.advertise<sensor_msgs::PointCloud2>("/aligned_points", 5, false);
     status_pub = nh.advertise<ScanMatchingStatus>("/status", 5, false);
-    tf_pub = nh.advertise<geometry_msgs::PoseStamped>("/hdl_tf", 5, false);
+    tf_pub = nh.advertise<HDL_TF>("/hdl_tf", 5, false);
 
     // global localization
     use_global_localization = private_nh.param<bool>("use_global_localization", true);
@@ -414,20 +416,15 @@ private:
       odom_trans.header.frame_id = "map";
       odom_trans.child_frame_id = robot_odom_frame_id;
 
-      geometry_msgs::PoseStamped odom_tf;
-      odom_tf.header.stamp = stamp;
-      odom_tf.header.frame_id = odom_child_frame_id;
+      HDL_TF hdl_tf;
+      hdl_tf.header.stamp = stamp;
+      hdl_tf.header.frame_id = "map";
 
-      odom_tf.pose.position.x = odom_trans.transform.translation.x;
-      odom_tf.pose.position.y = odom_trans.transform.translation.y;
-      odom_tf.pose.position.z = odom_trans.transform.translation.z;
+      hdl_tf.translation = odom_trans.transform.translation;
+      hdl_tf.rotation = odom_trans.transform.rotation;
 
-      odom_tf.pose.orientation.x = odom_trans.transform.rotation.x;
-      odom_tf.pose.orientation.y = odom_trans.transform.rotation.y;
-      odom_tf.pose.orientation.z = odom_trans.transform.rotation.z;
-      odom_tf.pose.orientation.w = odom_trans.transform.rotation.w;
+      tf_pub.publish(hdl_tf);
 
-      tf_pub.publish(odom_tf);
       // tf_broadcaster.sendTransform(odom_trans);
     } else {
 

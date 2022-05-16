@@ -1,9 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>erp42_msgs</name>
+  <name>map_matching_localization</name>
   <version>0.0.0</version>
-  <description>The erp42_msgs package</description>
-
+  <description>map_matching_localization</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
