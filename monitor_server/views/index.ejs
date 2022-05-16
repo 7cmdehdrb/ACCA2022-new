@@ -9,40 +9,61 @@
       .monitor {
         margin-top: 50px;
       }
+
+      body {
+        margin: 0;
+        /* padding: 0; */
+      }
+
+      .body {
+        width: 100%;
+        /* height: 100%; */
+        align-content: center;
+        /* background: pink; */
+        /* margin: auto; */
+        margin-right: 0;
+        margin-left: 0;
+        padding: 0;
+      }
+
     </style>
  
   </head>
   <body>
 
 
-    <% include partial %>
+    <div class="body">
 
-
-    <h2><%= title %></h2>
-    <h4>Welcome to <%= title %></h4>
-
-    <br>
-
-    <div>
       
-      <form id="form" method="GET" action="/topic">
-        <div class="monitor">
-          <select style="width: max-content;" id="select" onchange="changeEvent()">
-          </select>
-        </div>
-
-        <input id="name" name="name" type="hidden">
-        <input id="type" name="type" type="hidden">
-
-        <div class="monitor">
-          <input type='submit' value='GO!'>
-        </div>
-
-      </form>
+      <% include partial %>
+      
+      
+      <h2><%= title %></h2>
+      <h4>Welcome to <%= title %></h4>
+      
+      <br>
+      
+      <div>
+        
+        <form id="form" method="GET" action="/topic">
+          <div class="monitor">
+            <select id="select" onchange="changeEvent()">
+            </select>
+          </div>
+          
+          <input id="name" name="name" type="hidden">
+          <input id="type" name="type" type="hidden">
+          
+          <div class="monitor">
+            <input type='submit' value='GO!'>
+          </div>
+          
+        </form>
+        
+      </div>
+      
       
     </div>
-
-
 
   </body>
   <script src="/js/index.js"></script>

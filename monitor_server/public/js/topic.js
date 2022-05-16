@@ -1,7 +1,7 @@
 const ros = new ROSLIB.Ros();
 
 
-ros.connect('ws://localhost:9090');
+ros.connect(`ws://${window.location.host.split(":")[0]}:9090`);
 
 
 ros.on('error', (error) => {
