@@ -2,7 +2,6 @@
   "configurations": [
     {
       "browse": {
-        "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
         "limitSymbolsToIncludedHeaders": false
       },
       "includePath": [
