@@ -8,6 +8,10 @@ from geometry_msgs.msg import Point
 from map_matching_localization.msg import Error
 
 
+ekf_odom_topic = rospy.get_param("/ekf_odom_topic", "/odometry/global")
+hdl_odom_topic = rospy.get_param("/hdl_odom_topic", "/odom")
+
+
 class Odom(object):
     def __init__(self, topic):
         assert type(topic) == str
@@ -66,8 +70,8 @@ class Hdl_Odometry(Odom):
 class Odometry_Error(object):
     def __init__(self):
         # Object
-        self.ekf_odom = Odom("/odometry/global")
-        self.hdl_odom = Hdl_Odometry("/odom")
+        self.ekf_odom = Odom(ekf_odom_topic)
+        self.hdl_odom = Hdl_Odometry(hdl_odom_topic)
         self.distance = float("inf")
         self.yaw = m.pi
 
