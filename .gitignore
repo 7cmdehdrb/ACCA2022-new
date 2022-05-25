@@ -399,4 +399,8 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+<<<<<<< HEAD
+=======
+
+>>>>>>> a567e1a8d875869d313e12ff7f73677e3d524a01
 .vscode/
