@@ -6,7 +6,8 @@ import rospkg
 import serial
 import threading
 import math as m
-from erp42_msgs.msg import SerialFeedBack, CmdControl
+from erp42_msgs.msg import SerialFeedBack
+from erp42_control.msg import ControlMessage
 
 
 exitThread = False
@@ -43,11 +44,11 @@ class Control():
 
         # Subscriber
         self.control_sub = rospy.Subscriber(
-            "/cmd_msg", CmdControl, callback=self.cmdCallback()
+            "/cmd_msg", ControlMessage, callback=self.cmdCallback()
         )
 
         self.feedback_msg = SerialFeedBack()
-        self.cmd_msg = CmdControl()
+        self.cmd_msg = ControlMessage()
 
         self.showData = True
         self.ser = serial.Serial(
@@ -63,12 +64,12 @@ class Control():
     def cmdCallback(self, msg):
         self.cmd_msg = msg
 
-    def send_data(self, data=CmdControl()):
+    def send_data(self, data=ControlMessage()):
         # Speed
-        SPEED = data.KPH * 10
+        SPEED = data.Speed * 10
 
         # Steer
-        STEER = data.Deg * 71
+        STEER = data.Steer * 71
         if STEER > 1999:
             STEER = 1999
         if STEER < -1999:
