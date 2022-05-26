@@ -6,7 +6,7 @@ import rospkg
 import serial
 import threading
 import math as m
-from erp42_msgs.msg import SerialFeedBack
+from erp42_msgs.msg import SerialFeedBack, CmdControl
 
 
 exitThread = False
@@ -35,20 +35,64 @@ class Control():
         self.DATA[12] = ETX0
         self.DATA[13] = ETX1
 
-        self.feedback_msg = SerialFeedBack()
-        self.showData = True
-
         self.ALIVE = ALIVE
+
+        # Publisher
+        self.feedback_pub = rospy.Publisher(
+            "/erp42_feedback", SerialFeedBack, queue_size=1)
+
+        # Subscriber
+        self.control_sub = rospy.Subscriber(
+            "/cmd_msg", CmdControl, callback=self.cmdCallback()
+        )
+
+        self.feedback_msg = SerialFeedBack()
+        self.cmd_msg = CmdControl()
+
+        self.showData = True
         self.ser = serial.Serial(
             port=port_num,
             baudrate=115200,
         )
 
         # Threading
-
         thread = threading.Thread(target=self.receive_data)
         thread.daemon = True
         thread.start()
+
+    def cmdCallback(self, msg):
+        self.cmd_msg = msg
+
+    def send_data(self, data=CmdControl()):
+        # Speed
+        SPEED = data.KPH * 10
+
+        # Steer
+        STEER = data.Deg * 71
+        if STEER > 1999:
+            STEER = 1999
+        if STEER < -1999:
+            STEER = -1999
+
+        if STEER >= 0:
+            self.DATA[8] = int(STEER // 256)
+            self.DATA[9] = int(STEER % 256)
+        else:
+            STEER = -STEER
+            self.DATA[8] = int(255 - STEER // 256)
+            self.DATA[9] = int(255 - STEER % 256)
+
+        self.DATA[5] = data.Gear    # GEAR
+        self.DATA[6] = int(SPEED // 256)
+        self.DATA[7] = int(SPEED % 256)
+        self.DATA[10] = data.brake   # BREAK
+        self.DATA[11] = self.ALIVE
+
+        self.ser.write(self.DATA)
+
+        self.ALIVE = self.ALIVE + 1
+        if self.ALIVE == 256:
+            self.ALIVE = 0
 
     def receive_data(self):
 
@@ -121,8 +165,10 @@ class Control():
 
         self.feedback_msg = data
 
+        self.feedback_pub.publish(self.feedback_msg)
+
         if self.showData is True:
-            print(self.feedback_msg)
+            rospy.loginfo(self.feedback_msg)
 
     """ Util """
 
@@ -142,12 +188,7 @@ if __name__ == "__main__":
     # Objects
     control = Control(port_num=port)
 
-    # Publisher
-    feedback_pub = rospy.Publisher(
-        "/erp42_feedback", SerialFeedBack, queue_size=1)
-
     rate = rospy.Rate(50.0)
     while not rospy.is_shutdown():
-        feedback_pub.publish(control.feedback_msg)
-
+        control.send_data(data=control.cmd_msg)
         rate.sleep()
