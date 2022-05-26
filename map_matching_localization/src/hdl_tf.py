@@ -98,7 +98,7 @@ class HDL_tf(object):
         r = rospy.Rate(self.__hz)
         while not rospy.is_shutdown():
             if self.__isValidTF is True:
-                self.relocalize()
+                # self.relocalize()
                 rospy.logwarn("Invalid TF Relation... Trying Relocalization")
             r.sleep()
 
