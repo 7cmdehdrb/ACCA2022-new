@@ -12,6 +12,7 @@ import time as t
 from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 from cubic_spline_planner import *
+from path_plan.msg import PathRequest
 
 file_name = rospy.get_param("/save_file_name", "static_path.csv")
 
@@ -158,7 +159,6 @@ if __name__ == "__main__":
     msg = PoseArray()
 
     path_pub = rospy.Publisher("create_global_path", PoseArray, queue_size=1)
-
     rospy.Subscriber(
         "/move_base_simple/goal", PoseStamped, get_pose.poseCallback)
 
@@ -166,7 +166,6 @@ if __name__ == "__main__":
     th2 = threading.Thread(target=get_pose.deleteOne)
     th1.start()
     th2.start()
-
     r = rospy.Rate(1.0)
     while not rospy.is_shutdown():
         get_pose.posePublish()
