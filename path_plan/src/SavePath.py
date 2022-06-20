@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import tf
 import rospy
 from DB import *
@@ -9,8 +11,9 @@ from geometry_msgs.msg import PoseArray, Pose
 class SavePath():
     def __init__(self):
         # PathPoint table
-        self.start = rospy.get_param("/save_path/start", "B1")
-        self.end = rospy.get_param("/save_path/end", "C1")
+        self.start = rospy.get_param("/SavePath/start", "B2")
+        self.end = rospy.get_param("/SavePath/end", "A2")
+
         self.path_id = rospy.get_param(
             "/save_path/path_id", (self.start + self.end))
 
@@ -46,31 +49,31 @@ class SavePath():
             path.cx.append(px)
             path.cy.append(py)
             path.cyaw.append(yaw)
-
+        rospy.logwarn(len(path.cx))
         return path
 
 
 if __name__ == "__main__":
-    rospy.init_node("save_path")
+    rospy.init_node("SavePath")
 
     db = DB()
-    s_path = SavePath()
+    save_path = SavePath()
 
     # create_table
-    # db.maketable()
+    db.maketable()
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
 
-        if s_path.trig is True:
+        if save_path.trig is True:
             rospy.wait_for_message("/save_DB", Empty)
             # TO DO : Save path
-            path = s_path.poseArrayToPath(poses=s_path.path)
+            path = save_path.poseArrayToPath(poses=save_path.path)
             db.savePath(path)
 
             rospy.loginfo("SAVE INTO DB!")
 
-            s_path.trig = False
+            save_path.trig = False
 
         r.sleep()
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import rospy
 from time import sleep
 from DB import *
@@ -9,17 +11,13 @@ from geometry_msgs.msg import PoseStamped
 
 class LoadPath():
     def __init__(self, db):
-        self.sub = rospy.Subscriber("/PathPoint", PathRequest,
-                                    callback=self.RequestCallback)
         self.db = db
         self.Request = PathRequest()
         self.Response = PathResponse()
-        self.ros = Path()
         self.trig = False
 
     def RequestCallback(self, msg):
         self.Request = msg
-        # rospy.loginfo('receive a msg')
 
     def bringPath(self):
         # bring path
@@ -39,13 +37,11 @@ class LoadPath():
             self.Response.cy.append(info[1])
             self.Response.cyaw.append(info[2])
 
-        path_pub.publish(self.Response)
-
     def toRosPath(self):
         # ros path publish
-        path = Path()
-        path.header.frame_id = "map"
-        path.header.stamp = rospy.Time.now()
+        self.path = Path()
+        self.path.header.frame_id = "map"
+        self.path.header.stamp = rospy.Time.now()
 
         for info in self.path_info:
 
@@ -64,9 +60,7 @@ class LoadPath():
             pose.pose.orientation.z = quat[2]
             pose.pose.orientation.w = quat[3]
 
-            path.poses.append(pose)
-
-        ros_path_pub.publish(path)
+            self.path.poses.append(pose)
 
     def trigger(self):
         rospy.wait_for_message("/PathPoint", PathRequest)
@@ -77,29 +71,32 @@ if __name__ == "__main__":
     rospy.init_node("LoadPath")
 
     db = DB()
-    l_path = LoadPath(db)
+    load_path = LoadPath(db)
 
-    path_pub = rospy.Publisher("Loaded_Path", PathResponse, queue_size=1)
-    ros_path_pub = rospy.Publisher("ros_Path", Path, queue_size=1)
+    PathPoint_sub = rospy.Subscriber(
+        "/PathPoint", PathRequest, callback=load_path.RequestCallback)
+    listpath_pub = rospy.Publisher("list_Path", PathResponse, queue_size=1)
+    rospath_pub = rospy.Publisher("ros_Path", Path, queue_size=1)
 
-    r = rospy.Rate(0.1)
+    r = rospy.Rate(10)
     while not rospy.is_shutdown():
 
-        l_path.trigger()
-        rospy.loginfo('trigger is True')
+        load_path.trigger()
 
-        while l_path.trig is True:
+        if load_path.trig is True:
+            rospy.loginfo('trigger is True')
             try:
-                l_path.bringPath()
+                load_path.bringPath()
+                load_path.listToPath()
+                listpath_pub.publish(load_path.Response)
+
+                if PathPoint_sub.get_num_connections() > 0:
+                    load_path.toRosPath()
+                    rospath_pub.publish(load_path.path)
+                    rospy.loginfo('ros path published')
+
+                load_path.trig = False
+                rospy.loginfo('trigger is False')
+
             except:
                 rospy.loginfo('wrong info')
-                break
-
-            l_path.listToPath()
-
-            if l_path.sub.get_num_connections() > 0:
-                l_path.toRosPath()
-                rospy.loginfo('ros path published')
-
-            l_path.trig = False
-            rospy.loginfo('trigger is False')

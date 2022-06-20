@@ -1,0 +1,13 @@
+<launch>
+    <!-- node -->
+    <node pkg="path_plan" type="SavePath.py" name="SavePath" output="screen">
+        <param name="start" type="string" value="A1">        
+        </param>
+        <param name="end" type="string" value="B1">
+        </param>
+    </node>
+    <node pkg="path_plan" type="create_path.py" name="create_global_path" output="screen"/>
+    <!-- rviz -->
+    <node type="rviz" name="rviz" pkg="rviz" />
+    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="pcd_to_pointcloud" args="$(find hdl_localization)/data/school.pcd _frame_id:=/map 10"/>
+</launch>
