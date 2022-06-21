@@ -399,10 +399,6 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
-<<<<<<< HEAD
 .vscode/
 
 !sensor/xsens_ros_mti_driver/*
-=======
-.vscode/
->>>>>>> origin/path_plan

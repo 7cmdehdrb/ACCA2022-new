@@ -5,7 +5,7 @@ import sqlite3
 class DB():
     def __init__(self):
         self.__conn = sqlite3.connect(
-            "/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path.db")
+            "/home/acca/catkin_ws/src/ACCA2022-new/path_plan/path.db")
         self.__cur = self.__conn.cursor()
 
     def maketable(self):

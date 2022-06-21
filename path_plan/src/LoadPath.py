@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import rospy
 from time import sleep
 from DB import *

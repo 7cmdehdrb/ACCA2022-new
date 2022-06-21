@@ -13,12 +13,15 @@ class State(object):
 
         # Subscriber
         self.odom_sub = rospy.Subscriber(
-            odometry_topic, Odometry, callback=self.odomCallback())
+            odometry_topic, Odometry, callback=self.odomCallback)
 
         self.tf_sub = tf.TransformListener()
 
         # Custum Field
         self.data = Odometry()
+
+        self.x = 0.
+        self.y = 0.
         self.yaw = 0.
         self.v = 0.
 
@@ -31,11 +34,14 @@ class State(object):
 
         msg = self.transformFrame(data=msg, target_frame="map")
 
+        self.x = msg.pose.pose.position.x
+        self.y = msg.pose.pose.position.y
+
         dx = msg.pose.pose.position.x - self.data.pose.pose.position.x
         dy = msg.pose.pose.position.y - self.data.pose.pose.position.y
 
         distance = math.sqrt(dx ** 2 + dy ** 2)
-        dt = (self.lastTime - self.currentTime).to_sec()
+        dt = (self.currentTime - self.lastTime).to_sec()
 
         self.v = distance / dt
 
@@ -44,15 +50,18 @@ class State(object):
         _, _, self.yaw = euler_from_quaternion(quat)
 
         self.lastTime = self.currentTime
+
         self.data = msg
 
     def transformOdometryToPoseStamped(self, odom):
         pose = PoseStamped()
 
-        pose.header.frame_id = odom.header.frame_id
+        pose.header.frame_id = "odom"
         pose.header.stamp = rospy.Time(0)
 
         pose.pose = odom.pose.pose
+
+        # print(odom)
 
         return pose
 
@@ -69,13 +78,18 @@ class State(object):
     def transformFrame(self, data, target_frame="map"):
         source_frame = data.header.frame_id
 
-        if self.tf_sub.canTransform(target_frame, source_frame, rospy.Time(0)):
-            pose = self.tf_sub.transformPose(ps=self.transformOdometryToPoseStamped(
-                self.data), target_frame=target_frame)
-            odom = self.transformPoseStampedToOdometry(pose)
-            return odom
+        try:
+            if self.tf_sub.canTransform(target_frame=target_frame, source_frame=source_frame, time=rospy.Time(0)):
+                pose = self.tf_sub.transformPose(
+                    ps=self.transformOdometryToPoseStamped(data), target_frame=target_frame)
+                odom = self.transformPoseStampedToOdometry(pose)
+                return odom
 
-        else:
+            else:
+                raise Exception()
+
+        except Exception as ex:
             rospy.logwarn("Cannot Lookup Transform Between " +
                           target_frame + " and " + source_frame)
-            return None
+            rospy.logwarn(ex)
+            return Odometry()

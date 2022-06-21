@@ -13,11 +13,19 @@ MAX_STEER = rospy.get_param("/max_steer", 30.0)
 L = rospy.get_param("base_length", 1.040)
 
 
+def kph2mps(value):
+    return value * 0.277778
+
+
+def mps2kph(value):
+    return value * 3.6
+
+
 class FakeOdom(object):
     def __init__(self):
         self.__odom_pub = rospy.Publisher(
             "/odometry/global", Odometry, queue_size=1)
-        self.__cmd_sub = rospy.Subscriber(
+        self.cmd_sub = rospy.Subscriber(
             "/cmd_msg", ControlMessage, callback=self.cmdCallback)
         self.__tf_pub = tf.TransformBroadcaster()
 
@@ -64,14 +72,14 @@ class FakeOdom(object):
         self.current_time = rospy.Time.now()
         dt = (self.current_time - self.last_time).to_sec()
 
-        vel = self.__cmd_msg.Speed
-        steer = self.__cmd_msg.Steer
+        vel = kph2mps(self.__cmd_msg.Speed)
+        steer = m.radians(self.__cmd_msg.Steer)
 
         quat = self.__odom.pose.pose.orientation
         roll, pitch, yaw = euler_from_quaternion(
             [quat.x, quat.y, quat.z, quat.w])
-        dx = vel * m.cos(yaw)
-        dy = vel * m.sin(yaw)
+        dx = vel * m.cos(yaw) * dt
+        dy = vel * m.sin(yaw) * dt
 
         yaw += (vel / L) * m.tan(-steer) * dt
         quat = quaternion_from_euler(roll, pitch, yaw)
@@ -81,12 +89,12 @@ class FakeOdom(object):
         self.__odom.pose.pose.position.x += dx
         self.__odom.pose.pose.position.y += dy
 
-        self.last_time = self.current_time
-
         self.__odom.pose.pose.orientation.x = quat[0]
         self.__odom.pose.pose.orientation.y = quat[1]
         self.__odom.pose.pose.orientation.z = quat[2]
         self.__odom.pose.pose.orientation.w = quat[3]
+
+        self.last_time = self.current_time
 
         return 0
 
@@ -94,6 +102,9 @@ class FakeOdom(object):
         self.update_odom()
         self.publish_odom()
         self.publish_TF()
+
+    def get_odom(self):
+        return self.__odom
 
 
 if __name__ == "__main__":
@@ -104,5 +115,4 @@ if __name__ == "__main__":
     r = rospy.Rate(10.)
     while not rospy.is_shutdown():
         fake_odom.loop()
-        # rospy.loginfo("HELLO WORLD!")
         r.sleep()
