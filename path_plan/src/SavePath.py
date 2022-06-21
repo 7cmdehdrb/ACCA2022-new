@@ -76,7 +76,8 @@ if __name__ == "__main__":
             # save path
             if flag == 1:
                 # already existed
-                check_pub.publish('save: 1, cancel: 0')
+                check_pub.publish(
+                    'Path is already existed\nDo you want to overwrite data?')
                 ans = rospy.wait_for_message("/saving_ans", UInt8)  # ?
                 if ans.data == 1:
                     # YES

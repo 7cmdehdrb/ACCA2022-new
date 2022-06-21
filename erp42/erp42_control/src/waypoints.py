@@ -52,6 +52,8 @@ class TemperalPoint(object):
         self.sub = rospy.Subscriber(
             "/move_base_simple/goal", PoseStamped, callback=self.temperalPointCallback)
 
+        self.do_save = rospy.get_param("/waypoints/do_save", True)
+
         self.marker = Marker()
 
     def publishMarker(self):
@@ -66,6 +68,10 @@ class TemperalPoint(object):
         return 0
 
     def temperalPointCallback(self, msg):
+
+        if self.do_save is False:
+            return 0
+
         marker = Marker()
 
         marker.header.frame_id = "map"

@@ -11,7 +11,7 @@ class DB():
         self.__cur = self.__conn.cursor()
         self.flag = self.checkDB()
 
-        if self.flag is False:
+        if self.flag == 0:
             # create table
             self.maketable()
 
