@@ -1,0 +1,4 @@
+<launch>
+    <!-- node -->
+    <node pkg="path_plan" type="LoadPath.py" name="LoadPath" output="screen"/>
+</launch>
