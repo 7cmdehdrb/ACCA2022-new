@@ -1,4 +1,6 @@
 import sqlite3
+from sqlite3 import Cursor
+import rospy
 # from path_plan.msg import PathResponse
 
 
@@ -7,6 +9,11 @@ class DB():
         self.__conn = sqlite3.connect(
             "/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path.db")
         self.__cur = self.__conn.cursor()
+        self.flag = self.checkDB()
+
+        if self.flag is False:
+            # create table
+            self.maketable()
 
     def maketable(self):
         self.__cur.execute(
@@ -29,10 +36,31 @@ class DB():
 
         self.__conn.commit()
 
+    def checkDB(self):
+        query = "SELECT COUNT(*) FROM sqlite_master WHERE Name = '%s' OR Name = '%s';"
+        flag = self.__cur.execute(
+            query % ('PathPoint', 'PathInfo')).fetchall()[0][0]
+        self.__conn.commit()
+        return flag
+
+    def check_path_id(self, path_id):
+        query = "SELECT COUNT(*) From PathPoint Where path_id = '%s';"
+        flag = self.__cur.execute(query % path_id).fetchall()[0][0]
+        self.__conn.commit()
+        return flag
+
+    def deletePath(self, path_id):
+        query_Point = "DELETE FROM PathPoint WHERE path_id = '%s';"
+        query_info = "DELETE FROM PathInfo WHERE path_id = '%s';"
+        self.__cur.execute(query_Point % path_id)
+        self.__cur.execute(query_info % path_id)
+        self.__conn.commit()
+
     def bring_path_id(self, s_point, e_point):
         query = "SELECT path_id From PathPoint Where Start_point = '%s' AND End_point = '%s';"
         path_id = self.__cur.execute(
             query % (s_point, e_point)).fetchall()[0][0]
+        self.__conn.commit()
         path_id = str(path_id)
         return path_id
 

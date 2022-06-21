@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import time
 from time import sleep
 from DB import *
 from path_plan.msg import PathRequest, PathResponse
@@ -13,7 +14,6 @@ class LoadPath():
     def __init__(self, db):
         self.db = db
         self.Request = PathRequest()
-        self.Response = PathResponse()
         self.trig = False
 
     def RequestCallback(self, msg):
@@ -28,14 +28,18 @@ class LoadPath():
 
     def listToPath(self):
         # PathResponse publish path
-        self.Response.start = self.Request.start
-        self.Response.end = self.Request.end
-        self.Response.path_id = self.Request.path_id
+        Response = PathResponse()
+
+        Response.start = self.Request.start
+        Response.end = self.Request.end
+        Response.path_id = self.Request.path_id
 
         for info in self.path_info:
-            self.Response.cx.append(info[0])
-            self.Response.cy.append(info[1])
-            self.Response.cyaw.append(info[2])
+            Response.cx.append(info[0])
+            Response.cy.append(info[1])
+            Response.cyaw.append(info[2])
+
+        return Response
 
     def toRosPath(self):
         # ros path publish
@@ -65,6 +69,7 @@ class LoadPath():
     def trigger(self):
         rospy.wait_for_message("/PathPoint", PathRequest)
         self.trig = True
+        time.sleep(5)
 
 
 if __name__ == "__main__":
@@ -87,8 +92,8 @@ if __name__ == "__main__":
             rospy.loginfo('trigger is True')
             try:
                 load_path.bringPath()
-                load_path.listToPath()
-                listpath_pub.publish(load_path.Response)
+                res = load_path.listToPath()
+                listpath_pub.publish(res)
 
                 if PathPoint_sub.get_num_connections() > 0:
                     load_path.toRosPath()
@@ -98,5 +103,6 @@ if __name__ == "__main__":
                 load_path.trig = False
                 rospy.loginfo('trigger is False')
 
-            except:
-                rospy.loginfo('wrong info')
+            except Exception as ex:
+                rospy.logwarn(ex)
+        r.sleep()

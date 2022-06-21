@@ -45,6 +45,9 @@ class GetPose(object):
     def __init__(self):
         super(GetPose, self).__init__()
 
+        rospy.Subscriber(
+            "/reset_path", Empty, self.resetCallback)
+
         self.deleteFlag = True
 
         self.initial_xs = []
@@ -54,6 +57,10 @@ class GetPose(object):
 
         self.Path.header.seq = 0
         self.Path.header.frame_id = "map"
+
+    def resetCallback(self, msg):
+        self.initial_xs = []
+        self.initial_ys = []
 
     def poseCallback(self, msg):
         """ 
