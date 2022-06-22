@@ -17,7 +17,9 @@ class LoadPath():
         self.trig = False
 
     def RequestCallback(self, msg):
+        rospy.loginfo("Request Accepted!")
         self.Request = msg
+        self.trig = True
 
     def bringPath(self):
         # bring path
@@ -66,11 +68,6 @@ class LoadPath():
 
             self.path.poses.append(pose)
 
-    def trigger(self):
-        rospy.wait_for_message("/PathPoint", PathRequest)
-        self.trig = True
-        time.sleep(5)
-
 
 if __name__ == "__main__":
     rospy.init_node("LoadPath")
@@ -86,10 +83,10 @@ if __name__ == "__main__":
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
 
-        load_path.trigger()
+        t1 = rospy.Time.now()
 
         if load_path.trig is True:
-            rospy.loginfo('trigger is True')
+
             try:
                 load_path.bringPath()
                 res = load_path.listToPath()
@@ -100,9 +97,12 @@ if __name__ == "__main__":
                     rospath_pub.publish(load_path.path)
                     rospy.loginfo('ros path published')
 
-                load_path.trig = False
-                rospy.loginfo('trigger is False')
-
             except Exception as ex:
                 rospy.logwarn(ex)
+
+            finally:
+                load_path.trig = False
+                t2 = rospy.Time.now()
+                rospy.logfatal(str((t2 - t1).to_sec()))
+
         r.sleep()
