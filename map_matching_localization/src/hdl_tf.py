@@ -76,19 +76,22 @@ class HDL_tf(object):
     def tfCallback(self, msg):
         assert type(msg) == type(HDL_TF())
 
-        self.matching_err_queue.inputValue(
-            self.matching_error <= 0.05 and self.inlier_fraction >= 0.95)
+        # self.matching_err_queue.inputValue(
+        #     self.matching_error <= 0.05 and self.inlier_fraction >= 0.95)
 
-        if self.matching_err_queue.isTrue(threshhold=10):
-            self.trans = self.translationToArray(msg.translation)
-            self.rot = self.rotationToArray(msg.rotation)
-            self.temp = False
+        self.trans = self.translationToArray(msg.translation)
+        self.rot = self.rotationToArray(msg.rotation)
+        
+        # self.temp = True
+        
+        # if self.matching_err_queue.isTrue(threshhold=10):
+        #     self.temp = False
 
-        elif self.matching_err_queue.isFalse(threshhold=10):
-            if self.canTransform():
-                self.temp = True
-                # self.relocalize()
-                # rospy.logwarn("Invalid TF Relation... Trying Relocalization")
+        # elif self.matching_err_queue.isFalse(threshhold=10):
+        #     if self.canTransform():
+        #         self.temp = True
+        #         # self.relocalize()
+        #         # rospy.logwarn("Invalid TF Relation... Trying Relocalization")
 
     # Status
     def statusCallback(self, msg):
@@ -102,6 +105,7 @@ class HDL_tf(object):
     # broadcast TF from self.trans and rot
     def broadcastTF(self):
         if self.canTransform():
+            rospy.loginfo("HELLO")
             self.tf_broadcaster.sendTransform(
                 translation=self.trans,
                 rotation=self.rot,
