@@ -14,8 +14,9 @@ tri = Delaunay(points)
 indices = tri.simplices
 vertices = points[indices]
 
+# print(indices)
 # print(vertices)
-# print(tri.simplices.copy())
+print(tri.simplices.copy())
 
 for vertice in vertices:
     xs = []

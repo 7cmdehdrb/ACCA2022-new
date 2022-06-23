@@ -25,6 +25,13 @@ class Cone(object):
         self.color = color
 
 
+class ConeTest(np.ndarray):
+    def __init__(self, color=Color.RED):
+        super(np.ndarray, self).__init__()
+
+        self.color = color
+
+
 class ConeTracker(object):
     def __init__(self):
         self.cones = []
@@ -50,7 +57,7 @@ class ConeTracker(object):
     def createCones(self):
         j = 0
 
-        for i in range(0, 60):
+        for i in range(0, 10):
             red_cone = Cone(point=Point(i + randint(-10, 10) *
                             0.01, j-(1 + randint(0, 10) * 0.05), 0.), color=Color.RED)
 
@@ -103,20 +110,21 @@ class ConeTracker(object):
 
 
 if __name__ == "__main__":
-    rospy.init_node("cone_test")
+    # rospy.init_node("cone_test")
 
     tracker = ConeTracker()
 
-    # tracker.plotCones()
+    tracker.plotCones()
 
-    # points = tracker.parseNumpy()
-    # tri = Delaunay(points)
+    points = tracker.parseNumpy()
+    tri = Delaunay(points)
 
-    # plt.triplot(points[:, 0], points[:, 1], tri.simplices)
-    # # plt.plot(points[:, 0], points[:, 1], 'o')
-    # plt.show()
+    print(tri.simplices)
 
-    r = rospy.Rate(3.)
-    while not rospy.is_shutdown():
-        tracker.publishCones()
-        r.sleep()
+    plt.triplot(points[:, 0], points[:, 1], tri.simplices)
+    plt.show()
+
+    # r = rospy.Rate(3.)
+    # while not rospy.is_shutdown():
+    #     tracker.publishCones()
+    #     r.sleep()
