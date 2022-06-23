@@ -1,6 +1,5 @@
 import sqlite3
-from sqlite3 import Cursor
-import rospy
+
 # from path_plan.msg import PathResponse
 
 
