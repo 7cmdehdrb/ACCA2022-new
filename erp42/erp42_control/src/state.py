@@ -3,6 +3,7 @@
 import math
 import rospy
 import tf
+import numpy as np
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
@@ -20,10 +21,11 @@ class State(object):
         # Custum Field
         self.data = Odometry()
 
-        self.x = 0.
-        self.y = 0.
-        self.yaw = 0.
-        self.v = 0.
+        self.x = 0.  # m
+        self.y = 0.  # m
+        self.yaw = 0.  # rad
+        self.v = 0.  # m/s
+        self.omega = 0.  # rad/s
 
         # Calculation
         self.currentTime = rospy.Time.now()
@@ -47,7 +49,10 @@ class State(object):
 
         quat = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
                 msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
-        _, _, self.yaw = euler_from_quaternion(quat)
+        _, _, yaw = euler_from_quaternion(quat)
+
+        self.omega = (yaw - self.yaw) / dt
+        self.yaw = yaw
 
         self.lastTime = self.currentTime
 
@@ -93,3 +98,7 @@ class State(object):
                           target_frame + " and " + source_frame)
             rospy.logwarn(ex)
             return Odometry()
+
+    def getArray(self):
+        # [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
+        return np.array([self.x, self.y, self.yaw, self.v, self.omega])
