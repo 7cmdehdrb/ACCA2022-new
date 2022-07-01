@@ -27,23 +27,28 @@ def getEmpty(shape):
 
 class Kalman(object):
     def __init__(self, *args, **kwargs):
+        self.odom_pub = rospy.Publisher(
+            "/odometry/kalman", Odometry, queue_size=1)
+
+        self.tf_br = tf.TransformBroadcaster()
+
         # initial value
         self.x = np.array([
             0, 0, 0, 0
         ])
         self.P = np.array([
-            [0.5, 0, 0, 0],
-            [0, 0.5, 0., 0.],
-            [0, 0., 0.5, 0.],
-            [0, 0., 0., 0.5]
+            [0.5, 0., 0., 0.],
+            [0., 0.5, 0., 0.],
+            [0., 0., 0.5, 0.],
+            [0., 0., 0., 0.5]
         ])
 
         # noise
         self.Q = np.array([
-            [0.5, 0, 0, 0],
-            [0, 0.5, 0., 0.],
-            [0, 0., 0.5, 0.],
-            [0, 0., 0., 0.5]
+            [0.5, 0., 0., 0.],
+            [0., 0.5, 0., 0.],
+            [0., 0., 0.5, 0.],
+            [0., 0., 0., 0.5]
         ])
 
         self.dt = 0.
@@ -107,7 +112,36 @@ class Kalman(object):
 
         self.dt = dt
 
-        return self.x
+        return self.x, self.P
+
+    def publishOdom(self, x, P):
+        msg = Odometry()
+
+        msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = 'map'
+        msg.child_frame_id = 'base_link'
+
+        msg.pose.pose.position.x = x[0]
+        msg.pose.pose.position.y = x[1]
+        msg.pose.pose.position.z = 0
+
+        quat = quaternion_from_euler(0, 0, x[3])
+
+        msg.pose.pose.orientation.x = quat[0]
+        msg.pose.pose.orientation.y = quat[1]
+        msg.pose.pose.orientation.z = quat[2]
+        msg.pose.pose.orientation.w = quat[3]
+
+        msg.pose.covariance = [P[0][0], 0., 0., 0., 0., 0.,
+                               0., P[1][1], 0., 0., 0., 0.,
+                               0., 0., 0., 0., 0., 0.,
+                               0., 0., 0., 0., 0., 0.,
+                               0., 0., 0., 0., 0., 0.,
+                               0., 0., 0., 0., 0., P[3][3]]
+
+        self.odom_pub.publish(msg)
+        self.tf_br.sendTransform(translation=(
+            x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
 
 
 class Sensor(object):
@@ -204,9 +238,6 @@ class Odom(Sensor):
 if __name__ == "__main__":
     rospy.init_node("kalman")
 
-    tf_listener = tf.TransformListener()
-    pub = rospy.Publisher("test", PoseStamped, queue_size=1)
-
     gps = Odom("/odometry/gps", Odometry)
     hdl = Odom("/odometry/gps", Odometry)
     erp = ERP42("/erp42_feedback", SerialFeedBack)
@@ -225,27 +256,9 @@ if __name__ == "__main__":
 
         current_time = rospy.Time.now()
 
-        res = kf.filter(gps, hdl, erp, imu,
-                        dt=(current_time - last_time).to_sec())
-
-        print(res)
-
-        # msg = PoseStamped()
-
-        # msg.header.frame_id = "odom"
-        # msg.header.stamp = rospy.Time.now()
-
-        # msg.pose.position.x = res[0]
-        # msg.pose.position.y = res[1]
-
-        # quat = quaternion_from_euler(0, 0, res[3])
-
-        # msg.pose.orientation.x = quat[0]
-        # msg.pose.orientation.y = quat[1]
-        # msg.pose.orientation.z = quat[2]
-        # msg.pose.orientation.w = quat[3]
-
-        # pub.publish(msg)
+        x, P = kf.filter(gps, hdl, erp, imu,
+                         dt=(current_time - last_time).to_sec())
+        kf.publishOdom(x, P)
 
         last_time = current_time
 
