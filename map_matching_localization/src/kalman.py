@@ -208,7 +208,7 @@ if __name__ == "__main__":
     pub = rospy.Publisher("test", PoseStamped, queue_size=1)
 
     gps = Odom("/odometry/gps", Odometry)
-    hdl = Odom("/odometry/gps", Odometry)
+    hdl = Odom("/odom", Odometry)
     erp = ERP42("/erp42_feedback", SerialFeedBack)
     imu = Xsens("/imu/data", Imu)
 
