@@ -1,0 +1,5 @@
+<launch>
+    <include file="$(find state_machine)/launch/sensor.launch"/>
+    <include file="$(find state_machine)/launch/control.launch"/>
+    <include file="$(find state_machine)/launch/local.launch"/>
+</launch>
