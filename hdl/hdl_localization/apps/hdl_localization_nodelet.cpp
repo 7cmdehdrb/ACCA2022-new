@@ -392,6 +392,54 @@ private:
    * @param pose   odometry pose to be published
    */
   void publish_odometry(const ros::Time& stamp, const Eigen::Matrix4f& pose) {
+    // broadcast the transform over tf
+    // if(tf_buffer.canTransform(robot_odom_frame_id, odom_child_frame_id, ros::Time(0))) {
+    //   geometry_msgs::TransformStamped map_wrt_frame = tf2::eigenToTransform(Eigen::Isometry3d(pose.inverse().cast<double>()));
+    //   map_wrt_frame.header.stamp = stamp;
+    //   map_wrt_frame.header.frame_id = odom_child_frame_id;
+    //   map_wrt_frame.child_frame_id = "map";
+
+    //   geometry_msgs::TransformStamped frame_wrt_odom = tf_buffer.lookupTransform(robot_odom_frame_id, odom_child_frame_id, ros::Time(0), ros::Duration(0.1));
+    //   Eigen::Matrix4f frame2odom = tf2::transformToEigen(frame_wrt_odom).cast<float>().matrix();
+
+    //   geometry_msgs::TransformStamped map_wrt_odom;
+    //   tf2::doTransform(map_wrt_frame, map_wrt_odom, frame_wrt_odom);
+
+    //   tf2::Transform odom_wrt_map;
+    //   tf2::fromMsg(map_wrt_odom.transform, odom_wrt_map);
+    //   odom_wrt_map = odom_wrt_map.inverse();
+
+    //   geometry_msgs::TransformStamped odom_trans;
+    //   odom_trans.transform = tf2::toMsg(odom_wrt_map);
+    //   odom_trans.header.stamp = stamp;
+    //   odom_trans.header.frame_id = "map";
+    //   odom_trans.child_frame_id = robot_odom_frame_id;
+
+    //   tf_broadcaster.sendTransform(odom_trans);
+    // } else {
+    //   geometry_msgs::TransformStamped odom_trans = tf2::eigenToTransform(Eigen::Isometry3d(pose.cast<double>()));
+    //   odom_trans.header.stamp = stamp;
+    //   odom_trans.header.frame_id = "map";
+    //   odom_trans.child_frame_id = odom_child_frame_id;
+    //   tf_broadcaster.sendTransform(odom_trans);
+    // }
+
+    // publish the transform
+    nav_msgs::Odometry odom;
+    odom.header.stamp = stamp;
+    odom.header.frame_id = "map";
+
+    tf::poseEigenToMsg(Eigen::Isometry3d(pose.cast<double>()), odom.pose.pose);
+    odom.child_frame_id = odom_child_frame_id;
+    odom.twist.twist.linear.x = 0.0;
+    odom.twist.twist.linear.y = 0.0;
+    odom.twist.twist.angular.z = 0.0;
+
+    pose_pub.publish(odom);
+  }
+
+  /*
+  void publish_odometry(const ros::Time& stamp, const Eigen::Matrix4f& pose) {
 
     // broadcast the transform over tf
     if (tf_buffer.canTransform(robot_odom_frame_id, odom_child_frame_id, ros::Time(0))) {
@@ -431,7 +479,6 @@ private:
       ROS_WARN("Cannot lookup transform between odom and base_link");
 
       // MEMO: broadcast TF
-
       // geometry_msgs::TransformStamped odom_trans = tf2::eigenToTransform(Eigen::Isometry3d(pose.cast<double>()));
 
       // odom_trans.header.stamp = stamp;
@@ -453,6 +500,7 @@ private:
 
     pose_pub.publish(odom);
   }
+  */
 
   /**
    * @brief publish scan matching status information

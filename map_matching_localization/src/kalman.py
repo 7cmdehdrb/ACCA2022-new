@@ -239,7 +239,7 @@ if __name__ == "__main__":
     rospy.init_node("kalman")
 
     gps = Odom("/odometry/gps", Odometry)
-    hdl = Odom("/odometry/gps", Odometry)
+    hdl = Odom("/odom", Odometry)
     erp = ERP42("/erp42_feedback", SerialFeedBack)
     imu = Xsens("/imu/data", Imu)
 

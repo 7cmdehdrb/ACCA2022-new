@@ -2,6 +2,7 @@
 
 import rospy
 from matplotlib import pyplot as plt
+from sensor_msgs.msg import NavSatFix
 import math as m
 import numpy as np
 
@@ -12,11 +13,12 @@ class Gaussian(object):
         self.mean = mean
         self.sigma = sigma
 
-        # self.value = self.calculateGaussian()
+        if x is not None:
+            self.value = self.calculateGaussian()
 
     def calculateGaussian(self):
         return (1 / np.sqrt(2. * m.pi * self.sigma ** 2.)) * \
-            np.exp(-(x - self.mean) ** 2. / (2. * self.sigma ** 2))
+            np.exp(-(self.x - self.mean) ** 2. / (2. * self.sigma ** 2))
 
 
 def gaussianConvolution(g1, g2):
@@ -30,27 +32,39 @@ def gaussianConvolution(g1, g2):
     return Gaussian(g1.x, mean, sigma)
 
 
+def measure(lat1, lon1, lat2, lon2):
+    R = 6378.137
+    dLat = lat2 * m.pi / 180 - lat1 * m.pi / 180
+    dLon = lon2 * m.pi / 180 - lon1 * m.pi / 180
+    a = m.sin(dLat/2) * m.sin(dLat/2) + \
+        m.cos(lat1 * m.pi / 180) * m.cos(lat2 * m.pi / 180) * \
+        m.sin(dLon/2) * m.sin(dLon/2)
+    c = 2 * m.atan2(m.sqrt(a), m.sqrt(1-a))
+    d = R * c
+    return d * 1000
+
+
 if __name__ == "__main__":
     rospy.init_node("gaussian")
 
-    x = np.arange(-15, 15, 0.01)
+    x1 = np.arange(37.4966977 - 0.05, 37.4966977 + 0.05, 0.001)
+    g1 = Gaussian(x1, 37.4966977, 0.0144)
 
-    legend = []
+    dist = measure(37.4966977, 126.9575288,
+                   37.4966977 + 1, 126.9575288)
+    # 111319.490793 => ' to m
 
-    g1 = Gaussian(x, 0, 1)
-    plt.plot(x, g1.value)
-    legend.append("N(%.2f, %.2f)" % (g1.mean, g1.sigma))
+    x2 = np.arange(0. - 0.05 * m.sqrt(dist), 0 + 0.05 * m.sqrt(dist), 0.1)
+    g2 = Gaussian(x2, 0., 0.0144 * m.sqrt(dist))
 
-    g2 = Gaussian(x, 1, 10)
-    plt.plot(x, g2.value)
-    legend.append("N(%.2f, %.2f)" % (g2.mean, g2.sigma))
+    plt.figure()
+    plt.legend()
+    plt.plot(x1, g1.value, label="N(%.5f, %.5f)" %
+             (g1.mean, g1.sigma), c="red")
 
-    plt.plot(x, Gaussian(x, 0, 1).value * Gaussian(x, 1, 3).value)
-    legend.append("Convolution")
+    plt.figure()
+    plt.legend()
+    plt.plot(x2, g2.value, label="N(%.5f, %.5f)" %
+             (g2.mean, g2.sigma), c="red")
 
-    conv = gaussianConvolution(g1, g2)
-    plt.plot(x, conv.value)
-    legend.append("N(%.4f, %.4f)" % (conv.mean, conv.sigma))
-
-    plt.legend(legend)
     plt.show()
