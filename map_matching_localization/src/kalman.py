@@ -9,7 +9,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from erp42_msgs.msg import SerialFeedBack
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion
 from gaussian import *
 
 
@@ -184,6 +184,8 @@ class ERP42(Sensor):
 class Xsens(Sensor):
     def __init__(self, topic, msg_type):
         super(Xsens, self).__init__(topic, msg_type)
+        self.tf_sub = tf.TransformListener()
+
         self.cov = np.array([
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ],
@@ -191,28 +193,43 @@ class Xsens(Sensor):
             [0., 0., 0., 99, ]
         ])
 
-        self.initial_yaw = None
+        self.init_yaw = None
         self.yaw = 0.
 
     def handleData(self, msg):
         quat = msg.orientation
         _, _, yaw = euler_from_quaternion([quat.x, quat.y, quat.z, quat.w])
 
-        if self.initial_yaw is None:
-            self.initial_yaw = yaw
+        if self.init_yaw is None:
+            self.init_yaw = yaw
 
-        self.yaw = yaw - self.initial_yaw
+        if self.tf_sub.canTransform("base_link", "map", rospy.Time(0)):
+            yaw = yaw - self.init_yaw
+            quat_from_euler = quaternion_from_euler(0., 0., yaw)
 
-        cov = getEmpty((4, 4))
-        cov[-1][-1] = msg.orientation_covariance[-1]
+            quat = QuaternionStamped()
+            quat.header.stamp = rospy.Time(0)
+            quat.header.frame_id = "base_link"
+            quat.quaternion = Quaternion(
+                quat_from_euler[0], quat_from_euler[1], quat_from_euler[2], quat_from_euler[3])
 
-        """
-            [1.21847072356e-05, 0.0, 0.0, 
-            0.0, 7.615442022250002e-05, 0.0, 
-            0.0, 0.0, 0.00030461768089000006]
-        """
+            quat = self.tf_sub.transformQuaternion(
+                target_frame="map", ps=quat).quaternion
+            _, _, self.yaw = euler_from_quaternion(
+                [quat.x, quat.y, quat.z, quat.w])
 
-        return np.array([0, 0, 0, self.yaw]), cov
+            cov = getEmpty((4, 4))
+            cov[-1][-1] = msg.orientation_covariance[-1]
+
+            """
+                [1.21847072356e-05, 0.0, 0.0, 
+                0.0, 7.615442022250002e-05, 0.0, 
+                0.0, 0.0, 0.00030461768089000006]
+            """
+
+            return np.array([0, 0, 0, self.yaw]), cov
+        else:
+            return np.array([0., 0., 0., 0.], dtype=np.float64), self.cov
 
 
 class Odom(Sensor):
