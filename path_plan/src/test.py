@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 
-import rospy
-import time
-from std_msgs.msg import UInt8
-from DB import *
+import numpy as np
 
+H = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+p = np.array([[5, 0, 0, 0], [0, 5, 0, 0], [0, 0, 5, 0], [0, 0, 0, 5]])
 
-if __name__ == "__main__":
-    rospy.init_node("test")
+# print(np.dot(H, p))
+A = np.dot(H, p)
 
-    db = DB()
-
-    while not rospy.is_shutdown():
-        path_id = 'A1B1'
-        db.deletePath(path_id)
-        break
+print(np.dot(p, H.T))

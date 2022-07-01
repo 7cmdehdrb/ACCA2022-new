@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="erp42_control" type="stanley_controller.py" name="stanley_controller" output="screen"/>
+    <node pkg="erp42_communication" type="erp42_serial.py" name="erp42_serial" output="screen"/>
+    <include file="$(find erp42_control)/launch/waypoints.launch"/>
+    <include file="$(find path_plan)/launch/load_path.launch"/>
+</launch>
