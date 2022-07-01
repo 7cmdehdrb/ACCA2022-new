@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+    <include file="$(find ublox_gps)/launch/ublox_device.launch"/>
+    <include file="$(find ntrip_ros)/launch/ntrip_ros.launch"/>
+    <include file="$(find xsens_mti_driver)/launch/xsens_mti_node.launch"/>
+    <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"/>
+</launch>
