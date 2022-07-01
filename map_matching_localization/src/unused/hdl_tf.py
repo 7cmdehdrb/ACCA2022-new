@@ -5,6 +5,7 @@ import tf
 import threading
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from hdl_localization.msg import HDL_TF
+from map_matching_localization.msg import *
 from header import *
 
 

@@ -4,7 +4,7 @@
 import rospy
 import rospkg
 import threading
-from header import *
+from map_matching_localization.msg import *
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 
