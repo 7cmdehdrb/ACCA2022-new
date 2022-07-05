@@ -1,5 +1,7 @@
 <launch>
     <include file="$(find state_machine)/launch/sensor.launch"/>
-    <include file="$(find state_machine)/launch/control.launch"/>
-    <include file="$(find state_machine)/launch/local.launch"/>
+    <include file="$(find map_matching_localization)/launch/localization.launch"/>
+    
+    <!-- <include file="$(find state_machine)/launch/control.launch"/> -->
+    <!-- <include file="$(find state_machine)/launch/local.launch"/> -->
 </launch>

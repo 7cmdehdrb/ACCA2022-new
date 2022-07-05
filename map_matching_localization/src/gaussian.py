@@ -29,7 +29,7 @@ def gaussianConvolution(g1, g2):
     else:
         sigma = g1.sigma ** 2 - (g1.sigma ** 4) / \
             (g1.sigma ** 2 - g2.sigma ** 2)
-    return Gaussian(g1.x, mean, sigma)
+    return Gaussian(g1.x, mean, abs(sigma))
 
 
 def measure(lat1, lon1, lat2, lon2):

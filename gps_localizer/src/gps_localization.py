@@ -19,7 +19,7 @@ class GPS_Position(object):
     def transformOdometry(self):
         msg = Odometry()
 
-        msg.header.frame_id = "odom"
+        msg.header.frame_id = "map"
         msg.header.stamp = rospy.Time.now()
 
         msg.child_frame_id = "base_link"
@@ -39,7 +39,7 @@ class GPS_Localizer(object):
         self.gps_sub = rospy.Subscriber(
             "/ublox_gps/fix", NavSatFix, callback=self.GpsCallback)
         self.gps_pub = rospy.Publisher(
-            "/odometry/gps2map", Odometry, queue_size=5)
+            "/odometry/gps", Odometry, queue_size=5)
 
         # Map Frame (m)
         self.A1 = [44.077665890002898, -6.5612605426349839]
@@ -56,6 +56,8 @@ class GPS_Localizer(object):
         D_map = m.sqrt((self.A3[0] - self.A2[0])
                        ** 2 + (self.A3[1] - self.A2[1]) ** 2)
         self.R = D_map / D_utm
+
+        self.odom = Odometry()
 
     def GpsCallback(self, msg):
         self.position_coordinate(msg)
@@ -94,7 +96,8 @@ class GPS_Localizer(object):
 
         # float, float, (3, 3) matrix
         msg = GPS_Position(x, y, covariance).transformOdometry()
-        self.publishOdometry(msg)
+        self.odom = msg
+        self.publishOdometry(self.odom)
 
 
 if __name__ == "__main__":

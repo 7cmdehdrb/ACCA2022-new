@@ -1,4 +1,5 @@
 <launch>
     <include file="$(find hdl_localization)/launch/hdl_localization.launch" />
     <include file="$(find map_matching_localization)/launch/kalman_localization.launch" />
+    <node pkg="gps_localizer" name="gps_localizer" type="gps_localization.py" />
 </launch>
