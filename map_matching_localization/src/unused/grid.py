@@ -6,7 +6,7 @@ import rospy
 import numpy as np
 from math import ceil, floor
 from sensor_msgs.msg import PointCloud2
-from header import PointCloud
+from map_matching_localization.msg import PointCloud
 from point_cloud import array_to_xyz_pointcloud2f
 
 

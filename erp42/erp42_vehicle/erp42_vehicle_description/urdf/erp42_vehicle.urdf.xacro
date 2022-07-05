@@ -40,13 +40,15 @@
   <xacro:property name="deg_to_rad" value="0.01745329251994329577"/>
 
   <!-- Robot base dimensions -->
-  <xacro:property name="base_length" value="0.5" />
-  <xacro:property name="base_width" value="0.3" />
-  <xacro:property name="base_height" value="0.1" />
+  <xacro:property name="base_length" value="1.600" />
+  <xacro:property name="base_width" value="1.160" />
+  <xacro:property name="base_height" value="0.550" />
   <xacro:property name="base_mass" value="5" />
 
+  <!--  1,600*1,160*550  -->
+
   <!-- Wheel link dimensions -->
-  <xacro:property name="wheel_radius" value="0.1" />
+  <xacro:property name="wheel_radius" value="0.3302" />
   <xacro:property name="wheel_thickness" value="0.08" />
   <xacro:property name="wheel_mass" value="1" />
 
@@ -160,13 +162,13 @@
             <!-- VLP-16 -->
 
   <VLP-16 parent="base_link" name="velodyne" topic="/velodyne_points" hz="50" samples="1024" gpu="false" lasers="16" max_range="100">
-    <origin xyz="0 0 0.3" rpy="0 0 0" />
+    <origin xyz="0.52 0 0.78" rpy="0 0 0" />
   </VLP-16>
 
     <!-- IMU link -->
    <joint name="imu_joint" type="fixed">
     <axis xyz="0 0 1" />
-    <origin xyz="0 0 0.02" rpy="0 0 0"/>
+    <origin xyz="0.52 0 0.48" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child link="imu_link"/>
    </joint>
@@ -175,22 +177,23 @@
 
 
      <!-- Camera -->
-  <joint name="camera_joint" type="fixed">
+  <!-- <joint name="camera_joint" type="fixed">
     <axis xyz="0 1 0" />
     <origin xyz="0.20 0 0.5" rpy="0 -0.1 0"/>
     <parent link="base_link"/>
     <child link="camera_link"/>
-  </joint>
+  </joint> -->
 
   <!-- Camera -->
-  <xacro:property name="camera_size" value="0.05" /> <!-- Size of square 'camera' box -->
-  <link name="camera_link">
 <!--  <collision>
       <geometry>
           <box size=".1 .3 .1"/>
       </geometry>
       <contact_coefficients mu="0" kp="1000.0" kd="1.0"/>
   </collision>-->
+  <!-- <xacro:property name="camera_size" value="0.05" />  -->
+  <!-- Size of square 'camera' box -->
+  <!-- <link name="camera_link">
 
     <visual>
         <geometry>
@@ -206,10 +209,13 @@
                  iyy="0.0135" iyz="0.0"
                  izz="0.0675"/>
     </inertial>
-    </link>
+  </link> -->
 
   <!-- camera -->
-  <gazebo reference="camera_link">
+  <!-- Noise is sampled independently per pixel on each frame.
+        That pixel's noise value is added to each of its color
+        channels, which at that point lie in the range [0,1]. -->
+  <!-- <gazebo reference="camera_link">
     <material>Gazebo/Black</material>
     <sensor type="depth" name="camera_ir">
       <update_rate>30.0</update_rate>
@@ -226,9 +232,6 @@
         </clip>
         <noise>
           <type>gaussian</type>
-          <!-- Noise is sampled independently per pixel on each frame.
-               That pixel's noise value is added to each of its color
-               channels, which at that point lie in the range [0,1]. -->
           <mean>0.0</mean>
           <stddev>0.07</stddev>
         </noise>
@@ -258,7 +261,7 @@
         <hackBaseline>0.07</hackBaseline>
       </plugin>
     </sensor>
-  </gazebo>
+  </gazebo> -->
 
   <gazebo>
     <plugin name="imu_plugin" filename="libgazebo_ros_imu.so">

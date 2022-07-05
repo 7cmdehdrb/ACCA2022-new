@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find hdl_localization)/launch/hdl_localization.launch"/>
+    <include file="$(find map_matching_localization)/launch/map_matching_localization.launch"/>
+</launch>

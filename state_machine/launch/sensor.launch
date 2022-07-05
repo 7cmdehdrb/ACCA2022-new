@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+    <arg name="imu_port" default="/dev/ttyIMU" /> 
+    <arg name="gps_port" default="/dev/ttyGPS" /> 
+    <arg name="erp_port" default="/dev/ttyUSB4" /> 
+
+    <!-- <include file="$(find erp42_communication)/launch/erp42.launch"/> -->
+    <include file="$(find ublox_gps)/launch/ublox_device.launch"/>
+    <include file="$(find ntrip_ros)/launch/ntrip_ros.launch"/>
+    <include file="$(find xsens_mti_driver)/launch/xsens_mti_node.launch"/>
+    <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"/>
+</launch>

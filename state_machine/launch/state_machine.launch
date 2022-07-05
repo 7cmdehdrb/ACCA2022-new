@@ -1,0 +1,16 @@
+<launch>
+
+    <arg name="odom_topic" default="odometry/kalman"/>
+    <arg name="matching_err_tol" default="0.05"/>
+    <arg name="inlier_fraction_tol" default="0.95"/>
+    
+    <arg name="imu_port" default="/dev/ttyIMU" /> 
+    <arg name="gps_port" default="/dev/ttyGPS" /> 
+    <arg name="erp_port" default="/dev/ttyUSB4" /> 
+
+    <include file="$(find state_machine)/launch/sensor.launch"/>
+    <!-- <include file="$(find map_matching_localization)/launch/localization.launch"/> -->
+    
+    <!-- <include file="$(find state_machine)/launch/control.launch"/> -->
+    <!-- <include file="$(find state_machine)/launch/local.launch"/> -->
+</launch>

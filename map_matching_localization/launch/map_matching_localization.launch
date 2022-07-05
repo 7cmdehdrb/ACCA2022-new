@@ -2,12 +2,12 @@
 
     <arg name="isTest" default="false" />
 
-    <arg name="hdl_topic" default="hdl_tf" />
-    <arg name="odom_topic" default="odometry/global" />
-    <arg name="matching_err_tol" default="0.05" />
-    <arg name="inlier_fraction_tol" default="0.95" />
+    <arg name="hdl_topic" default="hdl_tf"/>
+    <arg name="odom_topic" default="odometry/global"/>
+    <arg name="matching_err_tol" default="0.05"/>
+    <arg name="inlier_fraction_tol" default="0.95"/>
 
-    <include file="$(find map_matching_localization)/launch/test.launch" if="$(arg isTest)" />
+    <include file="$(find map_matching_localization)/launch/test.launch" if="$(arg isTest)"/>
 
     <node pkg="map_matching_localization" type="hdl_tf.py" name="hdl_tf_node" output="screen">
         <param name="hdl_topic" value="$(arg hdl_topic)"></param>
