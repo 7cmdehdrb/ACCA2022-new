@@ -27,11 +27,40 @@ class GPS_Position(object):
         msg.pose.pose.position = self.position
         msg.pose.pose.orientation = Quaternion(0., 0., 0., 1.)
 
-        # cov == len 9
-        msg.pose.covariance = self.covariance + \
-            [0. for i in range(36 - len(self.covariance))]
+
+        dist = measure(37.4966977, 126.9575288,
+                    37.4966977 + 1, 126.9575288)
+
+        cov = np.reshape(np.array(self.covariance), newshape=(3, 3))
+        new_cov = np.array([
+            [0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0.z, 0.],
+            [0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0.],
+        ])
+
+        for i in range(2):
+            new_cov[i][i] = cov[i][i] * m.sqrt(dist)
+
+        new_cov = list(np.reshape(new_cov, newshape=(36, 1)))
+        msg.pose.covariance = new_cov
 
         return msg
+
+
+def measure(lat1, lon1, lat2, lon2):
+    R = 6378.137
+    dLat = lat2 * m.pi / 180 - lat1 * m.pi / 180
+    dLon = lon2 * m.pi / 180 - lon1 * m.pi / 180
+    a = m.sin(dLat/2) * m.sin(dLat/2) + \
+        m.cos(lat1 * m.pi / 180) * m.cos(lat2 * m.pi / 180) * \
+        m.sin(dLon/2) * m.sin(dLon/2)
+    c = 2 * m.atan2(m.sqrt(a), m.sqrt(1-a))
+    d = R * c
+    return d * 1000
+
 
 
 class GPS_Localizer(object):
@@ -42,22 +71,21 @@ class GPS_Localizer(object):
             "/odometry/gps", Odometry, queue_size=5)
 
         # Map Frame (m)
-        self.A1 = [44.077665890002898, -6.5612605426349839]
-        self.A2 = [28.891198053973657, -67.680239378889823]
-        self.A3 = [-29.312756358060142, -15.256011575710552]
+        self.A1 = [-12.008216791152954, 1.8138237690925598]
+        self.A2 = [51.58015068054199, -3.5253489112854002]
+        self.A3 = [-3.240585916042328, -71.910366439819342]
 
         # UTM (scale: unknown)
-        self.B1 = [952084.55943544081, 1944299.9814490867]
-        self.B2 = [952068.92547413474, 1944238.9990436761]
-        self.B3 = [952011.13217425707, 1944291.7271537485]
+        self.B1 = [952220.27949039731, 1943998.3930866024]
+        self.B2 = [952274.35303833662, 1943964.6235879373]
+        self.B3 = [952194.09346341831, 1943928.4288452363]
+
 
         D_utm = m.sqrt((self.B3[0] - self.B2[0])
                        ** 2 + (self.B3[1] - self.B2[1]) ** 2)
         D_map = m.sqrt((self.A3[0] - self.A2[0])
                        ** 2 + (self.A3[1] - self.A2[1]) ** 2)
         self.R = D_map / D_utm
-
-        self.odom = Odometry()
 
     def GpsCallback(self, msg):
         self.position_coordinate(msg)
@@ -96,8 +124,7 @@ class GPS_Localizer(object):
 
         # float, float, (3, 3) matrix
         msg = GPS_Position(x, y, covariance).transformOdometry()
-        self.odom = msg
-        self.publishOdometry(self.odom)
+        self.publishOdometry(msg)
 
 
 if __name__ == "__main__":

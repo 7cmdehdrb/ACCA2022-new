@@ -1,6 +1,6 @@
 <launch>
 
-    <arg name="isTest" default="true"/>
+    <arg name="isTest" default="false" />
 
     <arg name="hdl_topic" default="hdl_tf"/>
     <arg name="odom_topic" default="odometry/global"/>
