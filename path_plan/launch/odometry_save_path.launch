@@ -1,0 +1,11 @@
+<launch>
+    <!-- node -->
+    <node pkg="path_plan" type="SavePath.py" name="SavePath" output="screen"/>
+
+    <node pkg="path_plan" type="odometry_path.py" name="odom_path" output="screen"/>
+    <node pkg="tf" type="static_transform_publisher" name="imu_link_pub" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 map odom 100" />
+
+    <!-- rviz -->
+    <node type="rviz" name="rviz" pkg="rviz" />
+    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="pcd_to_pointcloud" args="$(find hdl_localization)/data/school.pcd _frame_id:=/map 10"/>
+</launch>
