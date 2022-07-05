@@ -9,6 +9,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from erp42_msgs.msg import SerialFeedBack
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
+from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion
 from gaussian import *
 
@@ -64,10 +65,14 @@ class Kalman(object):
             [0, 0, 0, 1]
         ])
 
-        z_gps = [Gaussian(None, gps.data[0], gps.cov[0][0]),
-                 Gaussian(None, gps.data[1], gps.cov[1][1])]    # [x, y]
-        z_hdl = [Gaussian(None, hdl.data[0], hdl.cov[0][0]),
-                 Gaussian(None, hdl.data[1], hdl.cov[1][1])]    # [x, y]
+        z_gps = [
+            Gaussian(None, gps.data[0], gps.cov[0][0]),
+            Gaussian(None, gps.data[1], gps.cov[1][1])
+        ]    # [x, y]
+        z_hdl = [
+            Gaussian(None, hdl.data[0], hdl.cov[0][0]),
+            Gaussian(None, hdl.data[1], hdl.cov[1][1])
+        ]    # [x, y]
 
         position = [gaussianConvolution(
             z_gps[0], z_hdl[0]), gaussianConvolution(z_gps[1], z_hdl[1])]   # [gaussian x, gaussian y]
@@ -84,6 +89,7 @@ class Kalman(object):
             cov_position[i][i] = position[i].sigma
 
         R = cov_position + cov_erp + cov_imu
+        # print(R)
 
         x_k = np.dot(A, self.x)
         P_k = np.dot(np.dot(A, self.P), A.T) + self.Q
@@ -140,8 +146,8 @@ class Kalman(object):
                                0., 0., 0., 0., 0., P[3][3]]
 
         self.odom_pub.publish(msg)
-        self.tf_br.sendTransform(translation=(
-            x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
+        # self.tf_br.sendTransform(translation=(
+        #     x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
 
 
 class Sensor(object):
@@ -176,7 +182,7 @@ class ERP42(Sensor):
 
     def handleData(self, msg):
         cov = getEmpty((4, 4))
-        cov[2][2] = 0.5
+        cov[2][2] = 0.1
 
         return np.array([0., 0., msg.speed, 0.], dtype=np.float64), cov
 
@@ -184,7 +190,11 @@ class ERP42(Sensor):
 class Xsens(Sensor):
     def __init__(self, topic, msg_type):
         super(Xsens, self).__init__(topic, msg_type)
-        self.tf_sub = tf.TransformListener()
+
+        self.flag_sub = rospy.Subscriber(
+            "/set_imu", Empty, callback=self.set_imu)
+        self.odom_sub = rospy.Subscriber(
+            "/odom", Odometry, callback=self.odomCallback)
 
         self.cov = np.array([
             [0., 0., 0., 0., ],
@@ -193,33 +203,40 @@ class Xsens(Sensor):
             [0., 0., 0., 99, ]
         ])
 
-        self.init_yaw = None
-        self.yaw = 0.
+        self.imu_flag = False
+        self.last_yaw = None
+        self.yaw = None
+
+    def odomCallback(self, msg):
+        if self.imu_flag is True:
+            quat = msg.pose.pose.orientation
+            _, _, yaw = euler_from_quaternion([quat.x, quat.y, quat.z, quat.w])
+            self.yaw = yaw
+            self.imu_flag = False
+
+    def set_imu(self, msg):
+        self.imu_flag = True
+        rospy.loginfo("SET INITIAL IMU!")
 
     def handleData(self, msg):
         quat = msg.orientation
         _, _, yaw = euler_from_quaternion([quat.x, quat.y, quat.z, quat.w])
 
-        if self.init_yaw is None:
-            self.init_yaw = yaw
+        if self.yaw is None:
+            return np.array([0., 0., 0., 0.], dtype=np.float64), self.cov
 
-        if self.tf_sub.canTransform("base_link", "map", rospy.Time(0)):
-            yaw = yaw - self.init_yaw
-            quat_from_euler = quaternion_from_euler(0., 0., yaw)
+        if self.yaw is not None:
 
-            quat = QuaternionStamped()
-            quat.header.stamp = rospy.Time(0)
-            quat.header.frame_id = "base_link"
-            quat.quaternion = Quaternion(
-                quat_from_euler[0], quat_from_euler[1], quat_from_euler[2], quat_from_euler[3])
+            if self.last_yaw is None:
+                self.last_yaw = yaw
 
-            quat = self.tf_sub.transformQuaternion(
-                target_frame="map", ps=quat).quaternion
-            _, _, self.yaw = euler_from_quaternion(
-                [quat.x, quat.y, quat.z, quat.w])
+            dyaw = yaw - self.last_yaw
+            self.yaw += dyaw
 
             cov = getEmpty((4, 4))
             cov[-1][-1] = msg.orientation_covariance[-1]
+
+            self.last_yaw = yaw
 
             """
                 [1.21847072356e-05, 0.0, 0.0, 
@@ -273,9 +290,12 @@ if __name__ == "__main__":
 
         current_time = rospy.Time.now()
 
-        x, P = kf.filter(gps, hdl, erp, imu,
-                         dt=(current_time - last_time).to_sec())
-        kf.publishOdom(x, P)
+        try:
+            x, P = kf.filter(gps, hdl, erp, imu,
+                             dt=(current_time - last_time).to_sec())
+            kf.publishOdom(x, P)
+        except Exception as ex:
+            rospy.logwarn(ex)
 
         last_time = current_time
 
