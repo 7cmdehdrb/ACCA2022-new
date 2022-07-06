@@ -146,8 +146,8 @@ class Kalman(object):
                                0., 0., 0., 0., 0., P[3][3]]
 
         self.odom_pub.publish(msg)
-        # self.tf_br.sendTransform(translation=(
-        #     x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
+        self.tf_br.sendTransform(translation=(
+            x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
 
 
 class Sensor(object):
