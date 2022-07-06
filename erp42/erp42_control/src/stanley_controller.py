@@ -25,6 +25,7 @@ class StanleyController(object):
         self.response = rospy.Subscriber(
             "/list_Path", PathResponse, callback=self.path_callback)
 
+        self.flag = True
         self.target_idx = 0
         self.path = PathResponse()
 
@@ -39,15 +40,17 @@ class StanleyController(object):
     def path_callback(self, msg):
         self.target_idx = 0
         self.path = msg
+        self.flag = True
 
     def makeControlMessage(self):
         if len(self.path.cx) == 0:
             rospy.logwarn("Path error")
             return ControlMessage(0, 0, 0, 0, 0, 0, 0)
 
-        if len(self.path.cx) * 0.9 < self.target_idx:
+        if len(self.path.cx) * 0.9 < self.target_idx and self.flag is True:
             self.selector.makeRequest()
             self.selector.goNext()
+            self.flag = False
 
         di, target_idx = self.stanley.stanley_control(
             self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
