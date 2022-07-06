@@ -59,6 +59,7 @@ class DB():
         self.__conn.commit()
 
     def bring_path_id(self, s_point, e_point):
+        print(s_point, e_point)
         query = "SELECT path_id From PathPoint Where Start_point = '%s' AND End_point = '%s';"
         path_id = self.__cur.execute(
             query % (s_point, e_point)).fetchall()[0][0]
