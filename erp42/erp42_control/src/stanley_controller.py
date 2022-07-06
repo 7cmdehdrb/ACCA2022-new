@@ -63,6 +63,7 @@ class StanleyController(object):
 
         msg.Speed = desired_speed
         msg.Steer = m.degrees(-di)
+        msg.Gear = 2
         msg.brake = 0
 
         return msg

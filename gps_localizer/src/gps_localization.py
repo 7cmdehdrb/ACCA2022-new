@@ -4,7 +4,7 @@ import rospy
 import math as m
 import numpy as np
 import tf
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point, Quaternion
 from sensor_msgs.msg import NavSatFix
@@ -27,22 +27,21 @@ class GPS_Position(object):
         msg.pose.pose.position = self.position
         msg.pose.pose.orientation = Quaternion(0., 0., 0., 1.)
 
-
         dist = measure(37.4966977, 126.9575288,
-                    37.4966977 + 1, 126.9575288)
+                       37.4966977 + 1, 126.9575288)
 
         cov = np.reshape(np.array(self.covariance), newshape=(3, 3))
         new_cov = np.array([
             [0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0.],
-            [0., 0., 0., 0., 0.z, 0.],
+            [0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0.],
         ])
 
         for i in range(2):
-            new_cov[i][i] = cov[i][i] * m.sqrt(dist)
+            new_cov[i][i] = cov[i][i] * m.sqrt(dist) + 0.05
 
         new_cov = list(np.reshape(new_cov, newshape=(36, 1)))
         msg.pose.covariance = new_cov
@@ -62,7 +61,6 @@ def measure(lat1, lon1, lat2, lon2):
     return d * 1000
 
 
-
 class GPS_Localizer(object):
     def __init__(self):
         self.gps_sub = rospy.Subscriber(
@@ -79,7 +77,6 @@ class GPS_Localizer(object):
         self.B1 = [952220.27949039731, 1943998.3930866024]
         self.B2 = [952274.35303833662, 1943964.6235879373]
         self.B3 = [952194.09346341831, 1943928.4288452363]
-
 
         D_utm = m.sqrt((self.B3[0] - self.B2[0])
                        ** 2 + (self.B3[1] - self.B2[1]) ** 2)

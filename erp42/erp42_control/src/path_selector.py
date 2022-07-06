@@ -27,14 +27,6 @@ class PathSelector(object):
         self.path = None
         self.getAllPath()
 
-        # while True:
-        #     try:
-        #         print(self.path.data)
-        #         self.goNext()
-        #     except Exception as ex:
-        #         print(ex)
-        #         break
-
     def goNext(self):
         if self.path.next is not None:
             self.path = self.path.next
@@ -70,9 +62,6 @@ class PathSelector(object):
                         self.path = node
 
                     else:
-                        # print(node.data)
-                        # print(temp.data)
-                        # print("@@@@@@")
                         node.append(temp)
                         node = temp
 

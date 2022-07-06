@@ -2,7 +2,7 @@
 <launch>
     <!-- arguments -->
     <arg name="nodelet_manager" default="hdl_nodelet_manager"/>
-    <arg name="points_topic" default="/velodyne_points"/>
+    <arg name="points_topic" default="/velodyne_points2"/>
     <!-- input clouds are transformed in odom_child_frame, and then localization is performed in that frame -->
     <!-- this is useful to match the LIDAR and IMU coodinate systems -->
 

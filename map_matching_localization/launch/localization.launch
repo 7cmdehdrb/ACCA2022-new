@@ -1,5 +1,16 @@
 <launch>
+
+    <arg name="rviz" default="true" />
+    <arg name="bag" default="true" />
+    
+    <arg name="odom_topic" default="odometry/kalman"/>
+    <arg name="matching_err_tol" default="0.05"/>
+    <arg name="inlier_fraction_tol" default="0.95"/>
+    <arg name="is_publish_tf" default="false"/>
+
     <include file="$(find hdl_localization)/launch/hdl_localization.launch" />
     <include file="$(find map_matching_localization)/launch/kalman_localization.launch" />
-    <node pkg="gps_localizer" name="gps_localizer" type="gps_localization.py" />
+
+    <node pkg="rosbag" name="rosbag" type="play" args="/home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/data/kalman_test.bag --topics /velodyne_points /imu/data /ublox_gps/fix /erp42_feedback" />
+    <node pkg="rviz" name="rviz" type="rviz" args="-d /home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/rviz/rviz.rviz" if="$(arg rviz)"/>
 </launch>
