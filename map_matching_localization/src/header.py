@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from nav_msgs.msg import Odometry0
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Quaternion, Point
 from hdl_localization.msg import ScanMatchingStatus, HDL_TF
 

@@ -13,6 +13,8 @@
     <node pkg="map_matching_localization" type="odom_tf.py" name="odom_tf"></node>
 
     <!-- rviz -->
+
     <node type="rviz" name="rviz" pkg="rviz" args="-d $(find map_matching_localization)/rviz/rviz.rviz"/>
+
 
 </launch>

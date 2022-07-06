@@ -44,7 +44,7 @@ class Control():
 
         # Subscriber
         self.control_sub = rospy.Subscriber(
-            "/cmd_msg", ControlMessage, callback=self.cmdCallback()
+            "/cmd_msg", ControlMessage, callback=self.cmdCallback
         )
 
         self.feedback_msg = SerialFeedBack()
@@ -184,7 +184,8 @@ if __name__ == "__main__":
     rospy.init_node("erp42_serial")
 
     # Params
-    port = rospy.get_param("/erp42_port", "/dev/ttyUSB0")
+    port = rospy.get_param("/erp42_serial/erp42_port", "/dev/ttyUSB4")
+    print(port)
 
     # Objects
     control = Control(port_num=port)

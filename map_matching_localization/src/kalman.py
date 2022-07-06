@@ -9,7 +9,6 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from erp42_msgs.msg import SerialFeedBack
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion
 from gaussian import *
 
@@ -182,7 +181,7 @@ class ERP42(Sensor):
 
     def handleData(self, msg):
         cov = getEmpty((4, 4))
-        cov[2][2] = 0.1
+        cov[2][2] = 0.5
 
         return np.array([0., 0., msg.speed, 0.], dtype=np.float64), cov
 

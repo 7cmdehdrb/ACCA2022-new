@@ -1,12 +1,14 @@
+#!/usr/bin/env python
 import sqlite3
+import rospkg
 
 # from path_plan.msg import PathResponse
 
 
 class DB():
     def __init__(self):
-        self.__conn = sqlite3.connect(
-            "/home/acca/catkin_ws/src/ACCA2022-new/path_plan/path.db")
+        db_path = rospkg.RosPack().get_path("path_plan") + "/path.db"
+        self.__conn = sqlite3.connect(db_path)
         self.__cur = self.__conn.cursor()
         self.flag = self.checkDB()
 

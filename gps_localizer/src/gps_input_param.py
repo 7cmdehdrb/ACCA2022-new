@@ -23,6 +23,10 @@ class State():
     def __init__(self, gps_param=None):
         self.gps_params = gps_param
 
+class State():
+    def __init__ (self, gps_param = None):        
+        self.gps_params = gps_param
+    
     def update(self):
         self.__utm_x, self.__utm_y, self.__map_x, self.__map_y = self.gps_params.handleData()
 
@@ -35,6 +39,11 @@ class get_params(object):
             "/ublox_gps/fix", NavSatFix, callback=self.GpsCallback)
         self.Odom_sub = rospy.Subscriber(
             "/odom", Odometry, callback=self.OdomCallback)
+
+class get_params(object):
+    def __init__(self):
+        self.gps_sub = rospy.Subscriber("/ublox_gps/fix", NavSatFix, callback=self.GpsCallback)
+        self.Odom_sub = rospy.Subscriber("/odom", Odometry, callback=self.OdomCallback)
 
         self.GpsMsg = NavSatFix()
         self.OdomMsg = Odometry()
@@ -58,6 +67,7 @@ class get_params(object):
         # WGS84 -> UTM-K
         self.UTM_x, self.UTM_y = transform(
             proj_WGS84, proj_UTMK, self.longitude, self.latitude)
+        self.UTM_x, self.UTM_y = transform(proj_WGS84, proj_UTMK, self.longitude, self.latitude)
         self.odom_x = self.OdomMsg.pose.pose.position.x
         self.odom_y = self.OdomMsg.pose.pose.position.y
 
@@ -79,6 +89,14 @@ if __name__ == "__main__":
     B2 = [0, 0]
     B3 = [0, 0]
     #gx,gy,mx,my = 0., 0., 0., 0.
+    A1 = [0,0]
+    A2 = [0,0]
+    A3 = [0,0]
+    B1 = [0,0]
+    B2 = [0,0]
+    B3 = [0,0]
+    #gx,gy,mx,my = 0., 0., 0., 0.
+    
 
     while not rospy.is_shutdown():
         a = int(input("enter position number :"))
@@ -90,6 +108,8 @@ if __name__ == "__main__":
             map_y = []
             for i in range(10):
                 gx, gy, mx, my = state.update()
+            for i in range(100):
+                gx,gy,mx,my = state.update()
                 utm_x.append(gx)
                 utm_y.append(gy)
                 map_x.append(mx)
@@ -110,6 +130,8 @@ if __name__ == "__main__":
             map_y = []
             for i in range(10):
                 gx, gy, mx, my = state.update()
+            for i in range(100):
+                gx,gy,mx,my = state.update()
                 utm_x.append(gx)
                 utm_y.append(gy)
                 map_x.append(mx)
@@ -127,8 +149,8 @@ if __name__ == "__main__":
             utm_y = []
             map_x = []
             map_y = []
-            for i in range(10):
-                gx, gy, mx, my = state.update()
+            for i in range(100):
+                gx,gy,mx,my = state.update()
                 utm_x.append(gx)
                 utm_y.append(gy)
                 map_x.append(mx)

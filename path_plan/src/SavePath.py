@@ -83,7 +83,8 @@ if __name__ == "__main__":
                     # YES
                     try:
                         db.deletePath(save_path.Request.path_id)
-                        path = save_path.poseArrayToPath(poses=save_path.path)
+                        path = save_path.poseArrayToPath(
+                            poses=save_path.path)
                     except Exception as ex:
                         rospy.logwarn(ex)
             else:
