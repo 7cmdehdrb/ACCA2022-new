@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
+from yaml import load
 import rospy
 import time
+import csv
 from time import sleep
 from DB import *
 from path_plan.msg import PathRequest, PathResponse
@@ -68,6 +70,29 @@ class LoadPath():
 
             self.path.poses.append(pose)
 
+    def check_path_avaliable(self):
+
+        file_path = rospkg.RosPack().get_path("erp42_control") + "/path/global_path.csv"
+
+        with open(file_path, "r") as csvFile:
+            reader = csv.reader(csvFile, delimiter=",")
+            for row in reader:
+                try:
+                    start = row[0]
+                    end = row[1]
+                    path_id = self.db.bring_path_id(start, end)
+
+                except ValueError as ex:
+                    rospy.logwarn(ex)
+
+                except IndexError as ie:
+                    # os.system("killall -9 rosmaster")
+                    os.system("rosnode kill --all")
+                    rospy.logfatal("No path data")
+                    rospy.logfatal(ie)
+                    raise Exception()
+        return 0
+
 
 if __name__ == "__main__":
     rospy.init_node("LoadPath")
@@ -80,10 +105,10 @@ if __name__ == "__main__":
     listpath_pub = rospy.Publisher("list_Path", PathResponse, queue_size=1)
     rospath_pub = rospy.Publisher("ros_Path", Path, queue_size=1)
 
+    load_path.check_path_avaliable()
+
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
-
-        t1 = rospy.Time.now()
 
         if load_path.trig is True:
 
@@ -102,7 +127,5 @@ if __name__ == "__main__":
 
             finally:
                 load_path.trig = False
-                t2 = rospy.Time.now()
-                rospy.logfatal(str((t2 - t1).to_sec()))
 
         r.sleep()

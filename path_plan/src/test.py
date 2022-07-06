@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-import numpy as np
+import rospy
 
-H = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
-p = np.array([[5, 0, 0, 0], [0, 5, 0, 0], [0, 0, 5, 0], [0, 0, 0, 5]])
+if __name__ == "__main__":
+    rospy.init_node("test")
 
-# print(np.dot(H, p))
-A = np.dot(H, p)
-
-print(np.dot(p, H.T))
+    r = rospy.Rate(1.)
+    while not rospy.is_shutdown():
+        r.sleep()

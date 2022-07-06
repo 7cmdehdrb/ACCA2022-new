@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+from ast import Load
 import tf
 import rospy
 from DB import *
 from std_msgs.msg import Empty, String, UInt8
 from path_plan.msg import PathRequest, PathResponse
 from geometry_msgs.msg import PoseArray, Pose
+from nav_msgs.msg import Path
+from LoadPath import LoadPath
 
 
 class SavePath():
@@ -58,6 +61,7 @@ if __name__ == "__main__":
 
     db = DB()
     save_path = SavePath()
+    load_path = LoadPath(db)
 
     rospy.Subscriber("/PathPoint", PathRequest,
                      callback=save_path.PathPointCallback)
@@ -66,6 +70,7 @@ if __name__ == "__main__":
 
     check_pub = rospy.Publisher("/saving_check", String, queue_size=1)
     path_pub = rospy.Publisher("/reset_path", Empty, queue_size=1)
+    existing_path_pub = rospy.Publisher("/existing_path", Path, queue_size=1)
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
@@ -76,6 +81,11 @@ if __name__ == "__main__":
             # save path
             if flag == 1:
                 # already existed
+                # existing path pub
+                load_path.bringPath()
+                load_path.toRosPath()
+                existing_path_pub.publish(load_path.path)
+
                 check_pub.publish(
                     'Path is already existed\nDo you want to overwrite data?')
                 ans = rospy.wait_for_message("/saving_ans", UInt8)  # ?
