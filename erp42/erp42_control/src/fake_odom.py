@@ -24,7 +24,7 @@ def mps2kph(value):
 class FakeOdom(object):
     def __init__(self):
         self.__odom_pub = rospy.Publisher(
-            "/odometry/global", Odometry, queue_size=1)
+            "/odometry/kalman", Odometry, queue_size=1)
         self.cmd_sub = rospy.Subscriber(
             "/cmd_msg", ControlMessage, callback=self.cmdCallback)
         self.__tf_pub = tf.TransformBroadcaster()
@@ -35,7 +35,7 @@ class FakeOdom(object):
         self.__cmd_msg = ControlMessage()
         self.__odom = Odometry()
 
-        self.__odom.header.frame_id = "odom"
+        self.__odom.header.frame_id = "map"
         self.__odom.child_frame_id = "base_link"
 
     def cmdCallback(self, msg):
@@ -50,16 +50,8 @@ class FakeOdom(object):
             translation=(position.x, position.y, position.z),
             rotation=(quat.x, quat.y, quat.z, quat.w),
             time=self.current_time,
-            parent="odom",
-            child="base_link"
-        )
-
-        self.__tf_pub.sendTransform(
-            translation=(0., 0., 0.),
-            rotation=(0., 0., 0., 1.),
-            time=self.current_time,
             parent="map",
-            child="odom"
+            child="base_link"
         )
 
         return 0

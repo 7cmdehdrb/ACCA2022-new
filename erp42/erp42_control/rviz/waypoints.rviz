@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Odometry1
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -171,7 +172,7 @@ Visualization Manager:
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Arrow
-      Topic: /odometry/global
+      Topic: /odometry/kalman
       Unreliable: false
       Value: true
   Enabled: true
@@ -202,25 +203,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 116.4631576538086
+      Distance: 34.64512252807617
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 15.018753051757812
-        Y: -21.069835662841797
-        Z: 1.4071780443191528
+        X: 5.315320014953613
+        Y: -8.014518737792969
+        Z: 1.403584599494934
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.3547965288162231
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.5104031562805176
+      Yaw: 3.530407428741455
     Saved: ~
 Window Geometry:
   Displays:

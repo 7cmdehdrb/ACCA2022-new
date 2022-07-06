@@ -82,9 +82,6 @@ if __name__ == "__main__":
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
-
-        t1 = rospy.Time.now()
-
         if load_path.trig is True:
 
             try:
@@ -102,7 +99,5 @@ if __name__ == "__main__":
 
             finally:
                 load_path.trig = False
-                t2 = rospy.Time.now()
-                rospy.logfatal(str((t2 - t1).to_sec()))
 
         r.sleep()

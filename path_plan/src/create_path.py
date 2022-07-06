@@ -1,20 +1,12 @@
 #!/usr/bin/env python
 
 import rospy
-import rospkg
-import sys
-import os
 import threading
-import csv
 import tf
 import math as m
-import time as t
 from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 from cubic_spline_planner import *
-from path_plan.msg import PathRequest
-
-file_name = rospy.get_param("/save_file_name", "static_path.csv")
 
 
 """
@@ -74,12 +66,13 @@ class GetPose(object):
         self.initial_xs.append(temp_x)
         self.initial_ys.append(temp_y)
 
-        rospy.loginfo("HELLO")
+        rospy.loginfo("ADD POINT")
 
     def posePublish(self):
+        msg = PoseArray()
+
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = "map"
-        # msg.poses = []
 
         temp_poses = []
 
@@ -115,64 +108,16 @@ class GetPose(object):
 
         path_pub.publish(msg)
 
-    def savePoseArray(self):
-        data = rospy.wait_for_message("/save_path", Empty)
-        rospy.loginfo("TRYING TO SAVE PATH...")
-
-        output_file_path = rospkg.RosPack().get_path(
-            'path_plan')+"/saved_path/" + file_name
-
-        with open(output_file_path, 'w') as csvfile:
-            for pose in msg.poses:
-                position_x = pose.position.x
-                position_y = pose.position.y
-
-                x = pose.orientation.x
-                y = pose.orientation.y
-                z = pose.orientation.z
-                w = pose.orientation.w
-
-                (_, _, yaw) = tf.transformations.euler_from_quaternion(
-                    [x, y, z, w])
-
-                csvfile.write(str(position_x) + "," +
-                              str(position_y) + "," + str(yaw) + "\n")
-
-        rospy.loginfo("SAVING FINISHED")
-
-    def deleteOne(self):
-        while not rospy.is_shutdown():
-            if self.deleteFlag is True:
-                rospy.wait_for_message("/delete_path", Empty)
-                rospy.loginfo("DELETE LATEST POINT... PLZ WAIT")
-
-                self.initial_xs.pop()
-                self.initial_ys.pop()
-
-                self.deleteFlag = False
-
-                t.sleep(5.0)
-
-                self.deleteFlag = True
-
-                rospy.loginfo("SUCCESS")
-
 
 if __name__ == "__main__":
     rospy.init_node("create_global_path")
 
     get_pose = GetPose()
 
-    msg = PoseArray()
-
     path_pub = rospy.Publisher("create_global_path", PoseArray, queue_size=1)
     rospy.Subscriber(
         "/move_base_simple/goal", PoseStamped, get_pose.poseCallback)
 
-    th1 = threading.Thread(target=get_pose.savePoseArray)
-    th2 = threading.Thread(target=get_pose.deleteOne)
-    th1.start()
-    th2.start()
     r = rospy.Rate(1.0)
     while not rospy.is_shutdown():
         get_pose.posePublish()

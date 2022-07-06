@@ -13,7 +13,7 @@ from path_plan.msg import PathRequest, PathResponse
 
 
 max_steer = rospy.get_param("/max_steer", 30.0)  # DEG
-desired_speed = rospy.get_param("/desired_speed", 15.)
+desired_speed = rospy.get_param("/desired_speed", 5.)
 
 
 class StanleyController(object):
@@ -47,7 +47,7 @@ class StanleyController(object):
             rospy.logwarn("Path error")
             return ControlMessage(0, 0, 0, 0, 0, 0, 0)
 
-        if len(self.path.cx) * 0.9 < self.target_idx and self.flag is True:
+        if len(self.path.cx) * 0.97 < self.target_idx and self.flag is True:
             self.selector.makeRequest()
             self.selector.goNext()
             self.flag = False
@@ -69,13 +69,15 @@ class StanleyController(object):
         msg.Gear = 2
         msg.brake = 0
 
+        print(msg)
+
         return msg
 
 
 if __name__ == "__main__":
     rospy.init_node("stanley_controller")
 
-    state = State(odometry_topic="/odometry/global")
+    state = State(odometry_topic="/odometry/kalman")
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 
