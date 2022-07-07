@@ -35,7 +35,7 @@ class GPS_Position(object):
         new_cov = np.array([
             [0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0.],
-            [0., 0., 0., 0., 0.z, 0.],
+            [0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0.],
@@ -46,6 +46,7 @@ class GPS_Position(object):
 
         new_cov = list(np.reshape(new_cov, newshape=(36, 1)))
         msg.pose.covariance = new_cov
+        # print(msg)
 
         return msg
 
@@ -79,7 +80,6 @@ class GPS_Localizer(object):
         self.B1 = [952220.27949039731, 1943998.3930866024]
         self.B2 = [952274.35303833662, 1943964.6235879373]
         self.B3 = [952194.09346341831, 1943928.4288452363]
-
 
         D_utm = m.sqrt((self.B3[0] - self.B2[0])
                        ** 2 + (self.B3[1] - self.B2[1]) ** 2)
