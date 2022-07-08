@@ -11,6 +11,8 @@ from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped
 
+db_name = rospy.get_param("/LoadPath/db_name", "/path.db")
+
 
 class LoadPath():
     def __init__(self, db):
@@ -72,8 +74,8 @@ class LoadPath():
 
     def check_path_avaliable(self):
 
-        file_path = rospkg.RosPack().get_path("erp42_control") + "/path/global_path.csv"
-
+        file_path = rospkg.RosPack().get_path("erp42_control") + \
+            rospy.get_param("/LoadPath/path_name", "/path/path.csv")
         with open(file_path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
             for row in reader:
@@ -91,19 +93,20 @@ class LoadPath():
                     rospy.logfatal("No path data")
                     rospy.logfatal(ie)
                     raise Exception()
-        return 0
+        # return 0
 
 
 if __name__ == "__main__":
     rospy.init_node("LoadPath")
 
-    db = DB()
+    db = DB(db_name)
     load_path = LoadPath(db)
 
     PathPoint_sub = rospy.Subscriber(
-        "/PathPoint", PathRequest, callback=load_path.RequestCallback)
-    listpath_pub = rospy.Publisher("list_Path", PathResponse, queue_size=1)
-    rospath_pub = rospy.Publisher("ros_Path", Path, queue_size=1)
+        "/path_request", PathRequest, callback=load_path.RequestCallback)
+    listpath_pub = rospy.Publisher(
+        "/path_response", PathResponse, queue_size=1)
+    rospath_pub = rospy.Publisher("/global_path", Path, queue_size=1)
 
     load_path.check_path_avaliable()
 

@@ -23,7 +23,7 @@ class StanleyController(object):
         self.selector = PathSelector(self.state)
 
         self.response = rospy.Subscriber(
-            "/list_Path", PathResponse, callback=self.path_callback)
+            "/path_response", PathResponse, callback=self.path_callback)
 
         self.target_idx = 0
         self.path = PathResponse()

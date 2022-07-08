@@ -9,6 +9,8 @@ from geometry_msgs.msg import PoseArray, Pose
 from nav_msgs.msg import Path
 from LoadPath import LoadPath
 
+db_name = rospy.get_param("/SavePath/db_name", "/path2.db")
+
 
 class SavePath():
     def __init__(self):
@@ -19,7 +21,7 @@ class SavePath():
     def pathCallback(self, msg):
         self.path = msg
 
-    def PathPointCallback(self, msg):
+    def pathRequestCallback(self, msg):
         self.Request = msg
         self.trig = True
 
@@ -58,16 +60,16 @@ class SavePath():
 if __name__ == "__main__":
     rospy.init_node("SavePath")
 
-    db = DB()
+    db = DB(db_name)
     save_path = SavePath()
     load_path = LoadPath(db)
 
-    rospy.Subscriber("/PathPoint", PathRequest,
-                     callback=save_path.PathPointCallback)
+    rospy.Subscriber("/path_request", PathRequest,
+                     callback=save_path.pathRequestCallback)
     rospy.Subscriber("/create_global_path",
                      PoseArray, callback=save_path.pathCallback)
 
-    check_pub = rospy.Publisher("/saving_check", String, queue_size=1)
+    check_pub = rospy.Publisher("/overwrite_check", String, queue_size=1)
     path_pub = rospy.Publisher("/reset_path", Empty, queue_size=1)
     existed_path_pub = rospy.Publisher("/existed_path", Path, queue_size=1)
 
@@ -80,7 +82,7 @@ if __name__ == "__main__":
             # save path
             if flag == 1:
                 # already existed
-                # existed path pub
+                # check existed path
                 load_path.Request = save_path.Request
                 load_path.bringPath()
                 load_path.toRosPath()
@@ -88,7 +90,7 @@ if __name__ == "__main__":
 
                 check_pub.publish(
                     'Path is already existed\nDo you want to overwrite data?')
-                ans = rospy.wait_for_message("/saving_ans", UInt8)  # ?
+                ans = rospy.wait_for_message("/overwrite_ans", UInt8)  # ?
                 if ans.data == 1:
                     # YES
                     try:

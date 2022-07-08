@@ -21,7 +21,8 @@ class PathSelector(object):
     def __init__(self, state):
         self.state = state
 
-        self.req_pub = rospy.Publisher("/PathPoint", PathRequest, queue_size=1)
+        self.req_pub = rospy.Publisher(
+            "/path_request", PathRequest, queue_size=1)
 
         # Get All Path Data
         self.path = None

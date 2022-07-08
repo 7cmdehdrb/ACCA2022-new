@@ -26,19 +26,19 @@ ros.on('close', (error) => {
 
 const requestPub = new ROSLIB.Topic({
   ros: ros,
-  name: "/PathPoint",
+  name: "/path_request",
   messageType: "path_plan/PathRequest"
 });
 
 const ansPub = new ROSLIB.Topic({
     ros: ros,
-    name: "/saving_ans",
+    name: "/overwrite_ans",
     messageType: "std_msgs/UInt8"
 });
 
 const saveSub = new ROSLIB.Topic({
     ros: ros,
-    name: "/saving_check",
+    name: "/overwrite_check",
     messageType: "std_msgs/String"
 });
 

@@ -1,4 +1,7 @@
 <launch>
     <!-- node -->
-    <node pkg="path_plan" type="LoadPath.py" name="LoadPath" output="screen"/>
+    <node pkg="path_plan" type="LoadPath.py" name="LoadPath" output="screen">
+        <param name="db_name" type="string" value="/path.db"/>
+        <param name="path_name" type="string" value="/path/global_path.csv"/>
+    </node>
 </launch>
