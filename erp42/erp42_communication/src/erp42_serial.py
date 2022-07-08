@@ -184,7 +184,7 @@ if __name__ == "__main__":
     rospy.init_node("erp42_serial")
 
     # Params
-    port = rospy.get_param("/erp42_serial/erp42_port", "/dev/ttyUSB4")
+    port = rospy.get_param("/erp42_serial/erp42_port", "/dev/ttyerp")
     print(port)
 
     # Objects

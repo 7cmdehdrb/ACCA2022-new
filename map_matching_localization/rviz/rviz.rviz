@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /PointCloud22
         - /Odometry1
         - /Odometry1/Shape1
         - /Odometry2/Shape1
@@ -108,7 +109,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.10000000149011612
       Style: Flat Squares
-      Topic: /velodyne_points2
+      Topic: /velodyne_points
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -257,16 +258,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 31.21249771118164
+      Distance: 38.48475646972656
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 4.571718692779541
-        Y: 0.46011579036712646
-        Z: -3.631087064743042
+        X: -1.2163642644882202
+        Y: -3.1410059928894043
+        Z: -3.6377367973327637
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -275,7 +276,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.476468086242676
+      Yaw: 3.656468629837036
     Saved: ~
 Window Geometry:
   Displays:
