@@ -3,7 +3,7 @@
 <launch>
     <arg name="imu_port" default="/dev/ttyIMU" /> 
     <arg name="gps_port" default="/dev/ttyGPS" /> 
-    <arg name="erp_port" default="/dev/ttyUSB4" /> 
+    <!-- <arg name="erp_port" default="/dev/ttyUSB4" />  -->
 
     <!-- <include file="$(find erp42_communication)/launch/erp42.launch"/> -->
     <include file="$(find ublox_gps)/launch/ublox_device.launch"/>
