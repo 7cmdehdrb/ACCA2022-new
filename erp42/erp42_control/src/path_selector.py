@@ -30,6 +30,9 @@ class PathSelector(object):
     def goNext(self):
         if self.path.next is not None:
             self.path = self.path.next
+            return self.path
+
+        return None
 
     def makeRequest(self):
         if self.path is None:

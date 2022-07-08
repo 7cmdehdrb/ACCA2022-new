@@ -1,31 +1,34 @@
 #!/usr/bin/env python
 
-from time import sleep
 import rospy
 import tf
 import math as m
 import numpy as np
+from time import sleep
 from stanley import Stanley
 from state import State
 from path_selector import PathSelector
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
+from speed_supporter import SpeedSupporter
 
 
 max_steer = rospy.get_param("/max_steer", 30.0)  # DEG
-desired_speed = rospy.get_param("/desired_speed", 5.)
+desired_speed = rospy.get_param("/desired_speed", 10.)
 
 
 class StanleyController(object):
     def __init__(self, state):
         self.state = state
         self.stanley = Stanley()
+        self.supporter = SpeedSupporter()
         self.selector = PathSelector(self.state)
 
         self.response = rospy.Subscriber(
             "/list_Path", PathResponse, callback=self.path_callback)
 
-        self.flag = True
+        self.request_time = rospy.Time.now()
+        self.is_last = False
         self.target_idx = 0
         self.path = PathResponse()
 
@@ -40,17 +43,13 @@ class StanleyController(object):
     def path_callback(self, msg):
         self.target_idx = 0
         self.path = msg
-        self.flag = True
 
     def makeControlMessage(self):
+        global desired_speed
+
         if len(self.path.cx) == 0:
             rospy.logwarn("Path error")
             return ControlMessage(0, 0, 0, 0, 0, 0, 0)
-
-        if len(self.path.cx) * 0.97 < self.target_idx and self.flag is True:
-            self.selector.makeRequest()
-            self.selector.goNext()
-            self.flag = False
 
         di, target_idx = self.stanley.stanley_control(
             self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
@@ -62,14 +61,29 @@ class StanleyController(object):
         # TO DO: You MUST handle control message PERFECTLY.
         # Please remind AorM and Gear
 
+        current_time = rospy.Time.now()
+        dt = (current_time - self.request_time).to_sec()
+
+        if len(self.path.cx) * 0.97 < self.target_idx and dt > 10. and self.is_last is False:
+            self.request_time = rospy.Time.now()
+            self.selector.makeRequest()
+
+            if self.selector.goNext() is None:
+                desired_speed = 0.
+                self.is_last = True
+
         msg = ControlMessage()
 
-        msg.Speed = desired_speed
+        speed = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
+                                       desired_value=desired_speed, max_value=15.)
+
+        # msg.Speed = desired_speed
+        msg.Speed = int(speed)
         msg.Steer = m.degrees(-di)
         msg.Gear = 2
         msg.brake = 0
 
-        print(msg)
+        # print(msg)
 
         return msg
 

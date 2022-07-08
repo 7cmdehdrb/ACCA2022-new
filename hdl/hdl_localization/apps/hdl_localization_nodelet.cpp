@@ -458,8 +458,6 @@ private:
 
     pose_pub.publish(odom);
   }
-  */
-
 
   /**
    * @brief publish scan matching status information
