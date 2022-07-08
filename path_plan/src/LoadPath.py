@@ -76,9 +76,10 @@ if __name__ == "__main__":
     load_path = LoadPath(db)
 
     PathPoint_sub = rospy.Subscriber(
-        "/PathPoint", PathRequest, callback=load_path.RequestCallback)
-    listpath_pub = rospy.Publisher("list_Path", PathResponse, queue_size=1)
-    rospath_pub = rospy.Publisher("ros_Path", Path, queue_size=1)
+        "/path_request", PathRequest, callback=load_path.RequestCallback)
+    listpath_pub = rospy.Publisher(
+        "/path_response", PathResponse, queue_size=1)
+    rospath_pub = rospy.Publisher("/global_path", Path, queue_size=1)
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():

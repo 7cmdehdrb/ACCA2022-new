@@ -5,7 +5,6 @@ import rosgraph
 import rostopic
 import numpy as np
 import math as m
-import tf
 from sensor_msgs.msg import *
 from nav_msgs.msg import *
 from geometry_msgs.msg import *

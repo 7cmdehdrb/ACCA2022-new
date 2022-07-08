@@ -66,6 +66,6 @@ class DB():
         return path_id
 
     def bring_pathinfo(self, path_id):
-        query = "SELECT x, y, yaw From PathInfo  Where path_id = '%s';"
+        query = "SELECT x, y, yaw From PathInfo Where path_id = '%s';"
         pathinfo = self.__cur.execute(query % (path_id)).fetchall()
         return pathinfo
