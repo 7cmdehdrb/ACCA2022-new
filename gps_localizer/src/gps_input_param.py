@@ -3,6 +3,7 @@
 import math as m
 import numpy as np
 import rospy
+import pandas as pd
 from pyproj import Proj, transform
 import tf
 from tf.transformations import euler_from_quaternion
@@ -23,10 +24,6 @@ class State():
     def __init__(self, gps_param=None):
         self.gps_params = gps_param
 
-class State():
-    def __init__ (self, gps_param = None):        
-        self.gps_params = gps_param
-    
     def update(self):
         self.__utm_x, self.__utm_y, self.__map_x, self.__map_y = self.gps_params.handleData()
 
@@ -40,11 +37,6 @@ class get_params(object):
         self.Odom_sub = rospy.Subscriber(
             "/odom", Odometry, callback=self.OdomCallback)
 
-class get_params(object):
-    def __init__(self):
-        self.gps_sub = rospy.Subscriber("/ublox_gps/fix", NavSatFix, callback=self.GpsCallback)
-        self.Odom_sub = rospy.Subscriber("/odom", Odometry, callback=self.OdomCallback)
-
         self.GpsMsg = NavSatFix()
         self.OdomMsg = Odometry()
 
@@ -57,7 +49,6 @@ class get_params(object):
     def handleData(self):
         self.latitude = self.GpsMsg.latitude
         self.longitude = self.GpsMsg.longitude
-        print(self.latitude, self.longitude)
 
         # UTM-K
         proj_UTMK = Proj(init='epsg:5178')
@@ -67,7 +58,6 @@ class get_params(object):
         # WGS84 -> UTM-K
         self.UTM_x, self.UTM_y = transform(
             proj_WGS84, proj_UTMK, self.longitude, self.latitude)
-        self.UTM_x, self.UTM_y = transform(proj_WGS84, proj_UTMK, self.longitude, self.latitude)
         self.odom_x = self.OdomMsg.pose.pose.position.x
         self.odom_y = self.OdomMsg.pose.pose.position.y
 
@@ -80,36 +70,24 @@ if __name__ == "__main__":
     get_pa = get_params()
     state = State(get_pa)
 
-    count = 0
+    df = pd.DataFrame
 
-    A1 = [0, 0]
-    A2 = [0, 0]
-    A3 = [0, 0]
-    B1 = [0, 0]
-    B2 = [0, 0]
-    B3 = [0, 0]
-    #gx,gy,mx,my = 0., 0., 0., 0.
-    A1 = [0,0]
-    A2 = [0,0]
-    A3 = [0,0]
-    B1 = [0,0]
-    B2 = [0,0]
-    B3 = [0,0]
-    #gx,gy,mx,my = 0., 0., 0., 0.
-    
+    MAP_array = []
+    UTM_array = []
 
+    r = rospy.Time.now()
+    MAP_array = []
+    UTM_array = []
     while not rospy.is_shutdown():
-        a = int(input("enter position number :"))
+        a = int(input("start:0     stop:1  "))
+        if a == 0:
+            utm_x = []
+            utm_y = []
+            map_x = []
+            map_y = []
 
-        if a == 1:
-            utm_x = []
-            utm_y = []
-            map_x = []
-            map_y = []
-            for i in range(10):
+            for i in range(50):
                 gx, gy, mx, my = state.update()
-            for i in range(100):
-                gx,gy,mx,my = state.update()
                 utm_x.append(gx)
                 utm_y.append(gy)
                 map_x.append(mx)
@@ -118,60 +96,19 @@ if __name__ == "__main__":
             _utm_y = np.mean(utm_y)
             _map_x = np.mean(map_x)
             _map_y = np.mean(map_y)
-            A1 = [_map_x, _map_y]
-            B1 = [_utm_x, _utm_y]
-            print("A1: {}".format(A1))
-            print("B1: {}".format(B1))
-
-        elif a == 2:
-            utm_x = []
-            utm_y = []
-            map_x = []
-            map_y = []
-            for i in range(10):
-                gx, gy, mx, my = state.update()
-            for i in range(100):
-                gx,gy,mx,my = state.update()
-                utm_x.append(gx)
-                utm_y.append(gy)
-                map_x.append(mx)
-                map_y.append(my)
-            _utm_x = np.mean(utm_x)
-            _utm_y = np.mean(utm_y)
-            _map_x = np.mean(map_x)
-            _map_y = np.mean(map_y)
-            A2 = [_map_x, _map_y]
-            B2 = [_utm_x, _utm_y]
-            print("A2: {}".format(A2))
-            print("B2: {}".format(B2))
-        elif a == 3:
-            utm_x = []
-            utm_y = []
-            map_x = []
-            map_y = []
-            for i in range(100):
-                gx,gy,mx,my = state.update()
-                utm_x.append(gx)
-                utm_y.append(gy)
-                map_x.append(mx)
-                map_y.append(my)
-            _utm_x = np.mean(utm_x)
-            _utm_y = np.mean(utm_y)
-            _map_x = np.mean(map_x)
-            _map_y = np.mean(map_y)
-            A3 = [_map_x, _map_y]
-            B3 = [_utm_x, _utm_y]
-            print("A3: {}".format(A3))
-            print("B3: {}".format(B3))
-        else:
-            D_utm = m.sqrt((B3[0] - B2[0]) ** 2 + (B3[1] - B2[1]) ** 2)
-            D_map = m.sqrt((A3[0] - A2[0]) ** 2 + (A3[1] - A2[1]) ** 2)
-            R = D_map / D_utm
-            print("A1: {}".format(A1))
-            print("B1: {}".format(B1))
-            print("A2: {}".format(A2))
-            print("B2: {}".format(B2))
-            print("A3: {}".format(A3))
-            print("B3: {}".format(B3))
-            print("R: {}".format(R))
+            map = (_map_x, _map_y)
+            utm = (_utm_x, _utm_y)
+            MAP_array.append(map)
+            UTM_array.append(utm)
+        elif a == 1:
             break
+        else:
+            print("error number")
+            pass
+    print("self.MAP_array = {}".format(MAP_array))
+    print("self.MAP_array = {}".format(UTM_array))
+
+    df = pd.DataFrame(columns=['MAP', 'UTM'])
+    df["MAP"] = MAP_array
+    df["UTM"] = UTM_array
+    df.to_csv("school_coordinate.csv", index=False)

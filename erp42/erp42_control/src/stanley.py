@@ -17,8 +17,8 @@ Output: steer
 class Stanley(object):
     def __init__(self):
         self.__L = 1.040  # [m] Wheel base of vehicle
-        self.__k = rospy.get_param("/c_gain", 1.0)  # control gain
-        self.__hdr_ratio = rospy.get_param("/hdr_ratio", 1.0)
+        self.__k = rospy.get_param("/c_gain", 0.9)  # control gain
+        self.__hdr_ratio = rospy.get_param("/hdr_ratio", 1.1)
 
         self.__ind = 0
 

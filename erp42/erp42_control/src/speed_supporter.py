@@ -18,7 +18,7 @@ class SpeedSupporter(object):
         self.hdr = None
         self.ctr = None
 
-        self.p_gain = 1.
+        self.p_gain = 1.3
         self.i_gain = 0.
         self.d_gain = 0.
 
@@ -37,9 +37,9 @@ class SpeedSupporter(object):
         self.hdr = abs(msg.hdr)
         self.ctr = abs(msg.ctr)
 
-    def control(self, current_value, desired_value, max_value):
+    def control(self, current_value, desired_value, max_value, min_value=5):
         desired_value = self.adaptSpeed(
-            desired_value, max_value=max_value, min_value=3)
+            desired_value, max_value=max_value, min_value=5)
         input_value = self.PIDcontrol(current_value, desired_value)
         input_value = np.clip(input_value, 0., max_value)
 
@@ -61,7 +61,7 @@ class SpeedSupporter(object):
                                              self.i_err) + (self.d_gain * self.d_err)
         return current_value + gain
 
-    def adaptSpeed(self, value, max_value, min_value=3, hdr_threshold=0.02, ctr_threshold=0.08):
+    def adaptSpeed(self, value, max_value, min_value=5, hdr_threshold=0.01, ctr_threshold=0.08):
         if self.hdr is None or self.ctr is None:
             return value
 

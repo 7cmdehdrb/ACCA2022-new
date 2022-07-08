@@ -14,7 +14,7 @@ from speed_supporter import SpeedSupporter
 
 
 max_steer = rospy.get_param("/max_steer", 30.0)  # DEG
-desired_speed = rospy.get_param("/desired_speed", 10.)
+desired_speed = rospy.get_param("/desired_speed", 5.)
 
 
 class StanleyController(object):
@@ -74,11 +74,13 @@ class StanleyController(object):
 
         msg = ControlMessage()
 
-        speed = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                       desired_value=desired_speed, max_value=15.)
+        #  speed = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
+                                    #  desired_value=desired_speed, max_value=12, min_value=5)
 
         # msg.Speed = desired_speed
-        msg.Speed = int(speed)
+        print(desired_speed)
+
+        msg.Speed = int(desired_speed) if desired_speed != 0 else int(0)
         msg.Steer = m.degrees(-di)
         msg.Gear = 2
         msg.brake = 0

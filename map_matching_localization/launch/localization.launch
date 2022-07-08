@@ -1,6 +1,6 @@
 <launch>
 
-    <arg name="rviz" default="true" />
+    <arg name="rviz" default="false" />
     <arg name="bag" default="true" />
     
     <arg name="odom_topic" default="odometry/kalman"/>
