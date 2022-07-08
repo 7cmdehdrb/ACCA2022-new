@@ -458,11 +458,7 @@ private:
 
     pose_pub.publish(odom);
   }
-<<<<<<< HEAD
-  
 
-=======
->>>>>>> 33305971fa3d5dab130e78727b4e1a8d1aa9f7b9
 
   /**
    * @brief publish scan matching status information

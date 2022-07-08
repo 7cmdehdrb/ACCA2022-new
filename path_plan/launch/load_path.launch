@@ -1,6 +1,19 @@
 <launch>
-    <!-- node -->
-    <node pkg="path_plan" type="LoadPath.py" name="LoadPath" output="screen"/>
-    <include file="$(find erp42_control)/launch/waypoints.launch" />
 
+    <arg name="odometry_enable" default="true" />
+    <arg name="save_waypoint" default="false" />
+    <arg name="db_name" default="/path.db" />
+    <arg name="path_name" default="/path/global_path.csv" />
+
+    <!-- waypoints -->
+    <include file="$(find erp42_control)/launch/waypoints.launch">
+        <arg name="save_waypoint" default="$(arg save_waypoint)" />
+        <arg name="odometry_enable" default="$(arg odometry_enable)" />
+    </include>
+
+    <!-- node -->
+    <node pkg="path_plan" type="LoadPath.py" name="LoadPath" output="screen">
+        <param name="db_name" type="string" value="$(arg db_name)"/>
+        <param name="path_name" type="string" value="$(arg path_name)"/>
+    </node>
 </launch>

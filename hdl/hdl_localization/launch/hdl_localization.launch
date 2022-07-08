@@ -8,7 +8,7 @@
 
     <!-- optional arguments -->
     <arg name="odom_child_frame_id" default="base_link"/> 
-    <arg name="is_publish_tf" default="false"/>
+    <arg name="is_publish_tf" default="true"/>
     <arg name="use_imu" default="false"/>
     <arg name="invert_imu_acc" default="false"/>
     <arg name="invert_imu_gyro" default="false"/>

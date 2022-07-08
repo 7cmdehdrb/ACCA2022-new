@@ -52,7 +52,7 @@ class TemperalPoint(object):
         self.sub = rospy.Subscriber(
             "/move_base_simple/goal", PoseStamped, callback=self.temperalPointCallback)
 
-        self.do_save = rospy.get_param("/waypoints/do_save", True)
+        self.do_save = rospy.get_param("/waypoints/save_waypoint", True)
 
         self.marker = Marker()
 
