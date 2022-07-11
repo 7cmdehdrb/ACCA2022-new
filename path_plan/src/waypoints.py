@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import sys
+import os
 import rospy
 import rospkg
 import numpy as np
@@ -98,8 +100,10 @@ class TemperalPoint(object):
 
 class WayPoints(object):
     def __init__(self):
-        self.file_name = rospy.get_param("/waypoints/waypoints_file", "path.csv")
-        self.path = rospkg.RosPack().get_path("erp42_control") + "/path/" + self.file_name
+        self.file_name = rospy.get_param(
+            "/waypoints/waypoints_file", "path.csv")
+        self.path = rospkg.RosPack().get_path("path_plan") + \
+            "/waypoints/" + self.file_name
 
         self.__waypoints = []
         self.__waypoints_pub = rospy.Publisher(
@@ -132,16 +136,18 @@ class WayPoints(object):
 
     # Initial function. Read CSV
     def loadWaypoints(self):
-        with open(self.path, "r") as csvFile:
-            reader = csv.reader(csvFile, delimiter=",")
-            for row in reader:
-                try:
-                    print(row)
+        try:
+            with open(self.path, "r") as csvFile:
+                reader = csv.reader(csvFile, delimiter=",")
+                for row in reader:
                     waypoint = WayPoint(id=row[0], pose=Point(
                         float(row[1]), float(row[2]), 0.))
                     self.__waypoints.append(waypoint)
-                except ValueError as ve:
-                    rospy.logwarn(ve)
+        except Exception as ex:
+            rospy.logwarn(ex)
+            os.system(
+                "touch touch ~/catkin_ws/src/ACCA2022-new/erp42/erp42_control/waypoints/%s" % self.file_name
+            )
 
         self.publishWaypoints()
 

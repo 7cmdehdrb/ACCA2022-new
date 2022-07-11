@@ -4,17 +4,19 @@ import rospy
 import tf
 import math as m
 import numpy as np
-from time import sleep
 from stanley import Stanley
 from state import State
 from path_selector import PathSelector
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from speed_supporter import SpeedSupporter
+from time import sleep
 
 
-max_steer = rospy.get_param("/max_steer", 30.0)  # DEG
-desired_speed = rospy.get_param("/desired_speed", 7.)
+max_steer = rospy.get_param("/stanley_controller/max_steer", 30.0)  # DEG
+desired_speed = rospy.get_param("/stanley_controller/desired_speed", 7.)
+speed_control_enable = rospy.get_param(
+    "/stanley_controller/speed_control_enable", True)
 
 
 class StanleyController(object):
@@ -32,13 +34,10 @@ class StanleyController(object):
         self.target_idx = 0
         self.path = PathResponse()
 
-        sleep(3.)
+        sleep(2.)
 
         self.selector.makeRequest()
         self.selector.goNext()
-
-        # , _ = self.stanley.calc_target_index(
-        #     self.state, self.path.cx, self.path.cy)
 
     def path_callback(self, msg):
         self.target_idx = 0
@@ -74,18 +73,19 @@ class StanleyController(object):
 
         msg = ControlMessage()
 
-        speed = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                     desired_value=desired_speed, max_value=10, min_value=5)
+        if speed_control_enable is True:
+            speed = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
+                                           desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
-        # msg.Speed = desired_speed
-        # print(desired_speed)
+        else:
+            speed = desired_speed
 
-        msg.Speed = int(speed) if desired_speed != 0 else int(0)
+        msg.Speed = int(speed) if self.is_last is False else 0
         msg.Steer = m.degrees(-di)
         msg.Gear = 2
         msg.brake = 0
 
-        # print(msg)
+        print(msg)
 
         return msg
 
