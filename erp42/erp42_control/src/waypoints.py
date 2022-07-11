@@ -98,7 +98,8 @@ class TemperalPoint(object):
 
 class WayPoints(object):
     def __init__(self):
-        self.path = rospkg.RosPack().get_path("erp42_control") + "/path/path.csv"
+        self.file_name = rospy.get_param("/waypoints/waypoints_file", "path.csv")
+        self.path = rospkg.RosPack().get_path("erp42_control") + "/path/" + self.file_name
 
         self.__waypoints = []
         self.__waypoints_pub = rospy.Publisher(

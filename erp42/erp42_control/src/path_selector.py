@@ -46,7 +46,7 @@ class PathSelector(object):
         self.req_pub.publish(self.path.data)
 
     def getAllPath(self):
-        file_path = rospkg.RosPack().get_path("erp42_control") + "/path/global_path.csv"
+        file_path = rospkg.RosPack().get_path("erp42_control") + "/path/kcity_path.csv"
 
         node = None
 

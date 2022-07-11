@@ -86,7 +86,7 @@ if __name__ == "__main__":
             map_x = []
             map_y = []
 
-            for i in range(50):
+            for i in range(100):
                 gx, gy, mx, my = state.update()
                 utm_x.append(gx)
                 utm_y.append(gy)
@@ -106,9 +106,9 @@ if __name__ == "__main__":
             print("error number")
             pass
     print("self.MAP_array = {}".format(MAP_array))
-    print("self.MAP_array = {}".format(UTM_array))
+    print("self.UTM_array = {}".format(UTM_array))
 
     df = pd.DataFrame(columns=['MAP', 'UTM'])
     df["MAP"] = MAP_array
     df["UTM"] = UTM_array
-    df.to_csv("school_coordinate.csv", index=False)
+    df.to_csv("kcity.csv", index=False)

@@ -1,14 +1,7 @@
 <launch>
-<<<<<<< HEAD
-
-    <arg name="rviz" default="false" />
-    <arg name="bag" default="true" />
-    
-=======
->>>>>>> a2c4589f8b0ece6082d24428ad7592383daafb1c
     <arg name="odom_topic" default="odometry/kalman"/>
-    <arg name="matching_err_tol" default="0.05"/>
-    <arg name="inlier_fraction_tol" default="0.95"/>
+    <arg name="matching_err_tol" default="0.5"/>
+    <arg name="inlier_fraction_tol" default="0.5"/>
     <arg name="is_publish_tf" default="false"/>
     <!-- is_publish_tf is True => tf is based on hdl -->
     <!-- else => tf is based on kalman -->

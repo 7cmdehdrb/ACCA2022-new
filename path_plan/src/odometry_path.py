@@ -62,8 +62,9 @@ class OdometryPath(object):
 
     def appendPath(self, x, y):
         if len(self.xs) == 0 and len(self.ys) == 0:
-            self.xs.append(x)
-            self.ys.append(y)
+            if x != 0:
+                self.xs.append(x)
+                self.ys.append(y)
 
         else:
             if self.calculateDistance(x, self.xs[-1], y, self.ys[-1]) > 1.0:

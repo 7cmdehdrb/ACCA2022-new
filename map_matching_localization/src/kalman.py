@@ -164,11 +164,14 @@ class Sensor(object):
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])
+        self.once = False
+
         self.sub = rospy.Subscriber(
             topic, msg_type, callback=self.sensorCallback)
 
     def sensorCallback(self, msg):
         self.data, self.cov = self.handleData(msg)
+        self.once = True
 
     def handleData(self, msg):
         return np.array([0., 0., 0., 0.], dtype=np.float64), self.cov
@@ -291,6 +294,12 @@ if __name__ == "__main__":
     erp = ERP42("/erp42_feedback", SerialFeedBack)
     imu = Xsens("/imu/data", Imu)
 
+    sensors = [
+        gps, hdl, erp, imu
+    ]
+
+    flag = False
+
     kf = Kalman()
 
     hz = 10
@@ -307,7 +316,16 @@ if __name__ == "__main__":
         try:
             x, P = kf.filter(gps, hdl, erp, imu,
                              dt=(current_time - last_time).to_sec())
-            kf.publishOdom(x, P)
+            if flag is False:
+                temp = True
+                for s in sensors:
+                    if s.once is False:
+                        temp = False
+                        break
+                if temp is True:
+                    flag = True
+            else:
+                kf.publishOdom(x, P)
         except Exception as ex:
             rospy.logwarn(ex)
 
