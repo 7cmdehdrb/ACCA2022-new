@@ -12,19 +12,24 @@ class SpeedSupporter(object):
         self.stanley_err_sub = rospy.Subscriber(
             "/stanley_error", StanleyError, callback=self.stanleyErrCallback)
 
-        self.h_gain = 10.
-        self.c_gain = 5.
+        self.he_gain = rospy.get_param("/stanley_controller/he_gain", 30.0)
+        self.ce_gain = rospy.get_param("/stanley_controller/ce_gain", 15.0)
 
         self.hdr = None
         self.ctr = None
 
-        self.p_gain = 1.3
-        self.i_gain = 0.
-        self.d_gain = 0.
+        self.p_gain = rospy.get_param("/stanley_controller/p_gain", 1.0)
+        self.i_gain = rospy.get_param("/stanley_controller/i_gain", 0.0)
+        self.d_gain = rospy.get_param("/stanley_controller/d_gain", 0.0)
 
         self.p_err = 0.
         self.i_err = 0.
         self.d_err = 0.
+
+        self.hdr_threshold = rospy.get_param(
+            "/stanley_controller/hdr_threshold", 0.01)
+        self.ctr_threshold = rospy.get_param(
+            "/stanley_controller/ctr_threshold", 0.08)
 
         self.current = rospy.Time.now()
         self.last = rospy.Time.now()
@@ -61,16 +66,16 @@ class SpeedSupporter(object):
                                              self.i_err) + (self.d_gain * self.d_err)
         return current_value + gain
 
-    def adaptSpeed(self, value, max_value, min_value=5, hdr_threshold=0.01, ctr_threshold=0.08):
+    def adaptSpeed(self, value, max_value, min_value=5):
         if self.hdr is None or self.ctr is None:
             return value
 
-        hdr = self.func(self.hdr, -3.0, hdr_threshold) * self.h_gain
-        ctr = self.func(self.ctr, -5.0, ctr_threshold) * self.c_gain
+        hdr = self.func(self.hdr, -self.he_gain, self.hdr_threshold)
+        ctr = self.func(self.ctr, -self.ce_gain, self.ctr_threshold)
         err = hdr + ctr
 
         res = np.clip(value + err, min_value, max_value)
 
-        print(hdr, ctr, res)
+        # print(hdr, ctr, res)
 
         return res

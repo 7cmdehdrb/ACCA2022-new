@@ -1,0 +1,35 @@
+<launch>
+
+    <!-- Basic Controller Params -->
+    <arg name="max_steer" default="30" />
+    <arg name="desired_speed" default="7.0" />
+
+    <!-- Stanley Controller Params -->
+    <arg name="c_gain" default="1.0" />
+    <arg name="hdr_ratio" default="1.0" />
+
+    <!-- PID Controller Params -->
+    <arg name="p_gain" default="1.0" />
+    <arg name="i_gain" default="0.0" />
+    <arg name="d_gain" default="0.0" />
+
+    <!-- Speed Supporter Params -->
+    <arg name="he_gain" default="30.0" />
+    <arg name="ce_gain" default="15.0" />
+    <arg name="hdr_threshold" default="0.01" />
+    <arg name="ctr_threshold" default="0.08" />
+
+    <node pkg="erp42_control" name="stanley_controller" type="stanley_controller.py">
+        <param name="max_steer" type="int" value="$(arg max_steer)" /> 
+        <param name="desired_speed" type="float" value="$(arg desired_speed)" />
+        <param name="c_gain" type="float" value="$(arg c_gain)" />
+        <param name="hdr_ratio" type="float" value="$(arg hdr_ratio)" />
+        <param name="p_gain" type="float" value="$(arg p_gain)" />
+        <param name="i_gain" type="float" value="$(arg i_gain)" />
+        <param name="d_gain" type="float" value="$(arg d_gain)" />
+        <param name="he_gain" type="float" value="$(arg he_gain)" />
+        <param name="ce_gain" type="float" value="$(arg ce_gain)" />
+        <param name="hdr_threshold" type="float" value="$(arg hdr_threshold)" />
+        <param name="ctr_threshold" type="float" value="$(arg ctr_threshold)" />
+    </node>
+</launch>
