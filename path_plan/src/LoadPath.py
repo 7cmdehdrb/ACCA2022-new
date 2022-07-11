@@ -49,9 +49,9 @@ class LoadPath():
 
     def toRosPath(self):
         # ros path publish
-        self.path = Path()
-        self.path.header.frame_id = "map"
-        self.path.header.stamp = rospy.Time.now()
+        path = Path()
+        path.header.frame_id = "map"
+        path.header.stamp = rospy.Time.now()
 
         for info in self.path_info:
 
@@ -70,7 +70,9 @@ class LoadPath():
             pose.pose.orientation.z = quat[2]
             pose.pose.orientation.w = quat[3]
 
-            self.path.poses.append(pose)
+            path.poses.append(pose)
+
+        return path
 
     def check_path_avaliable(self):
         path = []
@@ -98,8 +100,11 @@ class LoadPath():
                     raise Exception()
 
             self.path_info = path
-            self.toRosPath()
-            rospath_pub.publish(self.path)
+            ros_path = self.toRosPath()
+
+            for i in range(10):
+                rospath_pub.publish(ros_path)
+                sleep(0.1)
 
 
 if __name__ == "__main__":
@@ -127,8 +132,8 @@ if __name__ == "__main__":
                 listpath_pub.publish(res)
 
                 if PathPoint_sub.get_num_connections() > 0:
-                    load_path.toRosPath()
-                    rospath_pub.publish(load_path.path)
+                    ros_path = load_path.toRosPath()
+                    rospath_pub.publish(ros_path)
                     rospy.loginfo('ros path published')
 
             except Exception as ex:
