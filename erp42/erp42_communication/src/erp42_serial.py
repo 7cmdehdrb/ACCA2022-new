@@ -104,6 +104,7 @@ class Control():
         while not exitThread:
             try:
                 for i in self.ser.read():
+                    # print(i)
                     line.append(i)
                     if ord(i) == 83:
                         del line[:]

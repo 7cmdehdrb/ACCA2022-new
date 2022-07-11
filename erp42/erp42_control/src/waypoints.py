@@ -52,7 +52,7 @@ class TemperalPoint(object):
         self.sub = rospy.Subscriber(
             "/move_base_simple/goal", PoseStamped, callback=self.temperalPointCallback)
 
-        self.do_save = rospy.get_param("/waypoints/do_save", True)
+        self.do_save = rospy.get_param("/waypoints/save_waypoint", True)
 
         self.marker = Marker()
 
@@ -98,7 +98,8 @@ class TemperalPoint(object):
 
 class WayPoints(object):
     def __init__(self):
-        self.path = rospkg.RosPack().get_path("erp42_control") + "/path/path.csv"
+        self.file_name = rospy.get_param("/waypoints/waypoints_file", "path.csv")
+        self.path = rospkg.RosPack().get_path("erp42_control") + "/path/" + self.file_name
 
         self.__waypoints = []
         self.__waypoints_pub = rospy.Publisher(

@@ -62,8 +62,9 @@ class OdometryPath(object):
 
     def appendPath(self, x, y):
         if len(self.xs) == 0 and len(self.ys) == 0:
-            self.xs.append(x)
-            self.ys.append(y)
+            if x != 0:
+                self.xs.append(x)
+                self.ys.append(y)
 
         else:
             if self.calculateDistance(x, self.xs[-1], y, self.ys[-1]) > 1.0:
@@ -81,8 +82,10 @@ class OdometryPath(object):
 if __name__ == "__main__":
     rospy.init_node("odometry_path")
 
+    odom_topic = rospy.get_param(
+        "/odometry_path/odom_topic", "/odometry/kalman")
     odom_path = OdometryPath()
-    state = State(odometry_topic="/odometry/kalman")
+    state = State(odometry_topic=odom_topic)
 
     r = rospy.Rate(1)
     while not rospy.is_shutdown():

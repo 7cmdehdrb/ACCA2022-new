@@ -8,7 +8,7 @@
 
     <!-- optional arguments -->
     <arg name="odom_child_frame_id" default="base_link"/> 
-    <arg name="is_publish_tf" default="false"/>
+    <arg name="is_publish_tf" default="true"/>
     <arg name="use_imu" default="false"/>
     <arg name="invert_imu_acc" default="false"/>
     <arg name="invert_imu_gyro" default="false"/>
@@ -28,7 +28,7 @@
 
     <!-- globalmap_server_nodelet -->
     <node pkg="nodelet" type="nodelet" name="globalmap_server_nodelet" args="load hdl_localization/GlobalmapServerNodelet $(arg nodelet_manager)">
-        <param name="globalmap_pcd" value="$(find hdl_localization)/data/school.pcd"/>
+        <param name="globalmap_pcd" value="$(find map_matching_localization)/data/0710_kcity_02.pcd"/>
         <param name="convert_utm_to_local" value="false"/>
         <param name="downsample_resolution" value="0.1"/>
     </node>

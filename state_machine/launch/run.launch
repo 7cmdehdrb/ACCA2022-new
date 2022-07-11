@@ -1,0 +1,12 @@
+<launch>
+    <!-- <node pkg="erp42_control" name="stanley_controller" type="stanley_controller.py" output="screen" /> -->
+
+    <include file="$(find map_matching_localization)/launch/localization.launch" />
+
+    <include file="$(find path_plan)/launch/load_path.launch">
+        <arg name="odometry_enable" default="true" />
+        <arg name="save_waypoint" default="false" />
+        <arg name="db_name" default="/kcity_path.db" />
+        <arg name="path_name" default="/path/kcity_path.csv" />
+    </include>
+</launch>

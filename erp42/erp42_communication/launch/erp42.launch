@@ -1,6 +1,7 @@
 <launch>
     <arg name="erp_port" default="/dev/ttyerp" /> 
 
-    <node pkg="erp42_communication" type="erp42_serial.py" name="erp42_serial" output="screen"/>
+    <node pkg="erp42_communication" type="erp42_serial.py" name="erp42_serial" output="screen">
         <param name="erp_port" value="$(arg erp_port)"/>
+    </node>
 </launch>
