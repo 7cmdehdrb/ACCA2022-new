@@ -3,7 +3,7 @@
         <param name="do_save" type="bool" value="false" />
     </node>
 
-    <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="$(find map_matching_localization)/data/school.pcd _frame_id:=/map 5" />
+    <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="$(find hdl_localization)/data/GlobalMap.pcd _frame_id:=/map 5" />
 
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
         <arg name="port" value="9090"/>
