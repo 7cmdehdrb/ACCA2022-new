@@ -3,11 +3,11 @@
     <arg name="odometry_enable" default="true" />
     <arg name="save_waypoint" default="false" />
     <arg name="db_name" default="/path.db" />
-    <arg name="path_name" default="path.csv" />
+    <arg name="path_name" default="global_path.csv" />
     <arg name="waypoints_file" default="kcity.csv" />
 
     <!-- waypoints -->
-    <include file="$(find erp42_control)/launch/waypoints.launch">
+    <include file="$(find path_plan)/launch/waypoints.launch">
         <arg name="save_waypoint" default="$(arg save_waypoint)" />
         <arg name="odometry_enable" default="$(arg odometry_enable)" />
         <arg name="waypoints_file" default="$(arg waypoints_file)" />

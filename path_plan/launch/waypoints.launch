@@ -3,7 +3,7 @@
     <arg name="save_waypoint" default="false" />
     <arg name="waypoints_file" default="kcity.csv" />
 
-    <node type="waypoints.py" name="waypoints" pkg="erp42_control" output="screen">
+    <node type="waypoints.py" name="waypoints" pkg="path_plan" output="screen">
         <param name="save_waypoint" type="bool" value="$(arg save_waypoint)" />
         <param name="waypoints_file" type="string" value="$(arg waypoints_file)" />
     </node>

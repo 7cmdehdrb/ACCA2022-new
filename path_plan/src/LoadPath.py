@@ -73,8 +73,9 @@ class LoadPath():
             self.path.poses.append(pose)
 
     def check_path_avaliable(self):
-        file_path = rospkg.RosPack().get_path("erp42_control") + \
+        file_path = rospkg.RosPack().get_path("path_plan") + \
             "/path/" + rospy.get_param("/LoadPath/path_name", "path.csv")
+
         with open(file_path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
             for row in reader:
@@ -92,7 +93,6 @@ class LoadPath():
                     rospy.logfatal("No path data")
                     rospy.logfatal(ie)
                     raise Exception()
-        # return 0
 
 
 if __name__ == "__main__":

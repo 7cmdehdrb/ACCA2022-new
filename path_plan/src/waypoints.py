@@ -102,7 +102,7 @@ class WayPoints(object):
     def __init__(self):
         self.file_name = rospy.get_param(
             "/waypoints/waypoints_file", "path.csv")
-        self.path = rospkg.RosPack().get_path("erp42_control") + \
+        self.path = rospkg.RosPack().get_path("path_plan") + \
             "/waypoints/" + self.file_name
 
         self.__waypoints = []
