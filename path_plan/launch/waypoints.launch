@@ -7,7 +7,7 @@
         <param name="save_waypoint" type="bool" value="$(arg save_waypoint)" />
         <param name="waypoints_file" type="string" value="$(arg waypoints_file)" />
     </node>
-    
+
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
         <arg name="port" value="9090"/>
     </include>

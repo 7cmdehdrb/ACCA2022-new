@@ -10,7 +10,7 @@ from path_plan.msg import PathRequest, PathResponse
 from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped
-
+from std_msgs.msg import Int8
 db_name = rospy.get_param("/LoadPath/db_name", "/path.db")
 
 
@@ -73,6 +73,7 @@ class LoadPath():
             self.path.poses.append(pose)
 
     def check_path_avaliable(self):
+        path = []
         file_path = rospkg.RosPack().get_path("path_plan") + \
             "/path/" + rospy.get_param("/LoadPath/path_name", "path.csv")
 
@@ -80,9 +81,11 @@ class LoadPath():
             reader = csv.reader(csvFile, delimiter=",")
             for row in reader:
                 try:
-                    start = row[0]
-                    end = row[1]
-                    path_id = self.db.bring_path_id(start, end)
+                    self.Request.start = row[0]
+                    self.Request.end = row[1]
+                    self.bringPath()
+                    for info in self.path_info:
+                        path.append(info)
 
                 except ValueError as ex:
                     rospy.logwarn(ex)
@@ -93,6 +96,10 @@ class LoadPath():
                     rospy.logfatal("No path data")
                     rospy.logfatal(ie)
                     raise Exception()
+
+            self.path_info = path
+            self.toRosPath()
+            rospath_pub.publish(self.path)
 
 
 if __name__ == "__main__":
