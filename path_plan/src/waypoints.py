@@ -14,9 +14,10 @@ from std_msgs.msg import ColorRGBA, Empty, String
 
 
 class WayPoint(object):
-    def __init__(self, id, pose=Point()):
+    def __init__(self, id, pose=Point(), is_end=False):
         self.id = id
         self.pose = pose
+        self.is_end = is_end
 
     def parseId(self):
         area = self.id[0]
@@ -41,7 +42,8 @@ class WayPoint(object):
         marker.pose.position = self.pose
         marker.pose.orientation = Quaternion(0., 0., 0., 1.)
         marker.scale = Vector3(5., 5., 5.)
-        marker.color = ColorRGBA(1., 1., 1., 1.)
+        marker.color = ColorRGBA(
+            1., 1., 1., 1.) if self.is_end is False else ColorRGBA(1., 0., 0., 1.)
 
         marker.lifetime = genpy.Duration(secs=1)
 
@@ -141,7 +143,7 @@ class WayPoints(object):
                 reader = csv.reader(csvFile, delimiter=",")
                 for row in reader:
                     waypoint = WayPoint(id=row[0], pose=Point(
-                        float(row[1]), float(row[2]), 0.))
+                        float(row[1]), float(row[2]), 0.), is_end=("1" == row[3]))
                     self.__waypoints.append(waypoint)
         except Exception as ex:
             rospy.logwarn(ex)
@@ -158,8 +160,11 @@ class WayPoints(object):
         return -1
 
     def addWaypoint(self, msg):
+
+        id, is_end = msg.data.split("/")
+
         waypoint = WayPoint(
-            id=msg.data, pose=self.temperal_point.marker.pose.position)
+            id=id, pose=self.temperal_point.marker.pose.position, is_end=("1" == is_end))
 
         if self.checkDuplicate(waypoint) == -1:
             self.__waypoints.append(waypoint)

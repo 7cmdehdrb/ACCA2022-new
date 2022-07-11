@@ -6,8 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Path1
-        - /Odometry1
         - /Odometry1/Shape1
         - /Odometry1/Covariance1
         - /Odometry2/Shape1
@@ -64,17 +62,11 @@ Visualization Manager:
       Name: MarkerArray
       Namespaces:
         A1: true
-        A2: true
         B1: true
-        B2: true
         C1: true
-        C2: true
         D1: true
-        D2: true
         E1: true
-        E2: true
         F1: true
-        F2: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -106,9 +98,9 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.05000000074505806
+      Size (m): 0.009999999776482582
       Style: Flat Squares
-      Topic: /globalmap
+      Topic: /cloud_pcd
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -177,7 +169,7 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /ros_Path
+      Topic: ""
       Unreliable: false
       Value: true
     - Angle Tolerance: 0.10000000149011612
@@ -310,16 +302,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.522930145263672
+      Distance: 120.51860046386719
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 21.580013275146484
-        Y: 50.20612335205078
-        Z: 20.91544532775879
+        X: 21.96642303466797
+        Y: -34.94625473022461
+        Z: 20.840986251831055
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -328,7 +320,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.475401878356934
+      Yaw: 3.520392894744873
     Saved: ~
 Window Geometry:
   Displays:
