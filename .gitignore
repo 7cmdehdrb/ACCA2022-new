@@ -399,14 +399,8 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
-<<<<<<< HEAD
+
 .vscode/
-
-!sensor/xsens_ros_mti_driver/*
-=======
-
-
 *.bag
-/.vscode
+!sensor/xsens_ros_mti_driver/*
 token.txt
->>>>>>> origin/desktop

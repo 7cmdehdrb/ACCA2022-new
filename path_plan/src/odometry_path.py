@@ -1,214 +1,95 @@
 #!/usr/bin/env python
 
+import sys
+import os
 import rospy
 import rospkg
 import numpy as np
 import math as m
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 from nav_msgs.msg import Odometry
-from tf.transformations import quaternion_from_euler
-from state import State
+from std_msgs.msg import Empty
 from cubic_spline_planner import calc_spline_course
-from geometry_msgs.msg import PoseArray, Pose
-import matplotlib.pyplot as plt
 
-# class odom_path():
-#     def __init__(self):
-#         self.odometry = Odometry()
-#         self.position_x = []
-#         self.position_y = []
-#         self.Yaw = []
-
-#     def odometryCallBack(self, msg):
-#         self.odometry = msg
-
-#     def handledata(self):
-#         pose_x = self.odometry.pose.pose.position.x
-#         pose_y = self.odometry.pose.pose.position.y
-
-#         x = self.odometry.pose.pose.orientation.x#!/usr/bin/env python
-
-import math
-import rospy
-import tf
-import numpy as np
-from tf.transformations import euler_from_quaternion
-from geometry_msgs.msg import PoseStamped
-from nav_msgs.msg import Odometry
+try:
+    erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
+    sys.path.append(erp42_control_pkg_path)
+    from state import State
+except Exception as ex:
+    rospy.logfatal(ex)
 
 
-class State(object):
-    def __init__(self, odometry_topic="/odometry/global"):
+class OdometryPath(object):
+    def __init__(self):
 
-        # Subscriber
-        self.odom_sub = rospy.Subscriber(
-            odometry_topic, Odometry, callback=self.odomCallback)
+        self.pub = rospy.Publisher(
+            "/create_global_path", PoseArray, queue_size=1)
 
-        self.tf_sub = tf.TransformListener()
+        rospy.Subscriber(
+            "/reset_path", Empty, self.resetCallback)
 
-        # Custum Field
-        self.data = Odometry()
+        self.xs = []
+        self.ys = []
 
-        self.x = 0.  # m
-        self.y = 0.  # m
-        self.yaw = 0.  # rad
-        self.v = 0.  # m/s
-        self.omega = 0.  # rad/s
+    def resetCallback(self, msg):
+        self.xs = []
+        self.ys = []
 
-        # Calculation
-        self.currentTime = rospy.Time.now()
-        self.lastTime = rospy.Time.now()
+    def posePublish(self, cx, cy, cyaw):
+        path = PoseArray()
 
-    def odomCallback(self, msg):
-        self.currentTime = rospy.Time.now()
+        path.header.stamp = rospy.Time.now()
+        path.header.frame_id = "map"
 
-        msg = self.transformFrame(data=msg, target_frame="map")
+        for i in range(0, len(cx)):
+            pose = Pose()
 
-        self.x = msg.pose.pose.position.x
-        self.y = msg.pose.pose.position.y
+            quat = quaternion_from_euler(0, 0, cyaw[i])
 
-        dx = msg.pose.pose.position.x - self.data.pose.pose.position.x
-        dy = msg.pose.pose.position.y - self.data.pose.pose.position.y
+            pose.position.x = cx[i]
+            pose.position.y = cy[i]
+            pose.position.z = 0.0
 
-        distance = math.sqrt(dx ** 2 + dy ** 2)
-        dt = (self.currentTime - self.lastTime).to_sec()
+            pose.orientation.x = quat[0]
+            pose.orientation.y = quat[1]
+            pose.orientation.z = quat[2]
+            pose.orientation.w = quat[3]
 
-        self.v = distance / dt
+            path.poses.append(pose)
 
-        quat = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
-                msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
-        _, _, yaw = euler_from_quaternion(quat)
+        self.pub.publish(path)
 
-        self.omega = (yaw - self.yaw) / dt
-        self.yaw = yaw
+    def appendPath(self, x, y):
+        if len(self.xs) == 0 and len(self.ys) == 0:
+            if x != 0:
+                self.xs.append(x)
+                self.ys.append(y)
 
-        self.lastTime = self.currentTime
+        else:
+            if self.calculateDistance(x, self.xs[-1], y, self.ys[-1]) > 1.0:
+                self.xs.append(x)
+                self.ys.append(y)
 
-        self.data = msg
+                return calc_spline_course(self.xs, self.ys)
 
-    def transformOdometryToPoseStamped(self, odom):
-        pose = PoseStamped()
+        return None, None, None, None, None
 
-        pose.header.frame_id = "odom"
-        pose.header.stamp = rospy.Time(0)
-
-        pose.pose = odom.pose.pose
-
-        # print(odom)
-
-        return pose
-
-    def transformPoseStampedToOdometry(self, pose):
-        odom = Odometry()
-
-        odom.header.frame_id = pose.header.frame_id
-        odom.header.stamp = rospy.Time(0)
-
-        odom.pose.pose = pose.pose
-
-        return odom
-
-    def transformFrame(self, data, target_frame="map"):
-        source_frame = data.header.frame_id
-
-        try:
-            if self.tf_sub.canTransform(target_frame=target_frame, source_frame=source_frame, time=rospy.Time(0)):
-                pose = self.tf_sub.transformPose(
-                    ps=self.transformOdometryToPoseStamped(data), target_frame=target_frame)
-                odom = self.transformPoseStampedToOdometry(pose)
-                return odom
-
-            else:
-                raise Exception()
-
-        except Exception as ex:
-            rospy.logwarn("Cannot Lookup Transform Between " +
-                          target_frame + " and " + source_frame)
-            rospy.logwarn(ex)
-            return Odometry()
-
-    def getArray(self):
-        # [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
-        return np.array([self.x, self.y, self.yaw, self.v, self.omega])
-
-#         y = self.odometry.pose.pose.orientation.y
-#         z = self.odometry.pose.pose.orientation.z
-#         w = self.odometry.pose.pose.orientation.w
-
-#         _, _, yaw = euler_from_quaternion([x, y, z, w])
-
-#         self.position_x.append(pose_x)
-#         self.position_y.append(pose_y)
-#         self.Yaw.append(yaw)
-
-
-def posePublish(cx, cy, cyaw):
-    path = PoseArray()
-
-    path.header.stamp = rospy.Time.now()
-    path.header.frame_id = "map"
-
-    for i in range(0, len(cx)):
-        pose = Pose()
-
-        quat = quaternion_from_euler(0, 0, cyaw[i])
-
-        pose.position.x = cx[i]
-        pose.position.y = cy[i]
-        pose.position.z = 0.0
-
-        pose.orientation.x = quat[0]
-        pose.orientation.y = quat[1]
-        pose.orientation.z = quat[2]
-        pose.orientation.w = quat[3]
-
-        path.poses.append(pose)
-
-    Pub.publish(path)
+    def calculateDistance(self, x1, x2, y1, y2):
+        return m.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
 if __name__ == "__main__":
-    rospy.init_node("odom_path")
+    rospy.init_node("odometry_path")
 
-    Pub = rospy.Publisher("/create_global_path", PoseArray, queue_size=1)
-
-    st = State()
-
-    xs = []
-    ys = []
-    yaws = []
-
-    # plt.show()
-    # plt.savefig('drawing_path.png')
+    odom_topic = rospy.get_param(
+        "/odometry_path/odom_topic", "/odometry/kalman")
+    odom_path = OdometryPath()
+    state = State(odometry_topic=odom_topic)
 
     r = rospy.Rate(1)
     while not rospy.is_shutdown():
-
-        xs.append(st.x)
-        ys.append(st.y)
-        # yaws.append(state.yaw)
-
-        new_xs = []
-        new_ys = []
-        # new_yaws = []
-
-        for v in xs:
-            if v not in new_xs:
-                new_xs.append(v)
-
-        for i in ys:
-            if i not in new_ys:
-                new_ys.append(i)
-
-        # print(new_xs, new_ys)
-
-        if len(new_xs) < 5:
-            continue
-        cx, cy, cyaw, _, _ = calc_spline_course(new_xs, new_ys)
-
-        posePublish(cx, cy, cyaw)
-
-        plt.plot(new_xs, new_ys)
-        plt.pause(0.01)
-        plt.savefig('drawing_path.png')
-
+        cx, cy, cyaw, _, _ = odom_path.appendPath(state.x, state.y)
+        if cx is not None:
+            odom_path.posePublish(cx, cy, cyaw)
         r.sleep()

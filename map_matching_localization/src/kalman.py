@@ -3,15 +3,20 @@
 import rospy
 import numpy as np
 import math as m
-import random
 import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
-from erp42_msgs.msg import SerialFeedBack
+from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion
+from std_msgs.msg import Empty
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion
+from erp42_msgs.msg import SerialFeedBack
+from hdl_localization.msg import ScanMatchingStatus
 from gaussian import *
+
+
+is_publish_tf = rospy.get_param("/kalman/is_publish_tf", False)
 
 
 def kph2mps(value):
@@ -38,10 +43,10 @@ class Kalman(object):
             0, 0, 0, 0
         ])
         self.P = np.array([
-            [0.5, 0., 0., 0.],
-            [0., 0.5, 0., 0.],
-            [0., 0., 0.5, 0.],
-            [0., 0., 0., 0.5]
+            [1., 0., 0., 0.],
+            [0., 1., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 0., 0., 1.]
         ])
 
         # noise
@@ -89,7 +94,7 @@ class Kalman(object):
             cov_position[i][i] = position[i].sigma
 
         R = cov_position + cov_erp + cov_imu
-        # print(R)
+        # print(R[0][0], R[1][1], R[2][2], R[3][3])
 
         x_k = np.dot(A, self.x)
         P_k = np.dot(np.dot(A, self.P), A.T) + self.Q
@@ -146,8 +151,9 @@ class Kalman(object):
                                0., 0., 0., 0., 0., P[3][3]]
 
         self.odom_pub.publish(msg)
-        # self.tf_br.sendTransform(translation=(
-        #     x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
+        if is_publish_tf is False:
+            self.tf_br.sendTransform(translation=(
+                x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
 
 
 class Sensor(object):
@@ -160,11 +166,14 @@ class Sensor(object):
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])
+        self.once = False
+
         self.sub = rospy.Subscriber(
             topic, msg_type, callback=self.sensorCallback)
 
     def sensorCallback(self, msg):
         self.data, self.cov = self.handleData(msg)
+        self.once = True
 
     def handleData(self, msg):
         return np.array([0., 0., 0., 0.], dtype=np.float64), self.cov
@@ -182,7 +191,7 @@ class ERP42(Sensor):
 
     def handleData(self, msg):
         cov = getEmpty((4, 4))
-        cov[2][2] = 0.5
+        cov[2][2] = 0.2
 
         return np.array([0., 0., msg.speed, 0.], dtype=np.float64), cov
 
@@ -193,8 +202,13 @@ class Xsens(Sensor):
 
         self.flag_sub = rospy.Subscriber(
             "/set_imu", Empty, callback=self.set_imu)
+        self.flag_pub = rospy.Publisher(
+            "/set_imu", Empty, queue_size=1)
         self.odom_sub = rospy.Subscriber(
             "/odom", Odometry, callback=self.odomCallback)
+        self.status_sub = rospy.Subscriber(
+            "/status", ScanMatchingStatus, self.statusCallback
+        )
 
         self.cov = np.array([
             [0., 0., 0., 0., ],
@@ -213,6 +227,11 @@ class Xsens(Sensor):
             _, _, yaw = euler_from_quaternion([quat.x, quat.y, quat.z, quat.w])
             self.yaw = yaw
             self.imu_flag = False
+
+    def statusCallback(self, msg):
+        if msg.matching_error < 0.02:
+            self.flag_pub.publish()
+            self.status_sub.unregister()
 
     def set_imu(self, msg):
         self.imu_flag = True
@@ -277,6 +296,12 @@ if __name__ == "__main__":
     erp = ERP42("/erp42_feedback", SerialFeedBack)
     imu = Xsens("/imu/data", Imu)
 
+    sensors = [
+        gps, hdl, erp, imu
+    ]
+
+    flag = False
+
     kf = Kalman()
 
     hz = 10
@@ -293,7 +318,16 @@ if __name__ == "__main__":
         try:
             x, P = kf.filter(gps, hdl, erp, imu,
                              dt=(current_time - last_time).to_sec())
-            kf.publishOdom(x, P)
+            if flag is False:
+                temp = True
+                for s in sensors:
+                    if s.once is False:
+                        temp = False
+                        break
+                if temp is True:
+                    flag = True
+            else:
+                kf.publishOdom(x, P)
         except Exception as ex:
             rospy.logwarn(ex)
 

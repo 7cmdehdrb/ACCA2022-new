@@ -1,30 +1,34 @@
 #!/usr/bin/env python
 
-from time import sleep
 import rospy
 import tf
 import math as m
 import numpy as np
+from time import sleep
 from stanley import Stanley
 from state import State
 from path_selector import PathSelector
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
+from speed_supporter import SpeedSupporter
 
 
 max_steer = rospy.get_param("/max_steer", 30.0)  # DEG
-desired_speed = rospy.get_param("/desired_speed", 15.)
+desired_speed = rospy.get_param("/desired_speed", 7.)
 
 
 class StanleyController(object):
     def __init__(self, state):
         self.state = state
         self.stanley = Stanley()
+        self.supporter = SpeedSupporter()
         self.selector = PathSelector(self.state)
 
         self.response = rospy.Subscriber(
-            "/list_Path", PathResponse, callback=self.path_callback)
+            "/path_response", PathResponse, callback=self.path_callback)
 
+        self.request_time = rospy.Time.now()
+        self.is_last = False
         self.target_idx = 0
         self.path = PathResponse()
 
@@ -41,13 +45,11 @@ class StanleyController(object):
         self.path = msg
 
     def makeControlMessage(self):
+        global desired_speed
+
         if len(self.path.cx) == 0:
             rospy.logwarn("Path error")
             return ControlMessage(0, 0, 0, 0, 0, 0, 0)
-
-        if len(self.path.cx) * 0.9 < self.target_idx:
-            self.selector.makeRequest()
-            self.selector.goNext()
 
         di, target_idx = self.stanley.stanley_control(
             self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
@@ -59,11 +61,31 @@ class StanleyController(object):
         # TO DO: You MUST handle control message PERFECTLY.
         # Please remind AorM and Gear
 
+        current_time = rospy.Time.now()
+        dt = (current_time - self.request_time).to_sec()
+
+        if len(self.path.cx) * 0.97 < self.target_idx and dt > 10. and self.is_last is False:
+            self.request_time = rospy.Time.now()
+            self.selector.makeRequest()
+
+            if self.selector.goNext() is None:
+                desired_speed = 0.
+                self.is_last = True
+
         msg = ControlMessage()
 
-        msg.Speed = desired_speed
+        speed = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
+                                     desired_value=desired_speed, max_value=10, min_value=5)
+
+        # msg.Speed = desired_speed
+        # print(desired_speed)
+
+        msg.Speed = int(speed) if desired_speed != 0 else int(0)
         msg.Steer = m.degrees(-di)
+        msg.Gear = 2
         msg.brake = 0
+
+        # print(msg)
 
         return msg
 
@@ -71,7 +93,7 @@ class StanleyController(object):
 if __name__ == "__main__":
     rospy.init_node("stanley_controller")
 
-    state = State(odometry_topic="/odometry/global")
+    state = State(odometry_topic="/odometry/kalman")
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 

@@ -21,23 +21,19 @@ class PathSelector(object):
     def __init__(self, state):
         self.state = state
 
-        self.req_pub = rospy.Publisher("/PathPoint", PathRequest, queue_size=1)
+        self.req_pub = rospy.Publisher(
+            "/path_request", PathRequest, queue_size=1)
 
         # Get All Path Data
         self.path = None
         self.getAllPath()
 
-        # while True:
-        #     try:
-        #         print(self.path.data)
-        #         self.goNext()
-        #     except Exception as ex:
-        #         print(ex)
-        #         break
-
     def goNext(self):
         if self.path.next is not None:
             self.path = self.path.next
+            return self.path
+
+        return None
 
     def makeRequest(self):
         if self.path is None:
@@ -50,7 +46,7 @@ class PathSelector(object):
         self.req_pub.publish(self.path.data)
 
     def getAllPath(self):
-        file_path = rospkg.RosPack().get_path("erp42_control") + "/path/global_path.csv"
+        file_path = rospkg.RosPack().get_path("erp42_control") + "/path/kcity_path.csv"
 
         node = None
 
@@ -70,9 +66,6 @@ class PathSelector(object):
                         self.path = node
 
                     else:
-                        # print(node.data)
-                        # print(temp.data)
-                        # print("@@@@@@")
                         node.append(temp)
                         node = temp
 

@@ -47,24 +47,12 @@ def measure(lat1, lon1, lat2, lon2):
 if __name__ == "__main__":
     rospy.init_node("gaussian")
 
-    x1 = np.arange(37.4966977 - 0.05, 37.4966977 + 0.05, 0.001)
-    g1 = Gaussian(x1, 37.4966977, 0.0144)
-
-    dist = measure(37.4966977, 126.9575288,
-                   37.4966977 + 1, 126.9575288)
-    # 111319.490793 => ' to m
-
-    x2 = np.arange(0. - 0.05 * m.sqrt(dist), 0 + 0.05 * m.sqrt(dist), 0.1)
-    g2 = Gaussian(x2, 0., 0.0144 * m.sqrt(dist))
+    x1 = np.arange(10 - 5, 10 + 5, 0.1)
+    g1 = Gaussian(x1, 10, 0.5)
 
     plt.figure()
     plt.legend()
     plt.plot(x1, g1.value, label="N(%.5f, %.5f)" %
              (g1.mean, g1.sigma), c="red")
-
-    plt.figure()
-    plt.legend()
-    plt.plot(x2, g2.value, label="N(%.5f, %.5f)" %
-             (g2.mean, g2.sigma), c="red")
 
     plt.show()

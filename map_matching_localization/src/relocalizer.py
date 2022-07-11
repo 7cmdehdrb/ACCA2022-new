@@ -35,6 +35,7 @@ class Relocalizer(object):
             self.isTrustable(msg.matching_error, msg.inlier_fraction))
 
         if self.matching_err_queue.isFalse(10) is True:
+            rospy.loginfo("RELOCALIZING...")
             self.init_pub.publish(self.odom_pose)
 
     def isTrustable(self, matching_err, inlier_fraction):

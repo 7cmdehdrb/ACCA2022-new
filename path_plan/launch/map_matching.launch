@@ -1,3 +1,0 @@
-<launch>
-    <include file="$(find map_matching_localization)/launch/"
-</launch>
