@@ -128,8 +128,9 @@ class WayPoints(object):
                     id = wp.id  # string
                     x = str(wp.pose.x)   # float
                     y = str(wp.pose.y)   # float
+                    is_end = "1" if wp.is_end is True else "0"
 
-                    csvfile.write(id + "," + x + "," + y + "\n")
+                    csvfile.write(id + "," + x + "," + y + "," + is_end + "\n")
 
                 except Exception as ex:
                     rospy.logwarn(ex)
@@ -148,7 +149,8 @@ class WayPoints(object):
         except Exception as ex:
             rospy.logwarn(ex)
             os.system(
-                "touch touch ~/catkin_ws/src/ACCA2022-new/erp42/erp42_control/waypoints/%s" % self.file_name
+                "touch %s/waypoints/%s" % (
+                    rospkg.RosPack().get_path("path_plan"), self.file_name)
             )
 
         self.publishWaypoints()

@@ -1,7 +1,7 @@
 <launch>
     <arg name="odometry_enable" default="false"/>
     <arg name="save_waypoint" default="true" />
-    <arg name="waypoints_file" default="waypoints.csv" />
+    <arg name="waypoints_file" default="school_test_waypoint.csv" />
 
     <node type="waypoints.py" name="waypoints" pkg="path_plan" output="screen">
         <param name="save_waypoint" type="bool" value="$(arg save_waypoint)" />

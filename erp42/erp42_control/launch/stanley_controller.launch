@@ -2,7 +2,8 @@
 
     <!-- Basic Controller Params -->
     <arg name="max_steer" default="30" />
-    <arg name="desired_speed" default="7.0" />
+    <arg name="desired_speed" default="15.0" />
+    <arg name="speed_control_enable" default="true" />
 
     <!-- Stanley Controller Params -->
     <arg name="c_gain" default="1.0" />
@@ -19,17 +20,19 @@
     <arg name="hdr_threshold" default="0.01" />
     <arg name="ctr_threshold" default="0.08" />
 
-    <node pkg="erp42_control" name="stanley_controller" type="stanley_controller.py">
+    <node pkg="erp42_control" name="stanley_controller" type="stanley_controller.py" output="screen">
+        <param name="speed_control_enable" type="bool" value="$(arg speed_control_enable)" /> 
+        
         <param name="max_steer" type="int" value="$(arg max_steer)" /> 
-        <param name="desired_speed" type="float" value="$(arg desired_speed)" />
-        <param name="c_gain" type="float" value="$(arg c_gain)" />
-        <param name="hdr_ratio" type="float" value="$(arg hdr_ratio)" />
-        <param name="p_gain" type="float" value="$(arg p_gain)" />
-        <param name="i_gain" type="float" value="$(arg i_gain)" />
-        <param name="d_gain" type="float" value="$(arg d_gain)" />
-        <param name="he_gain" type="float" value="$(arg he_gain)" />
-        <param name="ce_gain" type="float" value="$(arg ce_gain)" />
-        <param name="hdr_threshold" type="float" value="$(arg hdr_threshold)" />
-        <param name="ctr_threshold" type="float" value="$(arg ctr_threshold)" />
+        <param name="desired_speed" type="double" value="$(arg desired_speed)" />
+        <param name="c_gain" type="double" value="$(arg c_gain)" />
+        <param name="hdr_ratio" type="double" value="$(arg hdr_ratio)" />
+        <param name="p_gain" type="double" value="$(arg p_gain)" />
+        <param name="i_gain" type="double" value="$(arg i_gain)" />
+        <param name="d_gain" type="double" value="$(arg d_gain)" />
+        <param name="he_gain" type="double" value="$(arg he_gain)" />
+        <param name="ce_gain" type="double" value="$(arg ce_gain)" />
+        <param name="hdr_threshold" type="double" value="$(arg hdr_threshold)" />
+        <param name="ctr_threshold" type="double" value="$(arg ctr_threshold)" />
     </node>
 </launch>

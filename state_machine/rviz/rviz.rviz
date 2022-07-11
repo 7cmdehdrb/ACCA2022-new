@@ -6,13 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /PointCloud22
-        - /Odometry1
+        - /PointCloud21/Status1
         - /Odometry1/Shape1
-        - /Odometry2
         - /Odometry2/Shape1
         - /Odometry2/Covariance1/Orientation1
-        - /Odometry3
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -100,7 +97,7 @@ Visualization Manager:
       Color Transformer: Intensity
       Decay Time: 0
       Enabled: true
-      Invert Rainbow: true
+      Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
       Name: PointCloud2
@@ -108,9 +105,9 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.10000000149011612
+      Size (m): 0.009999999776482582
       Style: Flat Squares
-      Topic: /velodyne_points
+      Topic: /cloud_pcd
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -122,7 +119,7 @@ Visualization Manager:
         All Enabled: true
         base_link:
           Value: true
-        velodyne:
+        map:
           Value: true
       Marker Scale: 10
       Name: TF
@@ -130,7 +127,9 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          base_link:
+            {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.10000000149011612
@@ -235,6 +234,19 @@ Visualization Manager:
       Topic: /odometry/kalman
       Unreliable: false
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /waypoints
+      Name: MarkerArray
+      Namespaces:
+        A1: true
+        B1: true
+        C1: true
+        D1: true
+        E1: true
+        F1: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -263,16 +275,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 146.55538940429688
+      Distance: 193.5524444580078
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.117213726043701
-        Y: -4.090850830078125
-        Z: -114.63136291503906
+        X: 25.061498641967773
+        Y: -13.055341720581055
+        Z: -114.6092758178711
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
