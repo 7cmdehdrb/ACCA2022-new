@@ -1,10 +1,11 @@
 <launch>
     <arg name="odometry_enable" default="false"/>
     <arg name="save_waypoint" default="false" />
+    <arg name="waypoints_file" default="kcity.csv" />
 
     <node type="waypoints.py" name="waypoints" pkg="erp42_control" output="screen">
         <param name="save_waypoint" type="bool" value="$(arg save_waypoint)" />
-        <param name="waypoints_file" type="string" value="kcity.csv" />
+        <param name="waypoints_file" type="string" value="$(arg waypoints_file)" />
     </node>
     
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 

@@ -3,8 +3,7 @@
     <arg name="matching_err_tol" default="0.5"/>
     <arg name="inlier_fraction_tol" default="0.5"/>
     <arg name="is_publish_tf" default="false"/>
-    <!-- is_publish_tf is True => tf is based on hdl -->
-    <!-- else => tf is based on kalman -->
+    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0710_kcity_02.pcd" />
 
     <include file="$(find state_machine)/launch/sensor.launch" />
 
@@ -12,6 +11,7 @@
     <include file="$(find hdl_localization)/launch/hdl_localization.launch">
         <arg name="is_publish_tf" default="$(arg is_publish_tf)"/>
         <arg name="points_topic" default="/velodyne_points"/>
+        <arg name="globalmap_pcd" default="$(arg globalmap_pcd)" />
     </include>
 
     <!-- gps localizer -->
