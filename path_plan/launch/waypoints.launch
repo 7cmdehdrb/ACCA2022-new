@@ -1,30 +1,17 @@
 <launch>
     <arg name="odometry_enable" default="false"/>
-<<<<<<< HEAD:erp42/erp42_control/launch/waypoints.launch
-    <arg name="save_waypoint" default="true" />
-=======
     <arg name="save_waypoint" default="false" />
-    <arg name="waypoints_file" default="kcity.csv" />
->>>>>>> f7a896428b0cf7f288f14bde664b46cfd4bd1c3c:path_plan/launch/waypoints.launch
+    <arg name="waypoints_file" default="path.csv" />
 
     <node type="waypoints.py" name="waypoints" pkg="path_plan" output="screen">
         <param name="save_waypoint" type="bool" value="$(arg save_waypoint)" />
-<<<<<<< HEAD:erp42/erp42_control/launch/waypoints.launch
-        <param name="waypoints_file" type="string" value="kcity_bonsun.csv" />
-=======
         <param name="waypoints_file" type="string" value="$(arg waypoints_file)" />
->>>>>>> f7a896428b0cf7f288f14bde664b46cfd4bd1c3c:path_plan/launch/waypoints.launch
     </node>
 
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
         <arg name="port" value="9090"/>
     </include>
     
-<<<<<<< HEAD:erp42/erp42_control/launch/waypoints.launch
-    <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="$(find hdl_localization)/data/GlobalMap.pcd _frame_id:=/map 5" unless="$(arg odometry_enable)" />
-    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find erp42_control)/rviz/waypoints.rviz" />
-=======
-    <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="$(find map_matching_localization)/data/0710_kcity_01.pcd _frame_id:=/map 5" unless="$(arg odometry_enable)" />
+    <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="$(find hdl_localization)/data/school.pcd _frame_id:=/map 5" unless="$(arg odometry_enable)" />
     <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find erp42_control)/rviz/waypoints.rviz" /> -->
->>>>>>> f7a896428b0cf7f288f14bde664b46cfd4bd1c3c:path_plan/launch/waypoints.launch
 </launch>
