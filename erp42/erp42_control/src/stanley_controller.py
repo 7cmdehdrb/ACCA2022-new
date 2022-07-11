@@ -75,7 +75,7 @@ class StanleyController(object):
 
         if speed_control_enable is True:
             speed = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                           desired_value=desired_speed, max_value=10, min_value=5)
+                                           desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
         else:
             speed = desired_speed
