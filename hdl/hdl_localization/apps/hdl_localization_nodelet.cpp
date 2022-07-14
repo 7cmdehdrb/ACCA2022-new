@@ -458,7 +458,6 @@ private:
 
     pose_pub.publish(odom);
   }
-  */
 
 
   /**

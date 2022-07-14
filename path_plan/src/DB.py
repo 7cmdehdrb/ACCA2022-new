@@ -10,7 +10,7 @@ class DB():
         db_path = rospkg.RosPack().get_path("path_plan") + "/path.db"
         self.__conn = sqlite3.connect(db_path)
         self.__cur = self.__conn.cursor()
-        self.flag = self.checkDB()
+        self.flag = self.checkDB()[0]
 
         if self.flag == 0:
             # create table
@@ -41,8 +41,10 @@ class DB():
         query = "SELECT COUNT(*) FROM sqlite_master WHERE Name = '%s' OR Name = '%s';"
         flag = self.__cur.execute(
             query % ('PathPoint', 'PathInfo')).fetchall()[0][0]
+        k = self.__cur.execute(
+            query % ('PathPoint', 'PathInfo')).fetchall()
         self.__conn.commit()
-        return flag
+        return flag, k
 
     def check_path_id(self, path_id):
         query = "SELECT COUNT(*) From PathPoint Where path_id = '%s';"
