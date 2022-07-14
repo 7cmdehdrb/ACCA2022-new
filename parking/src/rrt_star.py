@@ -15,14 +15,14 @@ import matplotlib.pyplot as plt
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../RRT/")
 
 try:
-    from rrt import RRT, Node
+    from rrt import RRT, Node as Nd
 except ImportError:
     raise
 
 show_animation = True
 
 
-class Node(Node):
+class Node(Nd):
     def __init__(self, x, y):
         super(Node, self).__init__(x, y)
         self.cost = 0.0
@@ -53,10 +53,10 @@ class RRTStar(RRT):
         randArea:Random Sampling Area [min,max]
 
         """
-        super().__init__(start, goal, obstacle_list, rand_area, expand_dis,
-                         path_resolution, goal_sample_rate, max_iter)
+        super(RRTStar, self).__init__(start, goal, obstacle_list, rand_area, expand_dis,
+                                      path_resolution, goal_sample_rate, max_iter)
         self.connect_circle_dist = connect_circle_dist
-        self.goal_node = self.Node(goal[0], goal[1])
+        self.goal_node = Node(goal[0], goal[1])
         self.search_until_max_iter = search_until_max_iter
 
     def planning(self, animation=True):
@@ -265,7 +265,7 @@ def main():
         goal=[6, 10],
         rand_area=[-2, 15],
         obstacle_list=obstacle_list,
-        expand_dis=1)
+        expand_dis=2)
     path = rrt_star.planning(animation=show_animation)
 
     if path is None:

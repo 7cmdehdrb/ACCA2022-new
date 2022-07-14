@@ -27,9 +27,10 @@ class Node(object):
         self.path_x = []
         self.path_y = []
         self.parent = None
+        self.cost = 0.0
 
 
-class RRT:
+class RRT(object):
     """
     Class for RRT planning
     """
@@ -52,8 +53,9 @@ class RRT:
         randArea:Random Sampling Area [min,max]
 
         """
-        self.start = self.Node(start[0], start[1])
-        self.end = self.Node(goal[0], goal[1])
+        super(RRT, self).__init__()
+        self.start = Node(start[0], start[1])
+        self.end = Node(goal[0], goal[1])
         self.min_rand = rand_area[0]
         self.max_rand = rand_area[1]
         self.expand_dis = expand_dis
@@ -98,7 +100,7 @@ class RRT:
 
     def steer(self, from_node, to_node, extend_length=float("inf")):
 
-        new_node = self.Node(from_node.x, from_node.y)
+        new_node = Node(from_node.x, from_node.y)
         d, theta = self.calc_distance_and_angle(new_node, to_node)
 
         new_node.path_x = [new_node.x]
@@ -109,7 +111,7 @@ class RRT:
 
         n_expand = math.floor(extend_length / self.path_resolution)
 
-        for _ in range(n_expand):
+        for _ in range(int(n_expand)):
             new_node.x += self.path_resolution * math.cos(theta)
             new_node.y += self.path_resolution * math.sin(theta)
             new_node.path_x.append(new_node.x)
@@ -143,11 +145,11 @@ class RRT:
 
     def get_random_node(self):
         if random.randint(0, 100) > self.goal_sample_rate:
-            rnd = self.Node(
+            rnd = Node(
                 random.uniform(self.min_rand, self.max_rand),
                 random.uniform(self.min_rand, self.max_rand))
         else:  # goal point sampling
-            rnd = self.Node(self.end.x, self.end.y)
+            rnd = Node(self.end.x, self.end.y)
         return rnd
 
     def draw_graph(self, rnd=None):

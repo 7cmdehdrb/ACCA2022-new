@@ -24,6 +24,29 @@ except Exception as ex:
     rospy.logfatal(ex)
 
 
+def publishPath(pub, cx, cy, cyaw):
+    path = Path()
+
+    path.header.frame_id = "map"
+    path.header.stamp = rospy.Time.now()
+
+    for i in range(len(cx)):
+        pose = PoseStamped()
+
+        pose.header.frame_id = "map"
+        pose.header.stamp = rospy.Time.now()
+
+        quat = quaternion_from_euler(0., 0., cyaw[i])
+
+        pose.pose.position = Point(cx[i], cy[i], 0.)
+        pose.pose.orientation = Quaternion(
+            quat[0], quat[1], quat[2], quat[3])
+
+        path.poses.append(pose)
+
+    pub.publish(path)
+
+
 def markerCallback(msg):
     global parking_areas
 
@@ -63,16 +86,20 @@ if __name__ == "__main__":
     sleep(1.)
 
     obstacleList = []  # [x,y,size(radius)]
+    target_idx = 1
 
-    for i in parking_areas[0].parseArray():
-        # [x, y]
-        obstacleList.append((i[0], i[1], 0.2))
+    for i, parking in enumerate(parking_areas):
+        if i != target_idx:
+            for j in parking.parseArray():
+                # [x, y]
+                obstacleList.append((j[0], j[1], 0.5))
 
     start = [0.0, 0.0, np.deg2rad(0.0)]
 
-    quat = parking_areas[1].orientation
+    quat = parking_areas[target_idx].orientation
     _, _, yaw = euler_from_quaternion([quat.x, quat.y, quat.z, quat.w])
-    goal = [parking_areas[1].position.x, parking_areas[1].position.y, yaw]
+    goal = [parking_areas[target_idx].position.x,
+            parking_areas[target_idx].position.y, yaw]
 
     hz = 1.
     freq = 1 / hz
@@ -98,10 +125,16 @@ if __name__ == "__main__":
 
         obstacle_pub.publish(msg)
 
-        # rrt_star_reeds_shepp = RRTStarReedsShepp(start, goal,
-        #                                          obstacleList,
-        #                                          [-2.0, 15.0], max_iter=100)
-        # path = rrt_star_reeds_shepp.planning(animation=True)
+        rrt_star_reeds_shepp = RRTStarReedsShepp(start, goal,
+                                                 obstacleList,
+                                                 [0.0, 10.0], max_iter=50)
+        path = rrt_star_reeds_shepp.planning(animation=False)
+
+        xs = [x for (x, y, syaw) in path]
+        ys = [y for (x, y, syaw) in path]
+        yaws = [syaw for (x, y, syaw) in path]
+
+        publishPath(path_pub, xs, ys, yaws)
 
         # rrt_star_reeds_shepp.draw_graph()
         # plt.plot([x for (x, y, syaw) in path], [
@@ -109,8 +142,6 @@ if __name__ == "__main__":
         # plt.grid(True)
         # plt.pause(0.001)
         # plt.show()
-
-        # break
 
         r.sleep()
 

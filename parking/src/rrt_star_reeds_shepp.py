@@ -95,6 +95,13 @@ class RRTStarReedsShepp(RRTStar):
                 self.plot_start_goal_arrow()
                 self.draw_graph(rnd)
 
+            idx = self.search_best_goal_node()
+
+            if idx is not None:
+                if self.node_list[idx].cost < 8.0:
+                    print("cost : %.4f" % self.node_list[idx].cost)
+                    return self.generate_final_course(idx)
+
             if (not search_until_max_iter) and new_node:  # check reaching the goal
                 last_index = self.search_best_goal_node()
                 if last_index:
@@ -195,7 +202,6 @@ class RRTStarReedsShepp(RRTStar):
         for (i, node) in enumerate(self.node_list):
             if self.calc_dist_to_goal(node.x, node.y) <= self.goal_xy_th:
                 goal_indexes.append(i)
-        print("goal_indexes:", len(goal_indexes))
 
         # angle check
         final_goal_indexes = []
@@ -203,13 +209,13 @@ class RRTStarReedsShepp(RRTStar):
             if abs(self.node_list[i].yaw - self.end.yaw) <= self.goal_yaw_th:
                 final_goal_indexes.append(i)
 
-        print("final_goal_indexes:", len(final_goal_indexes))
-
         if not final_goal_indexes:
             return None
 
         min_cost = min([self.node_list[i].cost for i in final_goal_indexes])
-        print("min_cost:", min_cost)
+        # print("goal_indexes:", len(goal_indexes))
+        # print("final_goal_indexes:", len(final_goal_indexes))
+        # print("min_cost:", min_cost)
         for i in final_goal_indexes:
             if self.node_list[i].cost == min_cost:
                 return i
