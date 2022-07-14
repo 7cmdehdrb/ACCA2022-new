@@ -86,7 +86,7 @@ if __name__ == "__main__":
     sleep(1.)
 
     obstacleList = []  # [x,y,size(radius)]
-    target_idx = 1
+    target_idx = 0
 
     for i, parking in enumerate(parking_areas):
         if i != target_idx:

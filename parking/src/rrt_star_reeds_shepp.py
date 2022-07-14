@@ -95,12 +95,12 @@ class RRTStarReedsShepp(RRTStar):
                 self.plot_start_goal_arrow()
                 self.draw_graph(rnd)
 
-            idx = self.search_best_goal_node()
+            # idx = self.search_best_goal_node()
 
-            if idx is not None:
-                if self.node_list[idx].cost < 8.0:
-                    print("cost : %.4f" % self.node_list[idx].cost)
-                    return self.generate_final_course(idx)
+            # if idx is not None:
+            #     if self.node_list[idx].cost < 8.0:
+            #         print("cost : %.4f" % self.node_list[idx].cost)
+            #         return self.generate_final_course(idx)
 
             if (not search_until_max_iter) and new_node:  # check reaching the goal
                 last_index = self.search_best_goal_node()
