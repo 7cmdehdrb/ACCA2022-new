@@ -10,7 +10,7 @@ from path_plan.msg import PathRequest, PathResponse
 from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped
-
+from std_msgs.msg import Int8
 db_name = rospy.get_param("/LoadPath/db_name", "/path.db")
 
 
@@ -49,9 +49,9 @@ class LoadPath():
 
     def toRosPath(self):
         # ros path publish
-        self.path = Path()
-        self.path.header.frame_id = "map"
-        self.path.header.stamp = rospy.Time.now()
+        path = Path()
+        path.header.frame_id = "map"
+        path.header.stamp = rospy.Time.now()
 
         for info in self.path_info:
 
@@ -70,18 +70,24 @@ class LoadPath():
             pose.pose.orientation.z = quat[2]
             pose.pose.orientation.w = quat[3]
 
-            self.path.poses.append(pose)
+            path.poses.append(pose)
+
+        return path
 
     def check_path_avaliable(self):
-        file_path = rospkg.RosPack().get_path("erp42_control") + \
+        path = []
+        file_path = rospkg.RosPack().get_path("path_plan") + \
             "/path/" + rospy.get_param("/LoadPath/path_name", "path.csv")
+
         with open(file_path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
             for row in reader:
                 try:
-                    start = row[0]
-                    end = row[1]
-                    path_id = self.db.bring_path_id(start, end)
+                    self.Request.start = row[0]
+                    self.Request.end = row[1]
+                    self.bringPath()
+                    for info in self.path_info:
+                        path.append(info)
 
                 except ValueError as ex:
                     rospy.logwarn(ex)
@@ -92,7 +98,13 @@ class LoadPath():
                     rospy.logfatal("No path data")
                     rospy.logfatal(ie)
                     raise Exception()
-        # return 0
+
+            self.path_info = path
+            ros_path = self.toRosPath()
+
+            for i in range(10):
+                rospath_pub.publish(ros_path)
+                sleep(0.1)
 
 
 if __name__ == "__main__":
@@ -120,8 +132,8 @@ if __name__ == "__main__":
                 listpath_pub.publish(res)
 
                 if PathPoint_sub.get_num_connections() > 0:
-                    load_path.toRosPath()
-                    rospath_pub.publish(load_path.path)
+                    ros_path = load_path.toRosPath()
+                    rospath_pub.publish(ros_path)
                     rospy.loginfo('ros path published')
 
             except Exception as ex:

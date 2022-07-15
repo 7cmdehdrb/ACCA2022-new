@@ -3,7 +3,11 @@
     <!-- Basic Controller Params -->
     <arg name="max_steer" default="30" />
     <arg name="desired_speed" default="15.0" />
+<<<<<<< HEAD
     <arg name="speed_control_enable" default="false" />
+=======
+    <arg name="speed_control_enable" default="true" />
+>>>>>>> 2f209b0d5e270ee9c4e849f9600346f5cbc5c64d
 
     <!-- Stanley Controller Params -->
     <arg name="c_gain" default="0.7" />
@@ -20,7 +24,9 @@
     <arg name="hdr_threshold" default="0.01" />
     <arg name="ctr_threshold" default="0.08" />
 
-    <node pkg="erp42_control" name="stanley_controller" type="stanley_controller.py">
+    <node pkg="erp42_control" name="stanley_controller" type="stanley_controller.py" output="screen">
+        <param name="speed_control_enable" type="bool" value="$(arg speed_control_enable)" /> 
+        
         <param name="max_steer" type="int" value="$(arg max_steer)" /> 
         <param name="desired_speed" type="double" value="$(arg desired_speed)" />
         <param name="c_gain" type="double" value="$(arg c_gain)" />
@@ -32,6 +38,9 @@
         <param name="ce_gain" type="double" value="$(arg ce_gain)" />
         <param name="hdr_threshold" type="double" value="$(arg hdr_threshold)" />
         <param name="ctr_threshold" type="double" value="$(arg ctr_threshold)" />
+<<<<<<< HEAD
         <param name="speed_control_enable" type="bool" value="$(arg speed_control_enable)" />
+=======
+>>>>>>> 2f209b0d5e270ee9c4e849f9600346f5cbc5c64d
     </node>
 </launch>

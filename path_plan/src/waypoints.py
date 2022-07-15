@@ -14,9 +14,10 @@ from std_msgs.msg import ColorRGBA, Empty, String
 
 
 class WayPoint(object):
-    def __init__(self, id, pose=Point()):
+    def __init__(self, id, pose=Point(), is_end=False):
         self.id = id
         self.pose = pose
+        self.is_end = is_end
 
     def parseId(self):
         area = self.id[0]
@@ -41,7 +42,8 @@ class WayPoint(object):
         marker.pose.position = self.pose
         marker.pose.orientation = Quaternion(0., 0., 0., 1.)
         marker.scale = Vector3(5., 5., 5.)
-        marker.color = ColorRGBA(1., 1., 1., 1.)
+        marker.color = ColorRGBA(
+            1., 1., 1., 1.) if self.is_end is False else ColorRGBA(1., 0., 0., 1.)
 
         marker.lifetime = genpy.Duration(secs=1)
 
@@ -102,7 +104,7 @@ class WayPoints(object):
     def __init__(self):
         self.file_name = rospy.get_param(
             "/waypoints/waypoints_file", "path.csv")
-        self.path = rospkg.RosPack().get_path("erp42_control") + \
+        self.path = rospkg.RosPack().get_path("path_plan") + \
             "/waypoints/" + self.file_name
 
         self.__waypoints = []
@@ -126,8 +128,9 @@ class WayPoints(object):
                     id = wp.id  # string
                     x = str(wp.pose.x)   # float
                     y = str(wp.pose.y)   # float
+                    is_end = "1" if wp.is_end is True else "0"
 
-                    csvfile.write(id + "," + x + "," + y + "\n")
+                    csvfile.write(id + "," + x + "," + y + "," + is_end + "\n")
 
                 except Exception as ex:
                     rospy.logwarn(ex)
@@ -141,12 +144,13 @@ class WayPoints(object):
                 reader = csv.reader(csvFile, delimiter=",")
                 for row in reader:
                     waypoint = WayPoint(id=row[0], pose=Point(
-                        float(row[1]), float(row[2]), 0.))
+                        float(row[1]), float(row[2]), 0.), is_end=("1" == row[3]))
                     self.__waypoints.append(waypoint)
         except Exception as ex:
             rospy.logwarn(ex)
             os.system(
-                "touch touch ~/catkin_ws/src/ACCA2022-new/erp42/erp42_control/waypoints/%s" % self.file_name
+                "touch %s/waypoints/%s" % (
+                    rospkg.RosPack().get_path("path_plan"), self.file_name)
             )
 
         self.publishWaypoints()
@@ -158,8 +162,11 @@ class WayPoints(object):
         return -1
 
     def addWaypoint(self, msg):
+
+        id, is_end = msg.data.split("/")
+
         waypoint = WayPoint(
-            id=msg.data, pose=self.temperal_point.marker.pose.position)
+            id=id, pose=self.temperal_point.marker.pose.position, is_end=("1" == is_end))
 
         if self.checkDuplicate(waypoint) == -1:
             self.__waypoints.append(waypoint)
