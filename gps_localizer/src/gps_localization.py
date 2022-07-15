@@ -175,6 +175,9 @@ class GPS_Localizer(object):
 if __name__ == "__main__":
     rospy.init_node('gps_localizer')
 
+    print(measure(37.4966977, 126.9575288,
+                  37.4966977 + 1, 126.9575288))
+
     # main object
     gpsLocal = GPS_Localizer()
 

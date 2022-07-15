@@ -10,8 +10,13 @@
 >>>>>>> 2f209b0d5e270ee9c4e849f9600346f5cbc5c64d
 
     <!-- Stanley Controller Params -->
+<<<<<<< HEAD
     <arg name="c_gain" default="0.7" />
     <arg name="hdr_ratio" default="0.9" />
+=======
+    <arg name="c_gain" default="0.01" />
+    <arg name="hdr_ratio" default="1.0" />
+>>>>>>> 4cbc1fa04e1f6d48f58f56574da6042c5ac50d4e
 
     <!-- PID Controller Params -->
     <arg name="p_gain" default="1.0" />
