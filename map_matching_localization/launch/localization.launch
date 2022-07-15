@@ -5,7 +5,7 @@
     <arg name="is_publish_tf" default="false"/>
     <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/school.pcd" />
 
-    <!-- <include file="$(find state_machine)/launch/sensor.launch" /> -->
+    <include file="$(find state_machine)/launch/sensor.launch" />
 
     <!-- hdl localization -->
     <include file="$(find hdl_localization)/launch/hdl_localization.launch">
