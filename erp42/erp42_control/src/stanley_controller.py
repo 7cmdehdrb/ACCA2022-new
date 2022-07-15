@@ -12,6 +12,7 @@ from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from path_response_with_type import *
 from speed_supporter import SpeedSupporter
+from parameter_tuner import ParameterTuner
 from time import sleep
 
 
@@ -42,6 +43,7 @@ class StanleyController(object):
 
         # Stanley Controller Object
         self.stanley = Stanley()
+        self.parameter_tuner = ParameterTuner()
         self.target_idx = 0
 
         # Speed Supporter Object. Accelerate in straight track, Decelerate in corner track
@@ -122,6 +124,11 @@ class StanleyController(object):
 
     def drivingControl(self):
         try:
+            c, hdr = self.parameter_tuner.getGain(self.state.v)
+
+            self.stanley.setCGain(c)
+            self.stanley.setHdrRatio(hdr)
+
             di, target_idx = self.stanley.stanley_control(
                 self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
         except IndexError as ie:
@@ -178,7 +185,7 @@ class StanleyController(object):
         # Try Update Path
         self.switchPath()
 
-        print(self.mission_state)
+        # print(self.mission_state)
 
         # Switch
         if self.mission_state == MissionState.DRIVING:
