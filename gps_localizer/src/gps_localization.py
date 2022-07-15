@@ -2,6 +2,7 @@
 
 import rospy
 import math as m
+import pandas as pd
 import numpy as np
 import tf
 import csv
@@ -20,7 +21,7 @@ class GPS_Position(object):
     def transformOdometry(self):
         msg = Odometry()
 
-        msg.header.frame_id = "map"
+        msg.header.frame_id = "map"45
         msg.header.stamp = rospy.Time.now()
 
         msg.child_frame_id = "base_link"
@@ -70,34 +71,42 @@ class GPS_Localizer(object):
         self.gps_pub = rospy.Publisher(
             "/odometry/gps", Odometry, queue_size=5)
 
+        data = pd.read_csv("k-city-03_test.csv")
+        
+        #print(data)
+        MAP_array = []
+        UTM_array = []
+        
+        MAP_x = []
+        MAP_y = []
+        UTM_x = []
+        UTM_y = []
 
+        for i in data.MAP_x:
+            MAP_x.append(i)
+        for i in data.MAP_y:
+            MAP_y.append(i)
+        for i in data.UTM_x:
+            UTM_x.append(i)
+        for i in data.UTM_y:
+            UTM_y.append(i)
 
+        l = len(UTM_x)
+        for i in range(l):
+            UTM_array.append((UTM_x[i], UTM_y[i]))
+        print(UTM_array)
+        for i in range(l):
+            MAP_array.append((MAP_x[i], MAP_y[i]))
+        print(MAP_array)
 
-        self.MAP_array = [(44.7440071105957, -22.97344970703125), (57.66763687133789, 15.54519271850586), (68.47551544189453, 63.56060089111328), (-16.925106048583984, 96.37699127197266), (-48.61351013183594, 12.82844352722168), (7.875662326812744, 28.958160400390625)]
-        self.UTM_array = [(935792.3273586094, 1915571.9181262662), (935814.0398102237, 1915606.4008861256), (935835.8612522263, 1915650.4362249952), (935760.2116881593, 1915702.183413668), (935710.2458660271, 1915628.1536590266), (935769.1164516942, 1915631.3861677346)]
-
-        # self.MAP_array = [(4.951485633850098, 9.121633529663086), (50.159671783447266, 16.569351196289062), (55.40330505371094, -49.641634979248046), (-11.081011238098144, -68.96293151855468), (-24.29832649230957, -24.148726654052734)]
-# 
-        # self.UTM_array = [(952238.8559021528, 1943997.5906348864), (952282.4780451846, 1943983.2939213214), (952256.5764822852, 1943922.1215198254), (952188.5662703076, 1943935.060860259), (952197.5051409351, 1943981.0530319982)]
-# 
-
-
-        # school
-        # Map Frame (m)
-        # self.MAP_array = [(-0.4960020862768175, -0.5760807573118396), (46.652636456447496, -8.785138142668425), (39.851066110081725, -
-                                                                                                                #  68.52667876032093), (-36.800244787332694, -56.39848317530497), (-29.25821810981983, -15.20442872770482)]
-
-        # UTM (scale: unknown)
-        # self.UTM_array = [(952040.030150764, 1944306.2372952956), (952087.0743343225, 1944297.801344242), (952079.8538559552,
-                                                                                                        #    1944238.092975102), (952003.4613295222, 1944250.5698888663), (952011.2476501107, 1944291.8263297458)]
-        # k-city
-
-        D_map = m.sqrt((self.MAP_array[0][0] - self.MAP_array[1][0])
-                       ** 2 + (self.MAP_array[0][1] - self.MAP_array[1][1]) ** 2)
-        D_utm = m.sqrt((self.UTM_array[0][0] - self.UTM_array[1][0])
-                       ** 2 + (self.UTM_array[0][1] - self.UTM_array[1][1]) ** 2)
+        self.MAP_array = MAP_array
+        self.UTM_array = UTM_array
+        # print(self.MAP_array)
+        D_map = m.sqrt((self.MAP_array[0][0] - self.MAP_array[1][0]) ** 2 + (self.MAP_array[0][1] - self.MAP_array[1][1]) ** 2)
+        D_utm = m.sqrt((self.UTM_array[0][0] - self.UTM_array[1][0]) ** 2 + (self.UTM_array[0][1] - self.UTM_array[1][1]) ** 2)
+        print(D_map)
         self.R = D_map / D_utm
-
+        print(self.R)
     def GpsCallback(self, msg):
         self.position_coordinate(msg)
 
@@ -151,14 +160,11 @@ class GPS_Localizer(object):
             (UTM_x - B2[0]) ** 2 + (UTM_y - B2[1]) ** 2)) * self.R
         D3 = (m.sqrt(
             (UTM_x - B3[0]) ** 2 + (UTM_y - B3[1]) ** 2)) * self.R
+        print(D1, D2, D3)
+        S = (A3[0] ** 2 - A2[0] ** 2 + A3[1] ** 2 - A2[1] ** 2 + D2 ** 2 - D3 ** 2) / 2
+        T = (A1[0] ** 2 - A2[0] ** 2 + A1[1] ** 2 - A2[1] ** 2 + D2 ** 2 - D1 ** 2) / 2
 
-        S = (A3[0] ** 2 - A2[0] ** 2 + A3[1] **
-             2 - A2[1] ** 2 + D2 ** 2 - D3 ** 2) / 2
-        T = (A1[0] ** 2 - A2[0] ** 2 + A1[1] **
-             2 - A2[1] ** 2 + D2 ** 2 - D1 ** 2) / 2
-
-        y = ((T * (A2[0] - A3[0])) - (S * (A2[0] - A1[0]))) / (((A1[1] - A2[1])
-                                                                * (A2[0] - A3[0])) - ((A3[1] - A2[1]) * (A2[0] - A1[0])))
+        y = ((T * (A2[0] - A3[0])) - (S * (A2[0] - A1[0]))) / (((A1[1] - A2[1]) * (A2[0] - A3[0])) - ((A3[1] - A2[1]) * (A2[0] - A1[0])))
         x = ((y * (A1[1] - A2[1]) - T) / (A2[0] - A1[0]))
 
         # float, float, (3, 3) matrix
