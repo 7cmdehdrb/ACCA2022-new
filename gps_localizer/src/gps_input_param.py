@@ -118,4 +118,4 @@ if __name__ == "__main__":
     df["UTM_x"] = UTM_x
     df["UTM_y"] = UTM_y
 
-    df.to_csv("k-city_03.csv", index=False)
+    df.to_csv("k-city_08.csv", index=False)

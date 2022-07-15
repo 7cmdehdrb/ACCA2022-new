@@ -1,7 +1,7 @@
 <launch>
     <include file="$(find map_matching_localization)/launch/localization.launch">
         <arg name="is_publish_tf" default="true" />
-        <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/school.pcd" />
+        <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0710_kcity_02.pcd" />
         <!-- <arg name="globalmap_pcd" default="/home/acca/school_pcd/CornerMap.pcd" /> -->
     </include>
 

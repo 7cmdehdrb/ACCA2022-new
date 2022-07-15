@@ -2,7 +2,7 @@
     <arg name="odom_topic" default="odometry/kalman"/>
     <arg name="matching_err_tol" default="0.5"/>
     <arg name="inlier_fraction_tol" default="0.5"/>
-    <arg name="is_publish_tf" default="false"/>
+    <arg name="is_publish_tf" default="true"/>
     <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0710_kcity_02.pcd" />
 
     <include file="$(find state_machine)/launch/sensor.launch" />
