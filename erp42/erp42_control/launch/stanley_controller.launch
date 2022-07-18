@@ -2,11 +2,11 @@
 
     <!-- Basic Controller Params -->
     <arg name="max_steer" default="30" />
-    <arg name="desired_speed" default="30.0" />
+    <arg name="desired_speed" default="15.0" />
     <arg name="speed_control_enable" default="true" />
 
     <!-- Stanley Controller Params -->
-    <arg name="c_gain" default="1.0" />
+    <arg name="c_gain" default="0.01" />
     <arg name="hdr_ratio" default="1.0" />
 
     <!-- PID Controller Params -->
