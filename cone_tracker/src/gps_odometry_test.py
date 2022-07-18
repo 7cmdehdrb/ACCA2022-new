@@ -20,7 +20,7 @@ class GPSOdometry(object):
             "/odometry/gps", Odometry, queue_size=1)
 
         self.gps = Proj(init="epsg:4326")   # lat, log
-        self.tm = Proj(init="epsg:2097")    # m
+        self.tm = Proj(init="epsg:5186")    # m
 
         self.ublox = Ublox()
         self.xsens = Xsens()
@@ -44,9 +44,9 @@ class GPSOdometry(object):
         self.last_position = current_point
 
         res = Point(self.x, self.y, 0.)
-        print(res)
+        print(dis)
 
-        return res
+        return dis
 
     def publishOdometry(self):
         msg = Odometry()

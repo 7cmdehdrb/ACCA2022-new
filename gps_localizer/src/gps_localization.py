@@ -42,7 +42,7 @@ class GPS_Position(object):
         ])
 
         for i in range(2):
-            new_cov[i][i] = cov[i][i] * m.sqrt(dist)
+            new_cov[i][i] = cov[i][i] * m.sqrt(dist)+0.05
 
         new_cov = list(np.reshape(new_cov, newshape=(36, 1)))
         msg.pose.covariance = new_cov
