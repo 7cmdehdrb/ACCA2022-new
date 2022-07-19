@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from time import sleep
 import rospy
 import numpy as np
 from geometry_msgs.msg import PoseWithCovarianceStamped
@@ -37,6 +38,7 @@ class Relocalizer(object):
         if self.matching_err_queue.isFalse(10) is True:
             rospy.loginfo("RELOCALIZING...")
             self.init_pub.publish(self.odom_pose)
+            self.matching_err_queue.inputValue(True)
 
     def isTrustable(self, matching_err, inlier_fraction):
         return matching_err <= matching_err_tol and inlier_fraction >= inlier_fraction_tol

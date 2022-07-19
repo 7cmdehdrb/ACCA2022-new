@@ -10,10 +10,11 @@ from std_msgs.msg import Empty
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty
-from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion
+from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion, Point
 from erp42_msgs.msg import SerialFeedBack
 from hdl_localization.msg import ScanMatchingStatus
 from gaussian import *
+from pyproj import *
 
 
 is_publish_tf = rospy.get_param("/kalman/is_publish_tf", False)
@@ -74,10 +75,17 @@ class Kalman(object):
             Gaussian(None, gps.data[0], gps.cov[0][0]),
             Gaussian(None, gps.data[1], gps.cov[1][1])
         ]    # [x, y]
+
         z_hdl = [
             Gaussian(None, hdl.data[0], hdl.cov[0][0]),
             Gaussian(None, hdl.data[1], hdl.cov[1][1])
         ]    # [x, y]
+
+        # print(self.x)
+        print(gps.data[0], gps.data[1])
+        print(hdl.data[0], hdl.data[1])
+        print(gps.data[0] - hdl.data[0], gps.data[1] - hdl.data[1])
+        print("")
 
         position = [gaussianConvolution(
             z_gps[0], z_hdl[0]), gaussianConvolution(z_gps[1], z_hdl[1])]   # [gaussian x, gaussian y]
@@ -151,9 +159,9 @@ class Kalman(object):
 
         self.odom_pub.publish(msg)
 
-        # if is_publish_tf is False:
-        #     self.tf_br.sendTransform(translation=(
-        #         x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
+        if is_publish_tf is False:
+            self.tf_br.sendTransform(translation=(
+                x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
 
 
 class Sensor(object):
@@ -191,9 +199,11 @@ class ERP42(Sensor):
 
     def handleData(self, msg):
         cov = getEmpty((4, 4))
-        cov[2][2] = 0.2
+        cov[2][2] = 0.1
 
-        return np.array([0., 0., msg.speed, 0.], dtype=np.float64), cov
+        self.cov = cov
+
+        return np.array([0., 0., msg.speed, 0.], dtype=np.float64), self.cov
 
 
 class Xsens(Sensor):
@@ -255,15 +265,11 @@ class Xsens(Sensor):
             cov = getEmpty((4, 4))
             cov[-1][-1] = msg.orientation_covariance[-1]
 
+            self.cov = cov
+
             self.last_yaw = yaw
 
-            """
-                [1.21847072356e-05, 0.0, 0.0, 
-                0.0, 7.615442022250002e-05, 0.0, 
-                0.0, 0.0, 0.00030461768089000006]
-            """
-
-            return np.array([0, 0, 0, self.yaw]), cov
+            return np.array([0, 0, 0, self.yaw]), self.cov
         else:
             return np.array([0., 0., 0., 0.], dtype=np.float64), self.cov
 
@@ -278,20 +284,130 @@ class Odom(Sensor):
             [0., 0., 0., 0., ]
         ])
 
+        self.x = 0.
+        self.y = 0.
+
     def handleData(self, msg):
         pose = msg.pose.pose.position
+
+        self.x = pose.x
+        self.y = pose.y
 
         odom_cov = np.reshape(
             np.array(msg.pose.covariance, dtype=np.float64), (6, 6))
         cov = odom_cov[:4, :4]
+        self.cov = cov
 
-        return np.array([pose.x, pose.y, 0., 0.], dtype=np.float64), cov
+        return np.array([pose.x, pose.y, 0., 0.], dtype=np.float64), self.cov
+
+
+class GPS(Sensor):
+    def __init__(self, topic, msg_type):
+        super(GPS, self).__init__(topic, msg_type)
+        self.cov = np.array([
+            [99., 0., 0., 0., ],
+            [0., 99., 0., 0., ],
+            [0., 0., 0., 0., ],
+            [0., 0., 0., 0., ]
+        ])
+
+        self.flag_sub = rospy.Subscriber(
+            "/set_gps", Empty, callback=self.set_gps)
+        self.flag_pub = rospy.Publisher(
+            "/set_gps", Empty, queue_size=1)
+        self.odom_sub = rospy.Subscriber(
+            "/odom", Odometry, callback=self.odomCallback)
+        self.status_sub = rospy.Subscriber(
+            "/status", ScanMatchingStatus, self.statusCallback
+        )
+        self.gps_odom_pub = rospy.Publisher(
+            "odometry/gps", Odometry, queue_size=1)
+
+        self.x = 0.
+        self.y = 0.
+
+        self.gps = Proj(init="epsg:4326")   # lat, log
+        self.tm = Proj(init="epsg:2097")    # m
+        # self.tm = Proj(init="epsg:5174")    # m
+
+        self.gps_flag = False
+        self.last_position = None
+
+    def odomCallback(self, msg):
+        if self.gps_flag is True:
+            self.x = msg.pose.pose.position.x
+            self.y = msg.pose.pose.position.y
+            self.gps_flag = False
+
+    def statusCallback(self, msg):
+        if msg.matching_error < 0.02:
+            self.flag_pub.publish()
+            self.status_sub.unregister()
+
+    def set_gps(self, msg):
+        self.gps_flag = True
+        rospy.loginfo("SET INITIAL GPS!")
+
+    def publishOodometry(self):
+        msg = Odometry()
+
+        msg.header.frame_id = "map"
+        msg.header.stamp = rospy.Time.now()
+
+        msg.child_frame_id = "base_link"
+
+        msg.pose.pose.position.x = self.x
+        msg.pose.pose.position.y = self.y
+
+        msg.pose.covariance = [0. for i in range(36)]
+        msg.pose.covariance[0] = self.cov[0][0]
+        msg.pose.covariance[7] = self.cov[1][1]
+
+        self.gps_odom_pub.publish(msg)
+
+    def calculateDistance(self, p1, p2):
+        return m.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
+
+    def calculateDistanceFromGPS(self, log, lat):
+        x, y = transform(p1=self.gps, p2=self.tm,
+                         x=log, y=lat)
+
+        current_point = Point(x, y, 0.)
+
+        if self.last_position is None:
+            self.last_position = current_point
+
+        distance = self.calculateDistance(self.last_position, current_point)
+
+        self.last_position = current_point
+
+        return distance
+
+    def handleData(self, msg):
+        distance = self.calculateDistanceFromGPS(
+            log=msg.longitude, lat=msg.latitude)
+
+        self.x = kf.x[0] + distance * m.cos(kf.x[3])
+        self.y = kf.x[1] + distance * m.sin(kf.x[3])
+
+        self.cov = np.array([
+            [msg.position_covariance[0] *
+                m.sqrt(111319.490793) + 0.5, 0., 0., 0., ],
+            [0., msg.position_covariance[0] *
+                m.sqrt(111319.490793) + 0.5, 0., 0., ],
+            [0., 0., 0., 0., ],
+            [0., 0., 0., 0., ]
+        ])
+
+        self.publishOodometry()
+
+        return np.array([self.x, self.y, 0., 0.], dtype=np.float64), self.cov
 
 
 if __name__ == "__main__":
     rospy.init_node("kalman")
 
-    gps = Odom("/odometry/gps", Odometry)
+    gps = GPS("/ublox_gps/fix", NavSatFix)
     hdl = Odom("/odom", Odometry)
     erp = ERP42("/erp42_feedback", SerialFeedBack)
     imu = Xsens("/imu/data", Imu)
@@ -304,7 +420,7 @@ if __name__ == "__main__":
 
     kf = Kalman()
 
-    hz = 10
+    hz = 30
     dt = 1. / hz
 
     current_time = rospy.Time.now()
@@ -314,17 +430,14 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
 
         current_time = rospy.Time.now()
-        dt = (current_time - last_time).to_sec()
 
         try:
-            pass
-
             x, P = kf.filter(gps, hdl, erp, imu,
-                             dt=dt)
+                             dt=(current_time - last_time).to_sec())
+
             kf.publishOdom(x, P)
 
         except Exception as ex:
-            rospy.logwarn("ERROR : Kalman")
             rospy.logwarn(ex)
 
         last_time = current_time

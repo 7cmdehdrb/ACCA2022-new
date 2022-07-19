@@ -12,7 +12,7 @@ from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from path_response_with_type import *
 from speed_supporter import SpeedSupporter
-from parameter_tuner import ParameterTuner
+# from parameter_tuner import ParameterTuner
 from time import sleep
 
 
@@ -43,7 +43,7 @@ class StanleyController(object):
 
         # Stanley Controller Object
         self.stanley = Stanley()
-        self.parameter_tuner = ParameterTuner()
+        # self.parameter_tuner = ParameterTuner()
         self.target_idx = 0
 
         # Speed Supporter Object. Accelerate in straight track, Decelerate in corner track
@@ -194,17 +194,18 @@ class StanleyController(object):
         elif self.mission_state == MissionState.TRAFFIC:
             msg = self.trafficControl()
 
-        elif self.mission_state == MissionState.DELIVERY:
-            pass
+        # elif self.mission_state == MissionState.DELIVERY:
+        #     pass
 
-        elif self.mission_state == MissionState.STATIC:
-            pass
+        # elif self.mission_state == MissionState.STATIC:
+        #     pass
 
-        elif self.mission_state == MissionState.DYNAMIC:
-            pass
+        # elif self.mission_state == MissionState.DYNAMIC:
+        #     pass
 
         else:
             rospy.logfatal("Invalide Mission State..!")
+            msg = ControlMessage(0, 0, 2, 3, 0, 0, 0)
 
         return msg
 

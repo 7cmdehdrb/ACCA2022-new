@@ -393,7 +393,6 @@ private:
    */
   void publish_odometry(const ros::Time& stamp, const Eigen::Matrix4f& pose) {
     // broadcast the transform over tf
-    if (is_publish_tf){
       if(tf_buffer.canTransform(robot_odom_frame_id, odom_child_frame_id, ros::Time(0))) {
         geometry_msgs::TransformStamped map_wrt_frame = tf2::eigenToTransform(Eigen::Isometry3d(pose.inverse().cast<double>()));
         map_wrt_frame.header.stamp = stamp;
@@ -416,15 +415,20 @@ private:
         odom_trans.header.frame_id = "map";
         odom_trans.child_frame_id = robot_odom_frame_id;
 
-        tf_broadcaster.sendTransform(odom_trans);
+        if (is_publish_tf){
+          tf_broadcaster.sendTransform(odom_trans);
+        }
       } else {
         geometry_msgs::TransformStamped odom_trans = tf2::eigenToTransform(Eigen::Isometry3d(pose.cast<double>()));
         odom_trans.header.stamp = stamp;
         odom_trans.header.frame_id = "map";
         odom_trans.child_frame_id = odom_child_frame_id;
-        tf_broadcaster.sendTransform(odom_trans);
+
+        if (is_publish_tf){
+          tf_broadcaster.sendTransform(odom_trans);
+        }
       }
-    }
+    
 
     // publish the transform
     nav_msgs::Odometry odom;
