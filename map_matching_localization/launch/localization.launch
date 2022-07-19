@@ -2,8 +2,8 @@
     <arg name="odom_topic" default="odometry/kalman"/>
     <arg name="matching_err_tol" default="0.1"/>
     <arg name="inlier_fraction_tol" default="0.9"/>
-    <arg name="is_publish_tf" default="true"/>
-    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/school.pcd" />
+    <arg name="is_publish_tf" default="false"/>
+    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/school_pcd_0719/GlobalMap.pcd" />
 
 
     <!-- <include file="$(find state_machine)/launch/sensor.launch" /> -->
@@ -19,9 +19,9 @@
     <!-- <node pkg="gps_localizer" name="gps_localizer" type="gps_localization.py" /> -->
 
     <!-- kalman filter -->
-    <!-- <node pkg="map_matching_localization" name="kalman" type="kalman.py" output="screen">
+    <node pkg="map_matching_localization" name="kalman" type="kalman3.py" output="screen">
         <param name="is_publish_tf" value="$(arg is_publish_tf)"></param>
-    </node> -->
+    </node>
 
     <!-- kaman - relocalizer -->
     <!-- <node pkg="map_matching_localization" name="relocalizer" type="relocalizer.py" output="screen">

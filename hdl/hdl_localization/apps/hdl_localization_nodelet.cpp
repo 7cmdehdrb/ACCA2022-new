@@ -437,6 +437,7 @@ private:
 
     tf::poseEigenToMsg(Eigen::Isometry3d(pose.cast<double>()), odom.pose.pose);
     odom.child_frame_id = odom_child_frame_id;
+    odom.pose.pose.position.z = 0.0;
     odom.twist.twist.linear.x = 0.0;
     odom.twist.twist.linear.y = 0.0;
     odom.twist.twist.angular.z = 0.0;
@@ -450,12 +451,12 @@ private:
     }
 
     if (matching_error >= (3.13 / 2.0)) {
-      cov[0] = tan(3.13 / 2.0) * 10.0;
-      cov[7] = tan(3.13 / 2.0) * 10.0;
+      cov[0] = tan(3.13 / 2.0) * 30.0;
+      cov[7] = tan(3.13 / 2.0) * 30.0;
     }
     else {
-      cov[0] = tan(matching_error) * 10.0;
-      cov[7] = tan(matching_error) * 10.0;
+      cov[0] = tan(matching_error) * 30.0;
+      cov[7] = tan(matching_error) * 30.0;
     }
 
     odom.pose.covariance = cov;

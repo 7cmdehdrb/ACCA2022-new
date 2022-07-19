@@ -29,6 +29,10 @@ class State(object):
 
     def odomCallback(self, msg):
         self.currentTime = rospy.Time.now()
+        dt = (self.currentTime - self.lastTime).to_sec()
+
+        if 1 / dt > 35.:
+            return 0
 
         self.x = msg.pose.pose.position.x
         self.y = msg.pose.pose.position.y
@@ -37,7 +41,6 @@ class State(object):
         dy = msg.pose.pose.position.y - self.data.pose.pose.position.y
 
         distance = math.sqrt(dx ** 2 + dy ** 2)
-        dt = (self.currentTime - self.lastTime).to_sec()
 
         self.v = distance / dt
 
@@ -48,10 +51,21 @@ class State(object):
         self.omega = (yaw - self.yaw) / dt
         self.yaw = yaw
 
-        self.lastTime = self.currentTime
-
         self.data = msg
+
+        self.lastTime = self.currentTime
 
     def getArray(self):
         # [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
         return np.array([self.x, self.y, self.yaw, self.v, self.omega])
+
+
+if __name__ == "__main__":
+    rospy.init_node("state")
+
+    state = State(odometry_topic="/odometry/kalman")
+
+    r = rospy.Rate(1)
+    while not rospy.is_shutdown():
+        print("%.4f" % state.v)
+        r.sleep()

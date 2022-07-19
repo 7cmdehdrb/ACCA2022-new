@@ -13,9 +13,9 @@ from header import Queue
 odom_topic = rospy.get_param(
     param_name="/relocalizer/odom_topic", default="odometry/kalman")
 matching_err_tol = float(rospy.get_param(
-    param_name="/relocalizer/matching_err_tol", default=0.05))
+    param_name="/relocalizer/matching_err_tol", default=0.1))
 inlier_fraction_tol = float(rospy.get_param(
-    param_name="/relocalizer/inlier_fraction_tol", default=0.95))
+    param_name="/relocalizer/inlier_fraction_tol", default=0.9))
 
 
 class Relocalizer(object):
@@ -29,13 +29,13 @@ class Relocalizer(object):
             "/status", ScanMatchingStatus, callback=self.statusCallback)
 
         self.odom_pose = PoseWithCovarianceStamped()
-        self.matching_err_queue = Queue(length=10)
+        self.matching_err_queue = Queue(length=30)
 
     def statusCallback(self, msg):
         self.matching_err_queue.inputValue(
             self.isTrustable(msg.matching_error, msg.inlier_fraction))
 
-        if self.matching_err_queue.isFalse(10) is True:
+        if self.matching_err_queue.isFalse(30) is True:
             rospy.loginfo("RELOCALIZING...")
             self.init_pub.publish(self.odom_pose)
             self.matching_err_queue.inputValue(True)

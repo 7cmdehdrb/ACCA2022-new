@@ -52,10 +52,10 @@ class Kalman(object):
 
         # noise
         self.Q = np.array([
-            [0.5, 0., 0., 0.],
-            [0., 0.5, 0., 0.],
-            [0., 0., 0.5, 0.],
-            [0., 0., 0., 0.5]
+            [0.1, 0., 0., 0.],
+            [0., 0.1, 0., 0.],
+            [0., 0., 0.1, 0.],
+            [0., 0., 0., 0.1]
         ])
 
         self.dt = 0.
@@ -81,12 +81,6 @@ class Kalman(object):
             Gaussian(None, hdl.data[1], hdl.cov[1][1])
         ]    # [x, y]
 
-        # print(self.x)
-        print(gps.data[0], gps.data[1])
-        print(hdl.data[0], hdl.data[1])
-        print(gps.data[0] - hdl.data[0], gps.data[1] - hdl.data[1])
-        print("")
-
         position = [gaussianConvolution(
             z_gps[0], z_hdl[0]), gaussianConvolution(z_gps[1], z_hdl[1])]   # [gaussian x, gaussian y]
 
@@ -94,12 +88,17 @@ class Kalman(object):
         z_erp = erp.data
         z_imu = imu.data
 
+        # print(gps.data[0], gps.data[1])
+        # print(hdl.data[0], hdl.data[1])
+        # print(position[0].mean, position[1].mean)
+        # print("")
+
         cov_position = getEmpty(shape=(4, 4))
         cov_erp = erp.cov
         cov_imu = imu.cov
 
         for i in range(2):
-            cov_position[i][i] = position[i].sigma
+            cov_position[i][i] = position[i].sigma * 2.0
 
         R = cov_position + cov_erp + cov_imu
 
@@ -129,6 +128,12 @@ class Kalman(object):
             np.dot(np.dot((K_position + K_erp + K_imu), np.identity(n=4)), P_k)
 
         self.dt = dt
+
+        # print(self.x)
+        # print(gps.data[0], gps.data[1])
+        # print(hdl.data[0], hdl.data[1])
+        # print(self.x[0], self.x[1])
+        # print("")
 
         return self.x, self.P
 
@@ -193,13 +198,13 @@ class ERP42(Sensor):
         self.cov = np.array([
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ],
-            [0., 0., 99, 0., ],
+            [0., 0., 999, 0., ],
             [0., 0., 0., 0., ]
         ])
 
     def handleData(self, msg):
         cov = getEmpty((4, 4))
-        cov[2][2] = 0.1
+        cov[2][2] = 0.01
 
         self.cov = cov
 
@@ -278,8 +283,8 @@ class Odom(Sensor):
     def __init__(self, topic, msg_type):
         super(Odom, self).__init__(topic, msg_type)
         self.cov = np.array([
-            [99., 0., 0., 0., ],
-            [0., 99., 0., 0., ],
+            [999., 0., 0., 0., ],
+            [0., 999., 0., 0., ],
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])
@@ -305,8 +310,8 @@ class GPS(Sensor):
     def __init__(self, topic, msg_type):
         super(GPS, self).__init__(topic, msg_type)
         self.cov = np.array([
-            [99., 0., 0., 0., ],
-            [0., 99., 0., 0., ],
+            [999., 0., 0., 0., ],
+            [0., 999., 0., 0., ],
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])
@@ -359,6 +364,11 @@ class GPS(Sensor):
         msg.pose.pose.position.x = self.x
         msg.pose.pose.position.y = self.y
 
+        quat = quaternion_from_euler(0., 0., kf.x[3])
+
+        msg.pose.pose.orientation = Quaternion(
+            quat[0], quat[1], quat[2], quat[3])
+
         msg.pose.covariance = [0. for i in range(36)]
         msg.pose.covariance[0] = self.cov[0][0]
         msg.pose.covariance[7] = self.cov[1][1]
@@ -381,20 +391,32 @@ class GPS(Sensor):
 
         self.last_position = current_point
 
+        if distance < 0.012:
+            distance = 0
+
         return distance
 
     def handleData(self, msg):
         distance = self.calculateDistanceFromGPS(
             log=msg.longitude, lat=msg.latitude)
 
-        self.x = kf.x[0] + distance * m.cos(kf.x[3])
-        self.y = kf.x[1] + distance * m.sin(kf.x[3])
+        x_ave = (self.x + kf.x[0]) / 2.0
+        y_ave = (self.y + kf.x[1]) / 2.0
+
+        if True:
+            # self.x += distance * m.cos(kf.x[3])
+            # self.y += distance * m.sin(kf.x[3])
+            self.x = x_ave + distance * m.cos(kf.x[3])
+            self.y = y_ave + distance * m.sin(kf.x[3])
+        else:
+            self.x = kf.x[0] + distance * m.cos(kf.x[3])
+            self.y = kf.x[1] + distance * m.sin(kf.x[3])
 
         self.cov = np.array([
             [msg.position_covariance[0] *
-                m.sqrt(111319.490793) + 0.5, 0., 0., 0., ],
+                m.sqrt(111319.490793) + 5.0, 0., 0., 0., ],
             [0., msg.position_covariance[0] *
-                m.sqrt(111319.490793) + 0.5, 0., 0., ],
+                m.sqrt(111319.490793) + 5.0, 0., 0., ],
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])
@@ -420,7 +442,7 @@ if __name__ == "__main__":
 
     kf = Kalman()
 
-    hz = 30
+    hz = 10
     dt = 1. / hz
 
     current_time = rospy.Time.now()
