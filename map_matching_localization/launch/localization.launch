@@ -1,21 +1,16 @@
 <launch>
     <arg name="odom_topic" default="odometry/kalman"/>
-    <arg name="matching_err_tol" default="0.5"/>
-    <arg name="inlier_fraction_tol" default="0.5"/>
-<<<<<<< HEAD
-    <arg name="is_publish_tf" default="true"/>
-    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0710_kcity_02.pcd" />
-=======
+    <arg name="matching_err_tol" default="0.1"/>
+    <arg name="inlier_fraction_tol" default="0.9"/>
     <arg name="is_publish_tf" default="false"/>
     <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/school.pcd" />
->>>>>>> 4cbc1fa04e1f6d48f58f56574da6042c5ac50d4e
 
-    <include file="$(find state_machine)/launch/sensor.launch" />
+    <!-- <include file="$(find state_machine)/launch/sensor.launch" /> -->
 
     <!-- hdl localization -->
     <include file="$(find hdl_localization)/launch/hdl_localization.launch">
         <arg name="is_publish_tf" default="$(arg is_publish_tf)"/>
-        <arg name="points_topic" default="/velodyne_points2"/>
+        <arg name="points_topic" default="/velodyne_points"/>
         <arg name="globalmap_pcd" default="$(arg globalmap_pcd)" />
     </include>
 

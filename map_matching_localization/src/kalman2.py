@@ -72,10 +72,8 @@ class Kalman(object):
         ])
 
         z_gps = [
-            Gaussian(None, self.x[0] + gps.data[0] *
-                     m.cos(self.x[3]), gps.cov[0][0]),
-            Gaussian(None, self.x[1] + gps.data[1] *
-                     m.sin(self.x[3]), gps.cov[1][1])
+            Gaussian(None, gps.data[0], gps.cov[0][0]),
+            Gaussian(None, gps.data[1], gps.cov[1][1])
         ]    # [x, y]
 
         z_hdl = [
@@ -83,8 +81,8 @@ class Kalman(object):
             Gaussian(None, hdl.data[1], hdl.cov[1][1])
         ]    # [x, y]
 
-        print(self.x[0] + gps.data[0] * m.cos(self.x[3]),
-              self.x[1] + gps.data[1] * m.sin(self.x[3]))
+        print(gps.data[0],
+              gps.data[1])
         print(hdl.data[0], hdl.data[1])
         print("")
 
@@ -307,10 +305,43 @@ class GPS(Sensor):
             [0., 0., 0., 0., ]
         ])
 
+        self.x = 0.
+        self.y = 0.
+
+        self.gps_flag = False
+
+
+        self.flag_sub = rospy.Subscriber(
+            "/set_gps", Empty, callback=self.set_gps)
+        self.flag_pub = rospy.Publisher(
+            "/set_gps", Empty, queue_size=1)
+        self.odom_sub = rospy.Subscriber(
+            "/odom", Odometry, callback=self.odomCallback)
+        self.status_sub = rospy.Subscriber(
+            "/status", ScanMatchingStatus, self.statusCallback
+        )
+
         self.gps = Proj(init="epsg:4326")   # lat, log
         self.tm = Proj(init="epsg:2097")    # m
 
         self.last_position = None
+
+
+    def set_gps(self, msg):
+        self.gps_flag = True
+        rospy.loginfo("SET INITIAL GPS!")
+
+    
+    def statusCallback(self, msg):
+        if msg.matching_error < 0.02:
+            self.flag_pub.publish()
+            self.status_sub.unregister()
+
+    def odomCallback(self, msg):
+        if self.gps_flag is True:
+            self.x = msg.pose.pose.position.x
+            self.y = msg.pose.pose.position.y
+            self.gps_flag = False
 
     def calculateDistance(self, p1, p2):
         return m.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
@@ -324,13 +355,18 @@ class GPS(Sensor):
             self.last_position = current_point
 
         distance = self.calculateDistance(self.last_position, current_point)
+        dx = distance * m.cos(kf.x[3])
+        dy = distance * m.sin(kf.x[3])
+
+        self.x += dx
+        self.y += dy
 
         self.last_position = current_point
 
-        return distance
+        return self.x, self.y
 
     def handleData(self, msg):
-        distance = self.transformGPStoTM(log=msg.longitude, lat=msg.latitude)
+        x, y = self.transformGPStoTM(log=msg.longitude, lat=msg.latitude)
         cov = np.array([
             [msg.position_covariance[0] *
                 m.sqrt(111319.490793) + 0.01, 0., 0., 0., ],
@@ -340,7 +376,7 @@ class GPS(Sensor):
             [0., 0., 0., 0., ]
         ])
 
-        return np.array([distance, distance, 0., 0.], dtype=np.float64), cov
+        return np.array([x, y, 0., 0.], dtype=np.float64), cov
 
 
 if __name__ == "__main__":

@@ -43,7 +43,7 @@ class StanleyController(object):
 
         # Stanley Controller Object
         self.stanley = Stanley()
-        self.parameter_tuner = ParameterTuner()
+        # self.parameter_tuner = ParameterTuner()
         self.target_idx = 0
 
         # Speed Supporter Object. Accelerate in straight track, Decelerate in corner track
@@ -124,10 +124,10 @@ class StanleyController(object):
 
     def drivingControl(self):
         try:
-            c, hdr = self.parameter_tuner.getGain(self.state.v)
+            # c, hdr = self.parameter_tuner.getGain(self.state.v)
 
-            self.stanley.setCGain(c)
-            self.stanley.setHdrRatio(hdr)
+            # self.stanley.setCGain(c)
+            # self.stanley.setHdrRatio(hdr)
 
             di, target_idx = self.stanley.stanley_control(
                 self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
@@ -223,5 +223,5 @@ if __name__ == "__main__":
         if cmd_pub.get_num_connections() > 0:
             msg = controller.makeControlMessage()
             cmd_pub.publish(msg)
-
+            print(msg)
         r.sleep()

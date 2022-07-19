@@ -5,7 +5,7 @@
     <arg name="odom_topic" default="odometry/kalman"/>
     <arg name="waypoints_file" default="kcity_bonsun.csv" />
 
-    <include file="$(find map_matching_localization)/launch/localization.launch" if="$(arg odometry_enable)" />
+    <!-- <include file="$(find map_matching_localization)/launch/localization.launch" if="$(arg odometry_enable)" /> -->
 
     <!-- waypoints -->
     <include file="$(find path_plan)/launch/waypoints.launch">

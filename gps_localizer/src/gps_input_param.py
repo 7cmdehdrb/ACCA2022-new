@@ -87,7 +87,7 @@ if __name__ == "__main__":
             map_x = []
             map_y = []
 
-            for i in range(100):
+            for i in range(1):
                 gx, gy, mx, my = state.update()
                 utm_x.append(gx)
                 utm_y.append(gy)
@@ -118,4 +118,4 @@ if __name__ == "__main__":
     df["UTM_x"] = UTM_x
     df["UTM_y"] = UTM_y
 
-    df.to_csv("k-city_08.csv", index=False)
+    df.to_csv("k-city_12.csv", index=False)
