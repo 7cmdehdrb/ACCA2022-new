@@ -27,8 +27,8 @@ def gaussianConvolution(g1, g2):
     if g1.sigma == g2.sigma:
         sigma = g1.sigma
     else:
-        sigma = g1.sigma ** 2 - (g1.sigma ** 4) / \
-            (g1.sigma ** 2 - g2.sigma ** 2)
+        sigma = 2.0 * (g1.sigma ** 2 - (g1.sigma ** 4) /
+                       (g1.sigma ** 2 - g2.sigma ** 2))
     return Gaussian(g1.x, mean, abs(sigma))
 
 
