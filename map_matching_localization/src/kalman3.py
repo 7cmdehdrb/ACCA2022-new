@@ -311,7 +311,7 @@ class HDL(Sensor):
             for i in range(2):
                 cov[i][i] = 9999.
 
-        # self.cov = cov
+        self.cov = cov
 
         return np.array([pose.x, pose.y, 0., 0.], dtype=np.float64), self.cov
 
@@ -423,9 +423,9 @@ class GPS(Sensor):
 
         self.cov = np.array([
             [msg.position_covariance[0] *
-                m.sqrt(111319.490793) + 30.0, 0., 0., 0., ],
+                m.sqrt(111319.490793) + 37.5, 0., 0., 0., ],
             [0., msg.position_covariance[0] *
-                m.sqrt(111319.490793) + 30.0, 0., 0., ],
+                m.sqrt(111319.490793) + 37.5, 0., 0., ],
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])
