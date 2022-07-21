@@ -14,8 +14,6 @@
         <arg name="globalmap_pcd" default="$(arg globalmap_pcd)" />
     </include>
 
-    <!-- gps localizer -->
-    <!-- <node pkg="gps_localizer" name="gps_localizer" type="gps_localization.py" /> -->
 
     <!-- kalman filter -->
     <node pkg="map_matching_localization" name="kalman" type="kalman3.py" output="screen">

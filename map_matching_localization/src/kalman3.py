@@ -98,9 +98,9 @@ class Kalman(object):
 
         R = cov_position + cov_erp + cov_imu
 
-        u_k = np.array(
-            [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.degrees(cmd.data[1])) * dt])
-        x_k = np.dot(A, self.x) + u_k
+        # u_k = np.array(
+        #     [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.degrees(cmd.data[1])) * dt])
+        x_k = np.dot(A, self.x)
         P_k = np.dot(np.dot(A, self.P), A.T) + self.Q
 
         H_position = np.array(

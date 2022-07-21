@@ -9,6 +9,5 @@
         <arg name="db_name" default="/path.db" />
         <arg name="path_name" default="path.csv" />
         <arg name="waypoints_file" default="kcity.csv" />
-        <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0710_kcity_02.pcd" />
     </include>
 </launch>
