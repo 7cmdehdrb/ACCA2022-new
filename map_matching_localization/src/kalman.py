@@ -296,10 +296,6 @@ if __name__ == "__main__":
     erp = ERP42("/erp42_feedback", SerialFeedBack)
     imu = Xsens("/imu/data", Imu)
 
-    sensors = [
-        gps, hdl, erp, imu
-    ]
-
     flag = False
 
     kf = Kalman()

@@ -3,7 +3,7 @@
     <arg name="matching_err_tol" default="0.15"/>
     <arg name="inlier_fraction_tol" default="0.85"/>
     <arg name="is_publish_tf" default="false"/>
-    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/school_pcd_0719/GlobalMap.pcd" />
+    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0720_school_all.pcd" />
 
 
     <!-- <include file="$(find state_machine)/launch/sensor.launch" /> -->
