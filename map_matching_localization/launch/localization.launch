@@ -3,9 +3,9 @@
     <arg name="matching_err_tol" default="0.15"/>
     <arg name="inlier_fraction_tol" default="0.85"/>
     <arg name="is_publish_tf" default="false"/>
-    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0720_school_all.pcd" />
+    <arg name="globalmap_pcd" default="/home/enbang/k_citi_0722_02_down.pcd" />
 
-    <include file="$(find state_machine)/launch/sensor.launch" />
+    <!-- <include file="$(find state_machine)/launch/sensor.launch" /> -->
 
     <!-- hdl localization -->
     <include file="$(find hdl_localization)/launch/hdl_localization.launch">
