@@ -93,6 +93,8 @@ class Kalman(object):
             cov_position[i][i] = position[i].sigma
 
         R = cov_position + cov_erp + cov_imu
+        # print(R[0][0], R[1][1], R[2][2], R[3][3])
+        u_k = np.array([0., 0., 0., (erp.data[2]/1.040)*m.tan(-erp.steer)*dt])
 
         x_k = np.dot(A, self.x) + u_k
         P_k = np.dot(np.dot(A, self.P), A.T) + self.Q
@@ -149,10 +151,9 @@ class Kalman(object):
                                0., 0., 0., 0., 0., P[3][3]]
 
         self.odom_pub.publish(msg)
-
-        # if is_publish_tf is False:
-        #     self.tf_br.sendTransform(translation=(
-        #         x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
+        if is_publish_tf is False:
+            self.tf_br.sendTransform(translation=(
+                x[0], x[1], 0), rotation=quat, time=rospy.Time.now(), child='base_link', parent='map')
 
 
 class Sensor(object):
@@ -295,6 +296,10 @@ if __name__ == "__main__":
     erp = ERP42("/erp42_feedback", SerialFeedBack)
     imu = Xsens("/imu/data", Imu)
 
+    sensors = [
+        gps, hdl, erp, imu
+    ]
+
     flag = False
 
     kf = Kalman()
@@ -309,17 +314,21 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
 
         current_time = rospy.Time.now()
-        dt = (current_time - last_time).to_sec()
 
         try:
-            pass
-
             x, P = kf.filter(gps, hdl, erp, imu,
-                             dt=dt)
-            kf.publishOdom(x, P)
-
+                             dt=(current_time - last_time).to_sec())
+            if flag is False:
+                temp = True
+                for s in sensors:
+                    if s.once is False:
+                        temp = False
+                        break
+                if temp is True:
+                    flag = True
+            else:
+                kf.publishOdom(x, P)
         except Exception as ex:
-            rospy.logwarn("ERROR : Kalman")
             rospy.logwarn(ex)
 
         last_time = current_time
