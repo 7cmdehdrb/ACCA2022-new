@@ -2,8 +2,11 @@
 
 
 import rospy
+import numpy as np
 import tf
+from tf.transformations import *
 import threading
+from header import Queue
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from hdl_localization.msg import ScanMatchingStatus, HDL_TF
@@ -13,32 +16,42 @@ from hdl_localization.msg import ScanMatchingStatus, HDL_TF
 
 hdl_topic = rospy.get_param(
     param_name="/hdl_tf_node/hdl_topic", default="hdl_tf")
-odom_topic = rospy.get_param(
-    param_name="/hdl_tf_node/odom_topic", default="odometry/global")
 matching_err_tol = float(rospy.get_param(
     param_name="/hdl_tf_node/matching_err_tol", default=0.05))
 inlier_fraction_tol = float(rospy.get_param(
     param_name="/hdl_tf_node/inlier_fraction_tol", default=0.95))
 
+hz = 100
 
-class Queue(object):
-    def __init__(self, length=10):
-        self.__array = [True for i in range(length)]
 
-    def inputValue(self, value):
-        assert type(value) == bool
+class LowPassFilter:
+    def __init__(self, cutoff_freq, ts):
+        self.ts = ts
+        self.cutoff_freq = cutoff_freq
+        self.pre_out = 0.
+        self.tau = self.calc_filter_coef()
 
-        self.__array.append(value)
-        del self.__array[0]
+    def calc_filter_coef(self):
+        w_cut = 2 * np.pi * self.cutoff_freq
+        return 1 / w_cut
 
-    def count(self, flag):
-        return self.__array.count(flag)
+    def filter(self, data):
+        out = (self.tau * self.pre_out + self.ts * data) / (self.tau + self.ts)
+        self.pre_out = out
+        return out
 
-    def isTrue(self, threshhold=10):
-        return self.count(True) >= threshhold
 
-    def isFalse(self, threshhold=10):
-        return self.count(False) >= threshhold
+class AverageFilter:
+    def __init__(self):
+        self.n = 0
+        self.prev = 0.0
+
+    def filter(self, data):
+        self.n += 1
+        alpha = (self.n - 1) / (self.n + 0.0)
+        ave = alpha * self.prev + (1 - alpha) * data
+        self.prev = ave
+        return ave
 
 
 class HDL_tf(object):
@@ -51,6 +64,10 @@ class HDL_tf(object):
             "/odometry/global", Odometry, callback=self.odomCallback
         )
 
+        self.avf_x = AverageFilter()
+        self.avf_y = AverageFilter()
+        self.avf_oy = AverageFilter()
+
         self.init_pub = rospy.Publisher(
             "/initialpose", PoseWithCovarianceStamped, queue_size=1)
 
@@ -59,44 +76,42 @@ class HDL_tf(object):
 
         self.odom = Odometry()
 
-        self.matching_err_queue = Queue()
+        self.matching_err_queue = Queue(length=10, init=False)
 
         self.matching_error = float("inf")
         self.inlier_fraction = 0.
 
-        self.temp = False
-
         self.trans = None
         self.rot = None
 
-        th = threading.Thread(target=self.loop)
-        th.start()
-
     # HDL_TF to ros tf
+
     def tfCallback(self, msg):
         assert type(msg) == type(HDL_TF())
 
-        # self.matching_err_queue.inputValue(
-        #     self.matching_error <= 0.05 and self.inlier_fraction >= 0.95)
+        if self.matching_err_queue.isTrue(threshhold=10):
+            x, y, _ = self.translationToArray(msg.translation)
+            # x_f = self.avf_x.filter(x)
+            # y_f = self.avf_y.filter(y)
 
-        self.trans = self.translationToArray(msg.translation)
-        self.rot = self.rotationToArray(msg.rotation)
-        
-        # self.temp = True
-        
-        # if self.matching_err_queue.isTrue(threshhold=10):
-        #     self.temp = False
+            quat = self.rotationToArray(msg.rotation)
+            _, _, yaw = euler_from_quaternion(quat)
+            # yaw_f = self.avf_oy.filter(yaw)
 
-        # elif self.matching_err_queue.isFalse(threshhold=10):
-        #     if self.canTransform():
-        #         self.temp = True
-        #         # self.relocalize()
-        #         # rospy.logwarn("Invalid TF Relation... Trying Relocalization")
+            # quat = quaternion_from_euler(0., 0., yaw)
+            self.trans = [x, y, 0.]
+            self.rot = quat
+
+        else:
+            rospy.logwarn("Queue < 10")
 
     # Status
     def statusCallback(self, msg):
         self.matching_error = msg.matching_error
         self.inlier_fraction = msg.inlier_fraction
+
+        self.matching_err_queue.inputValue(
+            self.matching_error <= matching_err_tol and self.inlier_fraction >= inlier_fraction_tol)
 
     # Odom
     def odomCallback(self, msg):
@@ -105,7 +120,6 @@ class HDL_tf(object):
     # broadcast TF from self.trans and rot
     def broadcastTF(self):
         if self.canTransform():
-            rospy.loginfo("HELLO")
             self.tf_broadcaster.sendTransform(
                 translation=self.trans,
                 rotation=self.rot,
@@ -113,30 +127,6 @@ class HDL_tf(object):
                 child="odom",
                 parent="map"
             )
-
-    # do relocalizing via ekf
-    def relocalize(self):
-        if self.tf_listener.canTransform("map", "odom", rospy.Time(0)):
-            try:
-                map_pose = self.tf_listener.transformPose(
-                    ps=self.transformOdometryToPose(self.odom), target_frame="map")
-                pose_cov = self.transformPoseToPoseWithCov(map_pose)
-
-                self.init_pub.publish(pose_cov)
-
-            except Exception as ex:
-                rospy.logwarn(ex)
-
-        else:
-            rospy.logwarn("Cannot Transform Between Map and Odom")
-
-    def loop(self):
-        r = rospy.Rate(1)
-        while not rospy.is_shutdown():
-            if self.temp is True:
-                self.relocalize()
-                rospy.logwarn("Invalid TF Relation... Trying Relocalization")
-            r.sleep()
 
     # Utils
 
@@ -172,7 +162,7 @@ if __name__ == "__main__":
 
     hdl = HDL_tf()
 
-    r = rospy.Rate(100)
+    r = rospy.Rate(hz)
     while not rospy.is_shutdown():
         hdl.broadcastTF()
         r.sleep()

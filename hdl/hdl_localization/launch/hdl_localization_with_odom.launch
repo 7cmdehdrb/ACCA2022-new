@@ -3,7 +3,7 @@
     <!-- arguments -->
     <arg name="nodelet_manager" default="hdl_nodelet_manager"/>
     <arg name="points_topic" default="/velodyne_points2"/>
-    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/scans.pcd" />
+    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0720_school_all.pcd" />
 
     <!-- optional arguments -->
     <arg name="odom_child_frame_id" default="base_link"/> 
@@ -14,7 +14,7 @@
     <arg name="use_global_localization" default="false"/>
     <arg name="imu_topic" default="/imu/data"/>
     <arg name="enable_robot_odometry_prediction" value="false"/>
-    <arg name="robot_odom_frame_id" value="base_link"/>
+    <arg name="robot_odom_frame_id" value="odom"/>
     <arg name="plot_estimation_errors" value="false"/>
 
     <include file="$(find hdl_localization)/launch/tf.launch"/>
