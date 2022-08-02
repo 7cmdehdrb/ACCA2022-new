@@ -195,12 +195,13 @@ class ERP42(Sensor):
         ])
 
     def handleData(self, msg):
+        speed = speed * (1.0 if msg.Gear == 2 else -1)
         cov = getEmpty((4, 4))
         cov[2][2] = 0.01
 
         self.cov = cov
 
-        return np.array([0., 0., msg.speed, 0.], dtype=np.float64), self.cov
+        return np.array([0., 0., speed, 0.], dtype=np.float64), self.cov
 
 
 class Xsens(Sensor):

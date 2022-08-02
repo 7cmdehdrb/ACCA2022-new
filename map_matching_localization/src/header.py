@@ -45,8 +45,8 @@ def transformPoseToPoseWithCov(pose):
 
 
 class Queue(object):
-    def __init__(self, length=10):
-        self.__array = [True for i in range(length)]
+    def __init__(self, length=10, init=True):
+        self.__array = [init for i in range(length)]
 
     def inputValue(self, value):
         assert type(value) == bool

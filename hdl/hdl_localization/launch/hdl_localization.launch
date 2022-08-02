@@ -3,7 +3,11 @@
     <!-- arguments -->
     <arg name="nodelet_manager" default="hdl_nodelet_manager"/>
     <arg name="points_topic" default="/velodyne_points2"/>
+<<<<<<< HEAD
     <arg name="globalmap_pcd" default="/home/enbangschool.pcd" />
+=======
+    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/scans.pcd" />
+>>>>>>> 71c78f6d7b6019c80d5eec11fe26e0263d5b01be
 
     <!-- optional arguments -->
     <arg name="odom_child_frame_id" default="base_link"/> 
