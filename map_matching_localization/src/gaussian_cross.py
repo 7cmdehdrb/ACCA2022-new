@@ -115,12 +115,11 @@ if __name__ == "__main__":
 
         _, _, yaw1 = euler_from_quaternion([odometry.data.pose.pose.orientation.x, odometry.data.pose.pose.orientation.y,
                                            odometry.data.pose.pose.orientation.z, odometry.data.pose.pose.orientation.w])
-
         yaw1 = Gaussian(None, yaw1, odometry.data.pose.covariance[0])
 
         _, _, yaw2 = euler_from_quaternion([matching.data.pose.pose.orientation.x, matching.data.pose.pose.orientation.y,
                                             matching.data.pose.pose.orientation.z, matching.data.pose.pose.orientation.w])
-        yaw2 = Gaussian(None, yaw2, matching.data.pose.covariance[0])
+        yaw2 = Gaussian(None, yaw2, matching.data.pose.covariance[0] + 1.5)
 
         position = (gaussianConvolution(x1, x2), gaussianConvolution(y1, y2))
         yaw = gaussianConvolution(yaw1, yaw2)

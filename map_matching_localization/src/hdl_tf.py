@@ -21,6 +21,7 @@ matching_err_tol = float(rospy.get_param(
 inlier_fraction_tol = float(rospy.get_param(
     param_name="/hdl_tf_node/inlier_fraction_tol", default=0.95))
 
+
 hz = 100
 
 
@@ -54,6 +55,19 @@ class AverageFilter:
         return ave
 
 
+class DataQueue(Queue):
+    def __init__(self, length=10, init=True):
+        super(DataQueue, self).__init__(length, init)
+        self.__array = [init for i in range(length)]
+
+    def inputValue(self, value):
+        self.__array.append(value)
+        del self.__array[0]
+
+    def getAverage(self):
+        return np.mean(np.array(self.__array))
+
+
 class HDL_tf(object):
     def __init__(self):
         self.hdl_tf_sub = rospy.Subscriber(
@@ -64,9 +78,10 @@ class HDL_tf(object):
             "/odometry/global", Odometry, callback=self.odomCallback
         )
 
-        self.avf_x = AverageFilter()
-        self.avf_y = AverageFilter()
-        self.avf_oy = AverageFilter()
+        self.q_x = DataQueue(init=0., length=10)
+        self.q_y = DataQueue(init=0., length=10)
+        self.q_z = DataQueue(init=0., length=10)
+        self.q_yaw = DataQueue(init=0., length=10)
 
         self.init_pub = rospy.Publisher(
             "/initialpose", PoseWithCovarianceStamped, queue_size=1)
@@ -89,23 +104,23 @@ class HDL_tf(object):
     def tfCallback(self, msg):
         assert type(msg) == type(HDL_TF())
 
+        x, y, z = self.translationToArray(msg.translation)
+        quat = self.rotationToArray(msg.rotation)
+        _, _, yaw = euler_from_quaternion(quat)
+
+        self.q_x.inputValue(x)
+        self.q_y.inputValue(y)
+        self.q_z.inputValue(z)
+        self.q_yaw.inputValue(yaw)
+
         if self.matching_err_queue.isTrue(threshhold=10):
-            x, y, _ = self.translationToArray(msg.translation)
-            # x_f = self.avf_x.filter(x)
-            # y_f = self.avf_y.filter(y)
-
-            quat = self.rotationToArray(msg.rotation)
-            _, _, yaw = euler_from_quaternion(quat)
-            # yaw_f = self.avf_oy.filter(yaw)
-
-            # quat = quaternion_from_euler(0., 0., yaw)
-            self.trans = [x, y, 0.]
-            self.rot = quat
-
-        else:
-            rospy.logwarn("Queue < 10")
+            self.trans = [self.q_x.getAverage(), self.q_y.getAverage(),
+                          self.q_z.getAverage()]
+            self.rot = quaternion_from_euler(
+                0., 0., self.q_yaw.getAverage())
 
     # Status
+
     def statusCallback(self, msg):
         self.matching_error = msg.matching_error
         self.inlier_fraction = msg.inlier_fraction
