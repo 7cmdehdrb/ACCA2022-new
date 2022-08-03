@@ -152,7 +152,16 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          base_link:
+            encoder:
+              {}
+            gps:
+              {}
+            imu_link:
+              {}
+            velodyne:
+              {}
       Update Interval: 0
       Value: false
     - Angle Tolerance: 0.10000000149011612
@@ -172,7 +181,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: false
-      Enabled: true
+      Enabled: false
       Keep: 0
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -240,7 +249,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: false
-      Enabled: true
+      Enabled: false
       Keep: 0
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -250,19 +259,90 @@ Visualization Manager:
         Axes Radius: 0.10000000149011612
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
-        Head Radius: 0.10000000149011612
+        Head Radius: 1
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Arrow
       Topic: /odometry/kalman
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /waypoints
       Name: MarkerArray
       Namespaces:
-        {}
+        A1: true
+        A2: true
+        B1: true
+        B2: true
+        B3: true
+        B4: true
+        B5: true
+        B6: true
+        B7: true
+        B8: true
+        C1: true
+        C2: true
+        C3: true
+        C4: true
+        C5: true
+        C6: true
+        C7: true
+        C8: true
+        D1: true
+        D2: true
+        D3: true
+        D4: true
+        D5: true
+        D6: true
+        D7: true
+        D8: true
+        E1: true
+        E2: true
+        E3: true
+        E4: true
+        E5: true
+        E6: true
+        F1: true
+        F2: true
+        F3: true
+        F4: true
+        F5: true
+        F6: true
+        G1: true
+        G2: true
+        G3: true
+        G4: true
+        G5: true
+        G6: true
+        G7: true
+        G8: true
+        H1: true
+        H2: true
+        H3: true
+        H4: true
+        H5: true
+        H6: true
+        H7: true
+        H8: true
+        I1: true
+        I2: true
+        I3: true
+        I4: true
+        I5: true
+        I6: true
+        J1: true
+        J2: true
+        J3: true
+        J4: true
+        J5: true
+        J6: true
+        K1: true
+        K2: true
+        K3: true
+        K4: true
+        K5: true
+        K6: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -286,6 +366,22 @@ Visualization Manager:
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
       Topic: /global_path
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /create_global_path
       Unreliable: false
       Value: true
   Enabled: true
@@ -331,7 +427,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.5397963523864746
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 3.1235759258270264

@@ -1,7 +1,7 @@
 <launch>
     <arg name="odom_topic" default="odometry/kalman"/>
-    <arg name="matching_err_tol" default="0.15"/>
-    <arg name="inlier_fraction_tol" default="0.85"/>
+    <arg name="matching_err_tol" default="0.1"/>
+    <arg name="inlier_fraction_tol" default="0.9"/>
     <arg name="is_publish_tf" default="false"/>
     <arg name="globalmap_pcd" default="/home/enbang/school.pcd" />
 

@@ -2,6 +2,7 @@
 
 import rospy
 import math as m
+import pandas as pd
 import numpy as np
 import tf
 from tf.transformations import euler_from_quaternion
@@ -84,6 +85,7 @@ class GPS_Localizer(object):
         D_map = m.sqrt((self.A3[0] - self.A2[0])
                        ** 2 + (self.A3[1] - self.A2[1]) ** 2)
         self.R = D_map / D_utm
+        print(self.R)
 
     def GpsCallback(self, msg):
         self.position_coordinate(msg)
