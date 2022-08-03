@@ -49,7 +49,7 @@ class Queue(object):
         self.__array = [init for i in range(length)]
 
     def inputValue(self, value):
-        assert type(value) == bool
+        # assert type(value) == bool
 
         self.__array.append(value)
         del self.__array[0]
