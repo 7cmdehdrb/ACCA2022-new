@@ -6,9 +6,11 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Odometry1
+        - /PointCloud22
         - /Odometry1/Shape1
+        - /Odometry2
         - /Odometry2/Shape1
+        - /Odometry3
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -75,7 +77,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: false
-      Enabled: false
+      Enabled: true
       Head Length: 3
       Head Radius: 1
       Name: PoseWithCovariance
@@ -84,7 +86,7 @@ Visualization Manager:
       Shape: Arrow
       Topic: /initialpose
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -106,7 +108,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.05000000074505806
+      Size (m): 0.10000000149011612
       Style: Flat Squares
       Topic: /velodyne_points2
       Unreliable: false
@@ -271,16 +273,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 27.10059356689453
+      Distance: 57.42157745361328
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.1230177879333496
-        Y: -4.693228244781494
-        Z: 5.256232738494873
+        X: 19.251821517944336
+        Y: -5.012426376342773
+        Z: -16.32774543762207
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -289,7 +291,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.1367809772491455
+      Yaw: 3.146766424179077
     Saved: ~
 Window Geometry:
   Displays:

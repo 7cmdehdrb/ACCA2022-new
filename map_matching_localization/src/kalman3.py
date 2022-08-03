@@ -307,9 +307,9 @@ class HDL(Sensor):
             np.array(msg.pose.covariance, dtype=np.float64), (6, 6))
         cov = odom_cov[:4, :4]
 
-        if cov[0][0] > 1.0:
-            for i in range(2):
-                cov[i][i] = 9999.
+        # if cov[0][0] > 1.0:
+        #     for i in range(2):
+        #         cov[i][i] = 9999.
 
         self.cov = cov
 
@@ -415,8 +415,8 @@ class GPS(Sensor):
             log=msg.longitude, lat=msg.latitude)
 
         if imu.yaw is not None:
-            self.x += distance * m.cos(imu.yaw)
-            self.y += distance * m.sin(imu.yaw)
+            self.x += distance * m.cos(imu.yaw - 0.05)
+            self.y += distance * m.sin(imu.yaw - 0.05)
 
         x = self.x
         y = self.y
