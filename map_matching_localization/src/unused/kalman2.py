@@ -81,11 +81,10 @@ class Kalman(object):
             Gaussian(None, hdl.data[1], hdl.cov[1][1])
         ]    # [x, y]
 
-        # print(self.x)
-        # print(gps.data[0], gps.data[1])
-        # print(hdl.data[0], hdl.data[1])
-        # print(gps.data[0] - hdl.data[0], gps.data[1] - hdl.data[1])
-        # print("")
+        print(gps.data[0],
+              gps.data[1])
+        print(hdl.data[0], hdl.data[1])
+        print("")
 
         position = [gaussianConvolution(
             z_gps[0], z_hdl[0]), gaussianConvolution(z_gps[1], z_hdl[1])]   # [gaussian x, gaussian y]
@@ -311,6 +310,11 @@ class GPS(Sensor):
             [0., 0., 0., 0., ]
         ])
 
+        self.x = 0.
+        self.y = 0.
+
+        self.gps_flag = False
+
         self.flag_sub = rospy.Subscriber(
             "/set_gps", Empty, callback=self.set_gps)
         self.flag_pub = rospy.Publisher(
@@ -320,11 +324,6 @@ class GPS(Sensor):
         self.status_sub = rospy.Subscriber(
             "/status", ScanMatchingStatus, self.statusCallback
         )
-        self.gps_odom_pub = rospy.Publisher(
-            "odometry/gps", Odometry, queue_size=1)
-
-        self.x = 0.
-        self.y = 0.
 
         self.gps = Proj(init="epsg:4326")   # lat, log
         self.tm = Proj(init="epsg:2097")    # m
@@ -333,40 +332,20 @@ class GPS(Sensor):
         self.gps_flag = False
         self.last_position = None
 
+    def set_gps(self, msg):
+        self.gps_flag = True
+        rospy.loginfo("SET INITIAL GPS!")
+
+    def statusCallback(self, msg):
+        if msg.matching_error < 0.02:
+            self.flag_pub.publish()
+            self.status_sub.unregister()
+
     def odomCallback(self, msg):
         if self.gps_flag is True:
             self.x = msg.pose.pose.position.x
             self.y = msg.pose.pose.position.y
             self.gps_flag = False
-
-    def statusCallback(self, msg):
-        dist = self.calculateDistance(self, hdl)
-        # print(dist)
-
-        if msg.matching_error < 0.02 and dist > 1.0:
-            self.flag_pub.publish()
-            # self.status_sub.unregister()
-
-    def set_gps(self, msg):
-        self.gps_flag = True
-        rospy.loginfo("SET INITIAL GPS!")
-
-    def publishOodometry(self):
-        msg = Odometry()
-
-        msg.header.frame_id = "map"
-        msg.header.stamp = rospy.Time.now()
-
-        msg.child_frame_id = "base_link"
-
-        msg.pose.pose.position.x = self.x
-        msg.pose.pose.position.y = self.y
-
-        msg.pose.covariance = [0. for i in range(36)]
-        msg.pose.covariance[0] = self.cov[0][0]
-        msg.pose.covariance[7] = self.cov[1][1]
-
-        self.gps_odom_pub.publish(msg)
 
     def calculateDistance(self, p1, p2):
         return m.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
@@ -381,19 +360,19 @@ class GPS(Sensor):
             self.last_position = current_point
 
         distance = self.calculateDistance(self.last_position, current_point)
+        dx = distance * m.cos(kf.x[3])
+        dy = distance * m.sin(kf.x[3])
+
+        self.x += dx
+        self.y += dy
 
         self.last_position = current_point
 
-        return distance
+        return self.x, self.y
 
     def handleData(self, msg):
-        distance = self.calculateDistanceFromGPS(
-            log=msg.longitude, lat=msg.latitude)
-
-        self.x += distance * m.cos(kf.x[3])
-        self.y += distance * m.sin(kf.x[3])
-
-        self.cov = np.array([
+        x, y = self.transformGPStoTM(log=msg.longitude, lat=msg.latitude)
+        cov = np.array([
             [msg.position_covariance[0] *
                 m.sqrt(111319.490793) + 0.3, 0., 0., 0., ],
             [0., msg.position_covariance[0] *
@@ -402,9 +381,7 @@ class GPS(Sensor):
             [0., 0., 0., 0., ]
         ])
 
-        self.publishOodometry()
-
-        return np.array([self.x, self.y, 0., 0.], dtype=np.float64), self.cov
+        return np.array([x, y, 0., 0.], dtype=np.float64), cov
 
 
 if __name__ == "__main__":

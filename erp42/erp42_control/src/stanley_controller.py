@@ -124,6 +124,11 @@ class StanleyController(object):
 
     def drivingControl(self):
         try:
+            # c, hdr = self.parameter_tuner.getGain(self.state.v)
+
+            # self.stanley.setCGain(c)
+            # self.stanley.setHdrRatio(hdr)
+
             di, target_idx = self.stanley.stanley_control(
                 self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
         except IndexError as ie:
@@ -219,5 +224,5 @@ if __name__ == "__main__":
         if cmd_pub.get_num_connections() > 0:
             msg = controller.makeControlMessage()
             cmd_pub.publish(msg)
-
+            print(msg)
         r.sleep()

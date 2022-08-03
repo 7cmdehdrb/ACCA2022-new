@@ -34,5 +34,6 @@
         <param name="ce_gain" type="double" value="$(arg ce_gain)" />
         <param name="hdr_threshold" type="double" value="$(arg hdr_threshold)" />
         <param name="ctr_threshold" type="double" value="$(arg ctr_threshold)" />
+        <param name="speed_control_enable" type="bool" value="$(arg speed_control_enable)" />
     </node>
 </launch>
