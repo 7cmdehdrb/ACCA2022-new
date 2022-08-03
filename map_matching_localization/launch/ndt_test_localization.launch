@@ -7,9 +7,8 @@
 
     <!-- <include file="$(find state_machine)/launch/sensor.launch" /> -->
 
-    <!-- hdl localization -->
-    <include file="$(find hdl_localization)/launch/hdl_localization_with_odom.launch">
-        <arg name="is_publish_tf" default="$(arg is_publish_tf)"/>
+    <!-- ndt matching -->
+    <include file="$(find ndt_matching)/launch/ndt_test.launch">
         <arg name="points_topic" default="/velodyne_points"/>
         <arg name="globalmap_pcd" default="$(arg globalmap_pcd)" />
     </include>
