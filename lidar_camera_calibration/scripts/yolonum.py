@@ -15,6 +15,7 @@ import threading
 import cv2
 import numpy as np
 import matplotlib.cm
+import random
 
 # ROS modules
 PKG = 'lidar_camera_calibration'
@@ -64,12 +65,11 @@ def project_point_cloud(velodyne, img_msg, box_data, image_pub, points_pub, regi
     # Extract points from message
     points3D = ros_numpy.point_cloud2.pointcloud2_to_array(velodyne)
     points3D = np.asarray(points3D.tolist())
- 
     # Filter points in front of camera
-    inrange = np.where((points3D[:, 2] > -2) &
-                       (points3D[:, 2] < 2) &
-                       (np.abs(points3D[:, 0]) < 10) &
-                       (np.abs(points3D[:, 1]) < 10))
+    inrange = np.where((points3D[:, 2] > 0) &
+                       (points3D[:, 2] < 20) &
+                       (points3D[:, 0] < 10) & (points3D[:,0]>-10)&
+                       (points3D[:, 1] < 20) & (points3D[:,1]>-3))
     max_intensity = np.max(points3D[:, -1])
     points3D = points3D[inrange[0]]
     # Color map for the points
@@ -84,11 +84,26 @@ def project_point_cloud(velodyne, img_msg, box_data, image_pub, points_pub, regi
                        (points2D[:, 0] < img.shape[1]) &
                        (points2D[:, 1] < img.shape[0]))
     points2D = points2D[inrange[0]].round().astype('int')
+
+
+    for i in range(len(points2D)):
+        cv2.circle(img, tuple(points2D[i]), 2, tuple(colors[i]), -1)
+
+    # Publish the projected points image
+    try:
+        image_pub.publish(CV_BRIDGE.cv2_to_imgmsg(img, "bgr8"))
+    except CvBridgeError as e: 
+        rospy.logerr(e)
+    
+    
+    
+    
+    
+    
     points3D = points3D[inrange[0]]
     points_inbox,boxregionarray= select_points_in_box(points2D, box_data)
     
     regions_pub.publish(boxregionarray)
-
     
     box_3D = np.empty((0,4),float)
     # image_dots = np.empty((0,4),float)
@@ -113,90 +128,6 @@ def project_point_cloud(velodyne, img_msg, box_data, image_pub, points_pub, regi
     boxregionarray.header.stamp = rospy.Time()
     boxregionarray.header.frame_id = 'world'
     
-    
-    
-    # final_array = ClusterArray()
-    # for i in range(len(points_inbox)):
-    #     tempbox = points3D[points_inbox[i]]
-    #     tempbox = ros_numpy.array_to_pointcloud2(tempbox, frame_id = "velodyne")
-    #     final_array.clusters.append(tempbox)
-    
-    # points_pub.publish(final_array)
-        
-    
-    
-    # beforeset = []
-    # for i in range(len(box_data)):
-    #     temp_box = np.where((points2D[:, 0] >= box_data[i][0]) &
-    #                    (points2D[:, 1] >= box_data[i][1]) &
-    #                    (points2D[:, 0] < box_data[i][2]) &
-    #                    (points2D[:, 1] < box_data[i][3]))
-    #     temp_3D = points3D(temp_box[0])
-    #     for j in range(len(box_data)):
-    #         box_inrange = np.where((temp_3D[:, 0] >= box_data[j][0]) &
-    #                    (temp_3D[:, 1] >= box_data[j][1]) &
-    #                    (temp_3D[:, 2] >= box_data[j][2]) &
-    #                    (temp_3D[:, 0] < box_data[j][3]) &
-    #                    (temp_3D[:, 1] < box_data[j][4]) &
-    #                    (temp_3D[:, 2] < box_data[j][5]))
-            
-    # before adaptive_clustering
-
-    # print(xyzrgb_array_to_pointcloud2(points_inbox,points3D))
-
-    
-
-
-    # markerarray = MarkerArray()
-    # for i in range(len(points_inbox)):
-
-    #     rviz_points = Marker()
-    #     rviz_points.header.frame_id = "velodyne"
-    #     rviz_points.ns = "points"
-    #     rviz_points.id = i+1
-
-    #     rviz_points.type = 8
-    #     rviz_points.action = 0
-
-    #     rviz_points.color = ColorRGBA(i/(len(points_inbox)+1),1,1,1)
-    #     rviz_points.scale.x = 0.01
-    #     rviz_points.scale.y = 0.01
-    #     rviz_points.scale.z = 0
-    #     for j in range(len(points3D[points_inbox[i]])):
-    #         temp = points3D[points_inbox[i]]
-    #         rviz_points.points.append(Point(temp[j][0],temp[j][1],temp[j][2]))
-        
-    #     markerarray.markers.append(rviz_points)
-    # points_pub.publish(markerarray)
-
-    # Roi points -> clustering
-
-    
-
-    # Draw the projected 2D points
-    
-    # for i in range(len(points2D[points_inbox[0]])):
-    #     cv2.circle(img, tuple(points2D[points_inbox[0]][i]), 2, tuple(colors[i]), -1)
-    
-    if len(points_inbox) == 0:
-        pass
-    else:
-        
-        for i in range(len(points2D[points_inbox[0]])):
-
-            cv2.circle(img, tuple(points2D[points_inbox[0]][i]), 2, tuple(colors[i]), -1)
-            
-    
-    # if len(image_dots) > 1 :
-    #     for i in range(len(image_dots)):
-    #         cv2.circle(img, tuple(image_dots[i]), 2, tuple(colors[i]), -1)
-    # else:
-    #     pass
-    # Publish the projected points image
-        try:
-            image_pub.publish(CV_BRIDGE.cv2_to_imgmsg(img, "bgr8"))
-        except CvBridgeError as e: 
-            rospy.logerr(e)
     
 
 '''
@@ -226,20 +157,18 @@ def select_points_in_box(xy_arr, box_info):
         temp_arr = temp_arr[0].tolist()
         box_arr.append(temp_arr)
         
-        if box_info[i][4] == 'cone_Y':
+        if box_info[i][4] == 'cone_B':
             whatinbox = 2
-        elif box_info[i][4] == 'cone_B':
+        elif box_info[i][4] == 'cone_Y':
             whatinbox = 3
         else:
             whatinbox = 1
-        
     
         # publish box_regions
         box_region = Boxregion()
         box_region.num = whatinbox
         box_region.magnitude = len(temp_arr)
         boxregionarray.regions.append(box_region)
-
         
     return box_arr, boxregionarray
 
@@ -272,8 +201,10 @@ def callback(image, camera_info, velodyne, yolo, image_pub=None, points_pub = No
 
     box_data = []
     for box in yolo.bounding_boxes :
-        temp = [box.xmin,box.ymin,box.xmax,box.ymax,box.Class]
-        box_data.append(temp)
+        if box.probability >= 0.2 :
+            temp = [box.xmin,box.ymin,box.xmax,box.ymax,box.Class]
+            box_data.append(temp)
+    # print(box_data)
     project_point_cloud(velodyne, image, box_data, image_pub, points_pub, regions_pub)
 
 
