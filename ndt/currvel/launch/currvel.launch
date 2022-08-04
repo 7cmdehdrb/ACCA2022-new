@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="currvel" type="currvel" name="currvel" output="screen">
+  </node>
+
+</launch>

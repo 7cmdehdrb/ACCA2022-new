@@ -11,11 +11,11 @@ from header import Queue
 # Param
 
 odom_topic = rospy.get_param(
-    param_name="/relocalizer/odom_topic", default="odometry/kalman")
+    param_name="/relocalizer/odom_topic", default="odometry/gaussian")
 matching_err_tol = float(rospy.get_param(
-    param_name="/relocalizer/matching_err_tol", default=0.1))
+    param_name="/relocalizer/matching_err_tol", default=0.05))
 inlier_fraction_tol = float(rospy.get_param(
-    param_name="/relocalizer/inlier_fraction_tol", default=0.9))
+    param_name="/relocalizer/inlier_fraction_tol", default=0.95))
 
 
 class Relocalizer(object):
@@ -29,13 +29,13 @@ class Relocalizer(object):
             "/status", ScanMatchingStatus, callback=self.statusCallback)
 
         self.odom_pose = PoseWithCovarianceStamped()
-        self.matching_err_queue = Queue(length=30)
+        self.matching_err_queue = Queue(length=10)
 
     def statusCallback(self, msg):
         self.matching_err_queue.inputValue(
             self.isTrustable(msg.matching_error, msg.inlier_fraction))
 
-        if self.matching_err_queue.isFalse(30) is True:
+        if self.matching_err_queue.isFalse(10) is True:
             rospy.loginfo("RELOCALIZING...")
             self.init_pub.publish(self.odom_pose)
             self.matching_err_queue.inputValue(True)
@@ -49,7 +49,7 @@ class Relocalizer(object):
     def transformOdometryToPoseWithCovarianceStamped(self, odom):
         pose = PoseWithCovarianceStamped()
 
-        pose.header.frame_id = odom.header.frame_id
+        pose.header.frame_id = "map"
         pose.header.stamp = rospy.Time.now()
 
         pose.pose.pose = odom.pose.pose

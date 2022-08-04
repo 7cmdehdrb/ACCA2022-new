@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /PointCloud21
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -58,11 +59,77 @@ Visualization Manager:
       Name: MarkerArray
       Namespaces:
         A1: true
+        A2: true
         B1: true
+        B2: true
+        B3: true
+        B4: true
+        B5: true
+        B6: true
+        B7: true
+        B8: true
         C1: true
+        C2: true
+        C3: true
+        C4: true
+        C5: true
+        C6: true
+        C7: true
+        C8: true
         D1: true
+        D2: true
+        D3: true
+        D4: true
+        D5: true
+        D6: true
+        D7: true
+        D8: true
         E1: true
+        E2: true
+        E3: true
+        E4: true
+        E5: true
+        E6: true
         F1: true
+        F2: true
+        F3: true
+        F4: true
+        F5: true
+        F6: true
+        G1: true
+        G2: true
+        G3: true
+        G4: true
+        G5: true
+        G6: true
+        G7: true
+        G8: true
+        H1: true
+        H2: true
+        H3: true
+        H4: true
+        H5: true
+        H6: true
+        H7: true
+        H8: true
+        I1: true
+        I2: true
+        I3: true
+        I4: true
+        I5: true
+        I6: true
+        J1: true
+        J2: true
+        J3: true
+        J4: true
+        J5: true
+        J6: true
+        K1: true
+        K2: true
+        K3: true
+        K4: true
+        K5: true
+        K6: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -86,7 +153,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.05000000074505806
       Style: Flat Squares
       Topic: /globalmap
       Unreliable: false
@@ -245,7 +312,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 75.65992736816406
+      Distance: 106.2967529296875
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -260,10 +327,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.5247963666915894
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.610398769378662
+      Yaw: 2.88539981842041
     Saved: ~
 Window Geometry:
   Displays:
