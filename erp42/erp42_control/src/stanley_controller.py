@@ -10,6 +10,7 @@ from state import State
 from path_selector import PathSelector
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
+from lidar_camera_calibration.msg import Signmsg
 from path_response_with_type import *
 from speed_supporter import SpeedSupporter
 # from parameter_tuner import ParameterTuner
@@ -55,6 +56,12 @@ class StanleyController(object):
             "/path_response", PathResponse, callback=self.path_callback)
         self.path = PathResponse()
 
+        # Traffic Sign
+        self.trafficSub = rospy.Subscriber(
+            "/sign_publish", Signmsg, callback=self.trafficCallback
+        )
+        self.trafficSign = Signmsg()
+
         """
             Fields
         """
@@ -86,6 +93,9 @@ class StanleyController(object):
         self.target_idx = 0
         self.path = PathResponseWithType(msg.start, msg.end,
                                          msg.path_id, list(msg.cx), list(msg.cy), list(msg.cyaw))
+
+    def trafficCallback(self, msg):
+        self.trafficSign = msg
 
     def switchPath(self):
         global desired_speed
@@ -124,15 +134,13 @@ class StanleyController(object):
 
     def drivingControl(self):
         try:
-            # c, hdr = self.parameter_tuner.getGain(self.state.v)
-
-            # self.stanley.setCGain(c)
-            # self.stanley.setHdrRatio(hdr)
-
             di, target_idx = self.stanley.stanley_control(
                 self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
         except IndexError as ie:
             rospy.logwarn(ie)
+            return ControlMessage(0, 0, 2, 3, 0, 0, 0)
+        except Exception as ex:
+            rospy.logfatal(ex)
             return ControlMessage(0, 0, 2, 3, 0, 0, 0)
 
         self.target_idx = target_idx
@@ -159,20 +167,28 @@ class StanleyController(object):
 
         if len(self.path.cx) * 0.9 < self.target_idx:
             # almost end point
-
             msg.Speed = int(msg.Speed * 0.8)
 
             if self.path.type == PathType.STRAIGHT:
-                pass
+                if self.trafficSign.straight == 1:
+                    return msg
+                else:
+                    # Stop
+                    return ControlMessage(0, 0, 2, 0, 0, 100, 0)
 
             elif self.path.type == PathType.RIGHT:
                 pass
 
             elif self.path.type == PathType.LEFT:
-                pass
+                if self.trafficSign.left == 1:
+                    return msg
+                else:
+                    # Stop
+                    return ControlMessage(0, 0, 2, 0, 0, 100, 0)
 
             else:   # Nonetype
-                pass
+                rospy.logfatal("Path Type is None!!")
+                return ControlMessage(0, 0, 2, 0, 0, 0, 0)
 
         return msg
 
@@ -184,8 +200,6 @@ class StanleyController(object):
 
         # Try Update Path
         self.switchPath()
-
-        # print(self.mission_state)
 
         # Switch
         if self.mission_state == MissionState.DRIVING:
@@ -204,7 +218,7 @@ class StanleyController(object):
         #     pass
 
         else:
-            rospy.logfatal("Invalide Mission State..!")
+            rospy.logfatal("Invalide Mission State!")
             msg = ControlMessage(0, 0, 2, 3, 0, 0, 0)
 
         return msg
