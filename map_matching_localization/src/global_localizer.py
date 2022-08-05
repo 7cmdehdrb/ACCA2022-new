@@ -10,11 +10,17 @@ from geometry_msgs.msg import *
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Header
 from autoware_msgs.msg import NDTStat
+from header import Queue
+
+
+score_threshold = rospy.get_param("/global_localizer/score_threshold", 0.5)
 
 
 class Odom(object):
     def __init__(self, topic):
         self.topic = topic
+        self.frame_id = None
+        self.child_frame_id = None
 
         self.sub = rospy.Subscriber(
             self.topic, Odometry, callback=self.odomCallback)
@@ -40,22 +46,23 @@ class Odom(object):
 
 class ScanStatus(object):
     def __init__(self):
-        self.sub = rospy.Subscriber("/ndt_matching/ndt_stat")
+        self.sub = rospy.Subscriber(
+            "/ndt_matching/ndt_stat", NDTStat, callback=self.statCallback)
 
+        self.scroe = float("inf")
+        self.queue = Queue(length=10, init=True)
 
-def getTranslationAndRotation(odom_parent, odom_child):
-    trans = (odom_parent.point.x - odom_child.point.x, odom_parent.point.y -
-             odom_child.point.y, odom_parent.point.z - odom_child.point.x)
-    rot = quaternion_from_euler(0, 0, odom_parent.yaw - odom_child.yaw)
-
-    return trans, rot
+    def statCallback(self, msg):
+        self.scroe = msg.score
+        self.queue.inputValue(msg.score < score_threshold)
 
 
 if __name__ == "__main__":
-    rospy.init_node("tf_test")
+    rospy.init_node("global_localizer")
 
     map_frame = Odom(topic="/ndt_matching/ndt_pose")
     odom_frame = Odom(topic="/odometry/kalman")
+    scan_status = ScanStatus()
 
     tf_pub = tf.TransformBroadcaster()
     tf_sub = tf.TransformListener()
@@ -64,26 +71,32 @@ if __name__ == "__main__":
     ty = 0.
     tyaw = 0.
 
-    r = rospy.Rate(10)
+    r = rospy.Rate(100)
     while not rospy.is_shutdown():
 
-        if tf_sub.canTransform("map", "odom", rospy.Time(0)):
-            p2 = tf_sub.transformPose("map", odom_frame.pose)
+        if scan_status.queue.isTrue(threshhold=10):
+            if tf_sub.canTransform("map", "odom", rospy.Time(0)):
+                if odom_frame.frame_id is not None and map_frame.frame_id is not None:
+                    p2 = tf_sub.transformPose("map", odom_frame.pose)
 
-            dx = map_frame.pose.pose.position.x - p2.pose.position.x
-            dy = map_frame.pose.pose.position.y - p2.pose.position.y
+                    dx = map_frame.pose.pose.position.x - p2.pose.position.x
+                    dy = map_frame.pose.pose.position.y - p2.pose.position.y
 
-            tx += dx
-            ty += dy
+                    tx += dx
+                    ty += dy
 
-            rospy.loginfo("Translation Matrix : [%.6f, %.6f, 0.0]" % (tx, ty))
+                    rospy.loginfo(
+                        "Translation Matrix : [%.6f, %.6f, 0.0]" % (tx, ty))
+
+            else:
+                tx = map_frame.pose.pose.position.x - odom_frame.pose.pose.position.x
+                ty = map_frame.pose.pose.position.y - odom_frame.pose.pose.position.y
+                tyaw = map_frame.yaw - odom_frame.yaw
+
+                rospy.logwarn("Wait for transform between map and odom")
 
         else:
-            tx = map_frame.pose.pose.position.x - odom_frame.pose.pose.position.x
-            ty = map_frame.pose.pose.position.y - odom_frame.pose.pose.position.y
-            tyaw = map_frame.yaw - odom_frame.yaw
-
-            rospy.logwarn("Wait for transform between map and odom")
+            rospy.logwarn("Scan is not trustable : %.4f" % scan_status.scroe)
 
         tf_pub.sendTransform(
             translation=(tx, ty, 0.),
@@ -94,81 +107,3 @@ if __name__ == "__main__":
         )
 
         r.sleep()
-
-
-"""
-if __name__ == "__main__":
-    rospy.init_node("tf_test")
-
-    pub1 = rospy.Publisher("p1", PoseStamped, queue_size=1)
-    pub2 = rospy.Publisher("p2", PoseStamped, queue_size=1)
-    tf_pub = tf.TransformBroadcaster()
-    tf_sub = tf.TransformListener()
-
-    tx = 0.
-    ty = 0.
-
-    r = rospy.Rate(1.)
-    while not rospy.is_shutdown():
-
-        x1 = np.array([1, 1, 0, 1])
-        x2 = np.array([10, 15, 0, 1])
-        deg = 60.
-
-        p1 = PoseStamped()
-
-        quat1 = quaternion_from_euler(0., 0., 0.)
-        p1.header = Header(0, rospy.Time.now(), "base_link")
-        p1.pose.position = Point(x1[0], x1[1], x1[2])
-        p1.pose.orientation = Quaternion(
-            quat1[0], quat1[1], quat1[2], quat1[3])
-
-        pub1.publish(p1)
-
-        # =======================
-
-        quat2 = quaternion_from_euler(0., 0., m.radians(deg))
-
-        p2 = PoseStamped()
-
-        p2.header = Header(0, rospy.Time.now(), "map")
-        p2.pose.position = Point(x2[0], x2[1], x2[2])
-        p2.pose.orientation = Quaternion(
-            quat2[0], quat2[1], quat2[2], quat2[3])
-
-        pub2.publish(p2)
-
-        # =======================
-
-        rot = quat2
-
-        if tf_sub.canTransform("map", "base_link", rospy.Time(0)):
-            p1.header.stamp = rospy.Time(0)
-            transformed_pose = tf_sub.transformPose("map", p1)
-
-            x = transformed_pose.pose.position.x
-            y = transformed_pose.pose.position.y
-
-            dx = x2[0] - x
-            dy = x2[1] - y
-
-            tx += dx
-            ty += dy
-
-            print(dx, dy)
-
-        else:
-            tx = x2[0] - x1[0]
-            ty = x2[1] - x2[0]
-            rospy.logwarn("Cannot lookup transform")
-
-        tf_pub.sendTransform(
-            translation=(tx, ty, 0.),
-            rotation=rot,
-            time=rospy.Time.now(),
-            child="base_link",
-            parent="map",
-        )
-
-        r.sleep()
-"""

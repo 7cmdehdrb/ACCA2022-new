@@ -82,9 +82,9 @@ class Kalman(object):
         R = cov_position + cov_erp + cov_imu
 
         u_k = np.array(
-            [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.degrees(cmd.data[1])) * dt])
-        x_k = np.dot(A, self.x) + u_k
-        P_k = np.dot(np.dot(A, self.P), A.T) + self.Q
+            [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.radians(cmd.data[1])) * dt])
+        x_k = np.dot(A, self.x)
+        P_k = np.abs(np.dot(np.dot(A, self.P), A.T)) + self.Q
 
         H_position = np.array(
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
@@ -214,6 +214,8 @@ class Xsens(Sensor):
 
         self.yaw = yaw - self.init_yaw
 
+        # print("%.4f\t%.4f\t%.4f" % (yaw, self.init_yaw, self.yaw))
+
         cov = getEmpty((4, 4))
         cov[-1][-1] = msg.orientation_covariance[-1]
 
@@ -242,28 +244,6 @@ class GPS(Sensor):
         self.tm = Proj(init="epsg:2097")    # m
 
         self.last_position = None
-
-    def publishOdometry(self, x, y):
-        msg = Odometry()
-
-        msg.header.frame_id = "odom"
-        msg.header.stamp = rospy.Time.now()
-
-        msg.child_frame_id = "base_link"
-
-        msg.pose.pose.position.x = x
-        msg.pose.pose.position.y = y
-
-        quat = quaternion_from_euler(0., 0., kf.x[3])
-
-        msg.pose.pose.orientation = Quaternion(
-            quat[0], quat[1], quat[2], quat[3])
-
-        msg.pose.covariance = [0. for i in range(36)]
-        msg.pose.covariance[0] = self.cov[0][0]
-        msg.pose.covariance[7] = self.cov[1][1]
-
-        self.gps_odom_pub.publish(msg)
 
     def calculateDistance(self, p1, p2):
         return m.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
@@ -305,8 +285,6 @@ class GPS(Sensor):
             [0., 0., 0., 0., ]
         ])
 
-        self.publishOdometry(self.x, self.y)
-
         return np.array([self.x, self.y, 0., 0.], dtype=np.float64), self.cov
 
 
@@ -329,6 +307,10 @@ if __name__ == "__main__":
     imu = Xsens("/imu/data", Imu)
     cmd = Control("/cmd_msg", ControlMessage)
 
+    sensors = [
+        gps, erp, imu
+    ]
+
     kf = Kalman()
 
     hz = 10
@@ -338,11 +320,27 @@ if __name__ == "__main__":
     last_time = rospy.Time.now()
 
     r = rospy.Rate(hz)
+
+    while not rospy.is_shutdown():
+        is_all_available = True
+        for s in sensors:
+            if s.once is False:
+                is_all_available = False
+                break
+
+        if is_all_available is True:
+            break
+
+        rospy.logwarn("Wait for Sensors...")
+
+        r.sleep()
+
     while not rospy.is_shutdown():
 
         current_time = rospy.Time.now()
 
         try:
+
             x, P = kf.filter(gps, erp, imu,
                              dt=(current_time - last_time).to_sec())
 
