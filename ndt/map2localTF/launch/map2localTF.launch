@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="map2localTF" type="map2localTF" name="map2localTF" output="screen">
+  </node>
+
+</launch>
