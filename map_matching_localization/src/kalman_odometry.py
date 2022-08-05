@@ -12,7 +12,6 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion, Point
 from erp42_msgs.msg import SerialFeedBack
-from hdl_localization.msg import ScanMatchingStatus
 from erp42_control.msg import ControlMessage
 from gaussian import *
 from pyproj import *
@@ -138,13 +137,14 @@ class Kalman(object):
                                0., 0., 0., 0., 0., 0.,
                                0., 0., 0., 0., 0., P[3][3]]
 
-        # self.odom_tf.sendTransform(
-        #     translation=(x[0], x[1], 0.),
-        #     rotation=quat,
-        #     time=rospy.Time.now(),
-        #     child="base_link",
-        #     parent="odom"
-        # )
+        self.odom_tf.sendTransform(
+            translation=(x[0], x[1], 0.),
+            rotation=quat,
+            time=rospy.Time.now(),
+            child="base_link",
+            parent="odom"
+        )
+
         self.odom_pub.publish(msg)
 
 
