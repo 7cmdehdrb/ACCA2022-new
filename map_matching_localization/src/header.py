@@ -3,7 +3,7 @@
 import rospy
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Quaternion, Point
-from hdl_localization.msg import ScanMatchingStatus, HDL_TF
+# from hdl_localization.msg import ScanMatchingStatus, HDL_TF
 
 
 """
@@ -64,20 +64,20 @@ class Queue(object):
         return self.count(False) >= threshhold
 
 
-class HDL_State(object):
-    def __init__(self):
-        self.__status_sub = rospy.Subscriber(
-            "/status", ScanMatchingStatus, callback=self.statusCallback)
+# class HDL_State(object):
+#     def __init__(self):
+#         self.__status_sub = rospy.Subscriber(
+#             "/status", ScanMatchingStatus, callback=self.statusCallback)
 
-        self.__matching_error = float("inf")
-        self.__inlier_fraction = 0.
+#         self.__matching_error = float("inf")
+#         self.__inlier_fraction = 0.
 
-    def statusCallback(self, msg):
-        self.__matching_error = msg.matching_error
-        self.__inlier_fraction = msg.inlier_fraction
+#     def statusCallback(self, msg):
+#         self.__matching_error = msg.matching_error
+#         self.__inlier_fraction = msg.inlier_fraction
 
-    def isTrustable(self):
-        return self.__matching_error <= matching_err_tol and self.__inlier_fraction >= inlier_fraction_tol
+#     def isTrustable(self):
+#         return self.__matching_error <= matching_err_tol and self.__inlier_fraction >= inlier_fraction_tol
 
 
 class OdometryGlobal(object):

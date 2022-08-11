@@ -8,13 +8,11 @@ import math as m
 from sensor_msgs.msg import *
 from nav_msgs.msg import *
 from geometry_msgs.msg import *
-from hdl_localization.msg import *
 from erp42_msgs.msg import *
 from map_matching_localization.msg import *
 from path_plan.msg import *
-from rtcm_msgs.msg import *
 from std_msgs.msg import *
-from rtcm_msgs.msg import *
+# from rtcm_msgs.msg import *
 
 
 class Sensor(object):
@@ -41,7 +39,7 @@ if __name__ == "__main__":
         Sensor("/ublox_gps/fix", NavSatFix),
         Sensor("/erp42_feedback", SerialFeedBack),
         Sensor("/velodyne_points", PointCloud2),
-        Sensor("/ublox_gps/rtcm", Message)
+        # Sensor("/ublox_gps/rtcm", Message)
     ]
 
     exceptions = [

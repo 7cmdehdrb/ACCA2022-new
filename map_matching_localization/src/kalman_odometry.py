@@ -12,7 +12,6 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion, Point
 from erp42_msgs.msg import SerialFeedBack
-from hdl_localization.msg import ScanMatchingStatus
 from erp42_control.msg import ControlMessage
 from gaussian import *
 from pyproj import *
@@ -56,7 +55,7 @@ class Kalman(object):
             [0.5, 0., 0., 0.],
             [0., 0.5, 0., 0.],
             [0., 0., 0.01, 0.],
-            [0., 0., 0., 0.01]
+            [0., 0., 0., 0.1]
         ])
 
         self.dt = 0.
@@ -83,9 +82,9 @@ class Kalman(object):
         R = cov_position + cov_erp + cov_imu
 
         u_k = np.array(
-            [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.degrees(cmd.data[1])) * dt])
-        x_k = np.dot(A, self.x) + u_k
-        P_k = np.dot(np.dot(A, self.P), A.T) + self.Q
+            [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.radians(cmd.data[1])) * dt])
+        x_k = np.dot(A, self.x)
+        P_k = np.abs(np.dot(np.dot(A, self.P), A.T)) + self.Q
 
         H_position = np.array(
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
@@ -108,6 +107,7 @@ class Kalman(object):
         self.x = X
         self.P = P_k - \
             np.dot(np.dot((K_position + K_erp + K_imu), np.identity(n=4)), P_k)
+        
 
         self.dt = dt
 
@@ -138,13 +138,14 @@ class Kalman(object):
                                0., 0., 0., 0., 0., 0.,
                                0., 0., 0., 0., 0., P[3][3]]
 
-        # self.odom_tf.sendTransform(
-        #     translation=(x[0], x[1], 0.),
-        #     rotation=quat,
-        #     time=rospy.Time.now(),
-        #     child="base_link",
-        #     parent="odom"
-        # )
+        self.odom_tf.sendTransform(
+            translation=(x[0], x[1], 0.),
+            rotation=quat,
+            time=rospy.Time.now(),
+            child="base_link",
+            parent="odom"
+        )
+
         self.odom_pub.publish(msg)
 
 
@@ -214,6 +215,8 @@ class Xsens(Sensor):
 
         self.yaw = yaw - self.init_yaw
 
+        # print("%.4f\t%.4f\t%.4f" % (yaw, self.init_yaw, self.yaw))
+
         cov = getEmpty((4, 4))
         cov[-1][-1] = msg.orientation_covariance[-1]
 
@@ -242,28 +245,6 @@ class GPS(Sensor):
         self.tm = Proj(init="epsg:2097")    # m
 
         self.last_position = None
-
-    def publishOdometry(self, x, y):
-        msg = Odometry()
-
-        msg.header.frame_id = "odom"
-        msg.header.stamp = rospy.Time.now()
-
-        msg.child_frame_id = "base_link"
-
-        msg.pose.pose.position.x = x
-        msg.pose.pose.position.y = y
-
-        quat = quaternion_from_euler(0., 0., kf.x[3])
-
-        msg.pose.pose.orientation = Quaternion(
-            quat[0], quat[1], quat[2], quat[3])
-
-        msg.pose.covariance = [0. for i in range(36)]
-        msg.pose.covariance[0] = self.cov[0][0]
-        msg.pose.covariance[7] = self.cov[1][1]
-
-        self.gps_odom_pub.publish(msg)
 
     def calculateDistance(self, p1, p2):
         return m.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
@@ -298,14 +279,12 @@ class GPS(Sensor):
 
         self.cov = np.array([
             [msg.position_covariance[0] *
-                m.sqrt(111319.490793) + 0.5, 0., 0., 0., ],
+                m.sqrt(111319.490793) + 37.5, 0., 0., 0., ],
             [0., msg.position_covariance[0] *
-                m.sqrt(111319.490793) + 0.5, 0., 0., ],
+                m.sqrt(111319.490793) + 37.5, 0., 0., ],
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])
-
-        self.publishOdometry(self.x, self.y)
 
         return np.array([self.x, self.y, 0., 0.], dtype=np.float64), self.cov
 
@@ -329,20 +308,40 @@ if __name__ == "__main__":
     imu = Xsens("/imu/data", Imu)
     cmd = Control("/cmd_msg", ControlMessage)
 
+    sensors = [
+        gps, erp, imu
+    ]
+
     kf = Kalman()
 
-    hz = 10
+    hz = 30
     dt = 1. / hz
 
     current_time = rospy.Time.now()
     last_time = rospy.Time.now()
 
     r = rospy.Rate(hz)
+
+    # while not rospy.is_shutdown():
+    #     is_all_available = True
+    #     for s in sensors:
+    #         if s.once is False:
+    #             is_all_available = False
+    #             break
+
+    #     if is_all_available is True:
+    #         break
+
+    #     rospy.logwarn("Wait for Sensors...")
+
+    #     r.sleep()
+
     while not rospy.is_shutdown():
 
         current_time = rospy.Time.now()
 
         try:
+
             x, P = kf.filter(gps, erp, imu,
                              dt=(current_time - last_time).to_sec())
 

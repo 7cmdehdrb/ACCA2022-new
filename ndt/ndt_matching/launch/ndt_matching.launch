@@ -16,6 +16,8 @@
     <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
     <arg name="path_pcd" default='$(find map_matching_localization)/data/kcity_remap.pcd' />
+    <!-- <arg name="path_pcd" default='/home/acca/kcity_01_pcd/GlobalMap.pcd' /> -->
+    <!-- /home/acca/0722/kcity_pcd/GlobalMap.pcd -->
     
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
         <rosparam subst_value="true">
@@ -42,7 +44,7 @@
     <!--================================================= ndt_matching =================================================-->
     <arg name="method_type" default="0" /> <!-- pcl_generic=0, pcl_anh=1, pcl_anh_gpu=2, pcl_openmp=3 -->
     <arg name="use_gnss" default="0" />
-    <arg name="use_odom" default="true" />
+    <arg name="use_odom" default="false" />
     <arg name="use_imu" default="false" />
     <arg name="imu_upside_down" default="false" />
     <arg name="imu_topic" default="/imu/data" />
@@ -51,9 +53,9 @@
     <arg name="get_height" default="false" />
     <arg name="use_local_transform" default="false" />
     <arg name="output_log_data" default="false" />
-    <arg name="output_tf_frame_id" default="odom"/>
+    <arg name="output_tf_frame_id" default="base_link"/>
     <arg name="gnss_reinit_fitness" default="500.0" />
-    <arg name="is_publish_tf" default="true" />
+    <arg name="is_publish_tf" default="false" />
     
     <!-- tf -->
     <param name="tf_x" value="$(arg tf_x)" />
@@ -64,7 +66,7 @@
     <param name="tf_yaw" value="$(arg tf_yaw)" />
     <param name="localizer" value="velodyne"/>
       
-    <node pkg="ndt_matching" type="ndt_matching" name="ndt_matching" output="screen">
+    <node pkg="ndt_matching" type="ndt_matching" name="ndt_matching" output="log">
         <param name="method_type" value="$(arg method_type)" />
         <param name="use_gnss" value="$(arg use_gnss)" />
         <param name="use_odom" value="$(arg use_odom)" />
