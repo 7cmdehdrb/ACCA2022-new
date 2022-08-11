@@ -20,7 +20,7 @@ from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 from erp42_control.msg import ControlMessage
 from cubic_spline_planner import calc_spline_course
-from dynamic_window_approach import dwa_control, motion, calc_target_index, Config
+# from dynamic_window_approach import dwa_control, motion, calc_target_index, Config
 from tf.transformations import euler_from_quaternion
 
 
@@ -58,29 +58,38 @@ class Cones(object):
         self.blue = [[0, 1, 2]]
         self.yellow = [[0.,-1., 2]]
         
-        self.cone_sub = rospy.Subscriber(
-            "/after_clustering/markers", MarkerArray, callback=self.CarCallback)  
+        self.cone_sub1 = rospy.Subscriber(
+            "/after_clustering1/markers", MarkerArray, callback=self.CarCallback1)  
+        self.cone_sub2 = rospy.Subscriber(
+            "/after_clustering2/markers", MarkerArray, callback=self.CarCallback2) 
+
+
         self.cones_pub = rospy.Publisher("cones", MarkerArray, queue_size=1)
         self.path_pub = rospy.Publisher("cone_path", Path, queue_size=10)
         
-        self.ConeMsg = MarkerArray()
+        self.ConeMsg1 = MarkerArray()
+        self.ConeMsg2 = MarkerArray()
+
         
         self.xs = []
         self.ys = []
 
         self.dis_cone2cone = 0.5
         self.dis_cone2car = 10.
-        self.count_cone = 20
-    def CarCallback(self, msg):
-        self.ConeMsg = msg
-        
+        self.count_cone = 10
+
+    def CarCallback1(self, msg):
+        self.ConeMsg1 = msg
+
+    def CarCallback2(self, msg):
+        self.ConeMsg2 = msg
         
     def ConePosition(self, state):
         
         Y_cone = []
         B_cone = []
         
-        for i in self.ConeMsg.markers:
+        for i in self.ConeMsg1.markers:
             
             pose = (i.pose.position.x, i.pose.position.y)
             size_x = i.scale.x
@@ -94,6 +103,22 @@ class Cones(object):
                 Y_cone.append([pose_x, pose_y])
             elif 29999 >= i.id >= 20000 and 0.01:
                 B_cone.append([pose_x, pose_y])
+        
+        for j in self.ConeMsg2.markers:
+            
+            pose = (j.pose.position.x, j.pose.position.y)
+            size_x = j.scale.x
+            size_y = j.scale.y
+            size_z = j.scale.z
+            volume = size_x * size_y * size_z
+            # Map frame cone position
+            pose_x = state.x + pose[0] * m.cos(state.yaw) - pose[1] * m.sin(state.yaw)
+            pose_y = state.y + pose[0] * m.sin(state.yaw) + pose[1] * m.cos(state.yaw)
+            if  j.id >= 30000 and volume <= 0.01:
+                Y_cone.append([pose_x, pose_y])
+            elif 29999 >= j.id >= 20000 and 0.01:
+                B_cone.append([pose_x, pose_y])
+    
  
         return Y_cone, B_cone
     
@@ -107,7 +132,7 @@ class Cones(object):
                 dis_array = []
                 local_dis_array = []
                 
-                for j in self.yellow[-10:]:
+                for j in self.yellow[:]:
                     
                     dis = m.sqrt((j[0] - i[0]) ** 2 + (j[1] - i[1]) ** 2)
                     local_dis = m.sqrt((state.x - i[0]) ** 2 + (state.y - i[1]) ** 2)
@@ -140,7 +165,7 @@ class Cones(object):
                 dis_array = []
                 local_dis_array = []
                 
-                for j in self.blue[-10:]:
+                for j in self.blue[:]:
                     
                     dis = m.sqrt((j[0] - i[0]) ** 2 + (j[1] - i[1]) ** 2)
                     local_dis = m.sqrt((state.x - i[0]) ** 2 + (state.y - i[1]) ** 2)
@@ -187,18 +212,18 @@ class Cones(object):
                 self.cones.append(blue)  
                 self.b_cones_num += 1  
             
-        for i in range(1):
+        for i in range(2):
             pose_x = state.x + float(i + 3) * m.cos(state.yaw) - -1. * m.sin(state.yaw)
             pose_y = state.y + float(i + 3) * m.sin(state.yaw) + -1. * m.cos(state.yaw)    
             b_pose = Cone([pose_x, pose_y])
-            b_pose.color = Color.BLUE
+            b_pose.color = Color.YELLOW
             self.cones.append(b_pose)
             
-        for i in range(1): 
+        for i in range(2): 
             pose_x = state.x + float(i + 3) * m.cos(state.yaw) - 1. * m.sin(state.yaw)
             pose_y = state.y + float(i + 3) * m.sin(state.yaw) + 1. * m.cos(state.yaw)    
             y_pose = Cone([pose_x, pose_y])
-            y_pose.color = Color.YELLOW
+            y_pose.color = Color.BLUE
             self.cones.append(y_pose)
         
         return self.cones, self.y_cones_num, self.b_cones_num
@@ -380,8 +405,8 @@ if __name__ == "__main__":
         y, b = cones.ConePosition(state)
         cones.CalDistance(y, b, state)
         cones.set_cones(state)
-        
-        if cones.y_cones_num >= 1 and cones.b_cones_num >= 1:
+        print("aaaa")
+        if cones.y_cones_num >= 0 and cones.b_cones_num >= 0:
             try:
                 detected_cone = cones.detectCones(state, 10.)
                 centers = cones.getAllCenters(detected_cone, state)
@@ -406,7 +431,9 @@ if __name__ == "__main__":
 
                 cmd_pub.publish(msg)
                 cones.publishPath(cx, cy, cyaw)
-                cones.publishCones(detected_cone)
+                # cones.publishCones(detected_cone)
+                cones.publishCones(cones.cones)
+
                 print("run!!")
                 print(len(cones.cones))
             except ValueError:

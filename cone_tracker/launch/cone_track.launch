@@ -3,7 +3,7 @@
   <node pkg="tf" type="static_transform_publisher" name="base2gps" args="0 0 0 0 0 0 base_link gps 30" />
   <node pkg="tf" type="static_transform_publisher" name="base2encoder" args="0 0 0 0 0 0 base_link encoder 30" />
 
-  <node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform_node" clear_params="true">
+  <!-- <node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform_node" clear_params="true">
     <rosparam command="load" file="$(find gps_navigation)/config/navsat_transform_template.yaml" />
 
     <remap from="/gps/fix" to="/ublox_gps/fix"/>
@@ -17,9 +17,9 @@
 
     <remap from="odometry/filtered" to="/odometry/global"/>
 
-  </node>
+  </node> -->
 
-  <node pkg="rviz" name="rviz" type="rviz" args='-d /home/acca/catkin_ws/src/gps_navigation/rviz/cone_rviz.rviz' />
+  <node pkg="rviz" name="rviz" type="rviz" args='-d /home/acca/catkin_ws/src/ACCA2022-new/cone_tracker/launch/cone.rviz' />
   <node pkg="cone_tracker" type="cone.py" name="cone_tracker" output="screen">
 
   </node>
