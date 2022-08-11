@@ -80,5 +80,6 @@
         <param name="gnss_reinit_fitness" value="$(arg gnss_reinit_fitness)" />
         <param name="is_publish_tf" value="$(arg is_publish_tf)" />
         <remap from="/points_raw" to="/sync_drivers/points_raw" if="$(arg sync)" />
+        <remap from="vehicle/odom" to="odometry/kalman" />
     </node>
 </launch>

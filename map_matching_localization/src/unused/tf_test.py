@@ -81,17 +81,21 @@ if __name__ == "__main__":
     pub2 = rospy.Publisher("p2", PoseStamped, queue_size=1)
     tf_pub = tf.TransformBroadcaster()
 
+    t = -10.
+
     r = rospy.Rate(1.)
     while not rospy.is_shutdown():
 
-        x1 = np.array([1, 1, 0, 1])
-        x2 = np.array([10, 15, 0, 1])
-        deg = 60.
+        x1 = np.array([1, 0, 0, 1])
+        x2 = np.array([5, 7, 0, 1])
+        deg1 = 10.
+        deg2 = t
+        deg = deg2 - deg1
 
         p1 = PoseStamped()
 
-        quat1 = quaternion_from_euler(0., 0., 0.)
-        p1.header = Header(0, rospy.Time.now(), "base_link")
+        quat1 = quaternion_from_euler(0., 0., m.radians(deg1))
+        p1.header = Header(0, rospy.Time.now(), "odom")
         p1.pose.position = Point(x1[0], x1[1], x1[2])
         p1.pose.orientation = Quaternion(
             quat1[0], quat1[1], quat1[2], quat1[3])
@@ -100,7 +104,7 @@ if __name__ == "__main__":
 
         # =======================
 
-        quat2 = quaternion_from_euler(0., 0., m.radians(deg))
+        quat2 = quaternion_from_euler(0., 0., m.radians(deg2))
 
         p2 = PoseStamped()
 
@@ -111,17 +115,37 @@ if __name__ == "__main__":
 
         pub2.publish(p2)
 
-        trans = (x2[0] - x1[0] * m.cos(m.radians(deg)),
-                 x2[1] - x1[1] * m.sin(m.radians(deg)), 0)
+        dx = x2[0] - x1[0]
+        dy = x2[1] - x1[1]
 
-        rot = quat2
+        # trans = (
+        #     x2[0] - x1[0] +
+        #     x1[0] * m.cos(m.radians(deg)) +
+        #     x1[1] * m.sin(m.radians(deg)),
+        #     x2[1] - x1[1] -
+        #     x1[0] * m.sin(m.radians(deg)) +
+        #     x1[1] * m.cos(m.radians(deg)),
+        #     0.
+        # )
+
+        trans = (
+            x2[0] - (x1[0] * m.cos(m.radians(deg) -
+                     x1[1] * m.sin(m.radians(deg)))),
+            x2[1] - (x1[0] * m.sin(m.radians(deg) +
+                     x1[1] * m.cos(m.radians(deg)))),
+            0.
+        )
+
+        rot = quaternion_from_euler(0., 0., m.radians(deg))
 
         tf_pub.sendTransform(
             translation=trans,
             rotation=rot,
             time=rospy.Time.now(),
-            child="base_link",
+            child="odom",
             parent="map",
         )
+
+        t += 10.
 
         r.sleep()
