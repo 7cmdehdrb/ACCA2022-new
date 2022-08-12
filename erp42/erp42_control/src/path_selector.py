@@ -61,6 +61,8 @@ class PathSelector(object):
     def goNext(self):
         if self.path.next is not None:
             self.path = self.path.next
+            rospy.loginfo("Change to next path!")
+            rospy.loginfo("%s - %s" % (self.path.start.id, self.path.end.id))
             return self.path
 
         return None

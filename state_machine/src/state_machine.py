@@ -91,8 +91,6 @@ class StateMachine(object):
             # Ignore traffic sign
             self.mission_state = MissionState.DRIVING
 
-        self.selector.goNext()
-
     def path_callback(self, msg):
         # When path response is accepted, reset target idx and update path
         # Upcasting to PathResponseWithType
@@ -105,8 +103,6 @@ class StateMachine(object):
         self.trafficSign = msg
 
     def switchPath(self):
-        global desired_speed
-
         # When current path is almost end
         if len(self.path.cx) * 0.95 < self.target_idx:
 
@@ -117,10 +113,10 @@ class StateMachine(object):
 
             # prevent duplicated request
             if dt > 1:
-
                 # not end
-                if self.mission_state != MissionState.END:
+                if self.selector.path.next is not None:
                     self.request_time = rospy.Time.now()
+                    self.selector.goNext()
                     self.selector.makeRequest()
 
                     # next path is end
@@ -140,14 +136,6 @@ class StateMachine(object):
                         rospy.loginfo("Missin State : Driving")
 
                     self.target_idx = 0
-                    self.selector.goNext()
-
-                # end
-                else:
-                    rospy.loginfo("PATH END")
-                    """
-                        TO DO : Make speed 0
-                    """
 
     def drivingControl(self):
         try:
@@ -252,6 +240,12 @@ class StateMachine(object):
 
             return msg
 
+    def endControl(self):
+        if len(self.path.cx) * 0.9 < self.target_idx:
+            return ControlMessage(0, 0, 2, 0, 0, 0, 0)
+
+        return self.drivingControl()
+
     def makeControlMessage(self):
         # Exception
         if len(self.path.cx) == 0:
@@ -277,6 +271,9 @@ class StateMachine(object):
         elif self.mission_state == MissionState.DYNAMIC:
             pass
 
+        elif self.mission_state == MissionState.END:
+            msg = self.endControl()
+
         else:
             rospy.logfatal("Invalide Mission State!")
             msg = ControlMessage(0, 0, 2, 3, 0, 0, 0)
@@ -287,7 +284,9 @@ class StateMachine(object):
 if __name__ == "__main__":
     rospy.init_node("stanley_controller")
 
-    state = OdomState(odometry_topic="/odometry/kalman")
+    state = State(odometry_topic="/odometry/kalman")
+    # state = OdomState(odometry_topic="/odometry/kalman")
+
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 
@@ -298,6 +297,6 @@ if __name__ == "__main__":
         if cmd_pub.get_num_connections() > 0 or True:
             msg = controller.makeControlMessage()
             cmd_pub.publish(msg)
-            # print(controller.mission_state)
+            print(controller.mission_state)
             print(msg)
         r.sleep()
