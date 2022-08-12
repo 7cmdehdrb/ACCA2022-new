@@ -9,6 +9,7 @@ from tf.msg import tfMessage
 from geometry_msgs.msg import *
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Header
+import random
 
 
 class Odom(object):
