@@ -310,7 +310,7 @@ if __name__ == "__main__":
 
     kf = Kalman()
 
-    hz = 10
+    hz = 30
     dt = 1. / hz
 
     current_time = rospy.Time.now()
