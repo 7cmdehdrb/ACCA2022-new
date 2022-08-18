@@ -9,6 +9,7 @@ import numpy as np
 from state import OdomState
 from std_msgs.msg import *
 from erp42_msgs.msg import *
+from erp42_control.msg import *
 
 
 class PID(object):
@@ -46,9 +47,53 @@ class PID(object):
                                                              self.i_err) + (self.d_gain * self.d_err)
 
 
+def kph2mps(value):
+    return value * 0.277778
+
+
+def mps2kph(value):
+    return value * 3.6
+
+
+def erpCallback(msg):
+    global speed
+    speed = msg.speed
+
+
 if __name__ == "__main__":
     rospy.init_node("pid_tuner")
 
-    state = OdomState(odometry_topic="/odometry/kalman")
+    speed = 0.
+
+    erp_sub = rospy.Subscriber(
+        "/erp42_feedback", SerialFeedBack, callback=erpCallback
+    )
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
+
+    pid = PID()
+
+    current_time = rospy.Time.now()
+    last_time = rospy.Time.now()
+
+    r = rospy.Rate(50)
+    while not rospy.is_shutdown():
+
+        current_time = rospy.Time.now()
+        dt = (current_time - last_time).to_sec()
+
+        input_speed = pid.PIDControl(
+            current_value=speed,
+            desired_value=10,
+            dt=dt
+        )
+
+        last_time = current_time
+
+        cmd_pub.publish(
+            ControlMessage(
+                0, 0, 2, int(mps2kph(input_speed)), 0, 0, 0
+            )
+        )
+
+        r.sleep()
