@@ -15,7 +15,6 @@ from time import sleep
 
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
-    # from path_response_with_type import PathType
     from speed_supporter import SpeedSupporter
     from stanley import Stanley
     from state import State, OdomState
@@ -271,6 +270,9 @@ class StateMachine(object):
         elif self.mission_state == MissionState.DYNAMIC:
             pass
 
+        elif self.mission_state == MissionState.PARKING:
+            pass
+
         elif self.mission_state == MissionState.END:
             msg = self.endControl()
 
@@ -284,8 +286,8 @@ class StateMachine(object):
 if __name__ == "__main__":
     rospy.init_node("stanley_controller")
 
-    state = State(odometry_topic="/odometry/kalman")
-    # state = OdomState(odometry_topic="/odometry/kalman")
+    # state = State(odometry_topic="/odometry/kalman")
+    state = OdomState(odometry_topic="/odometry/kalman")
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)

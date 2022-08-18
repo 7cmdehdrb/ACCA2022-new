@@ -32,6 +32,21 @@ def getEmpty(shape):
     return np.array([[0. for i in range(shape[0])] for j in range(shape[1])])
 
 
+def normalize_angle(angle):
+    """
+    Normalize an angle to [-pi, pi].
+    :param angle: (float)
+    :return: (float) Angle in radian in [-pi, pi]
+    """
+    while angle > np.pi:
+        angle -= 2.0 * np.pi
+
+    while angle < -np.pi:
+        angle += 2.0 * np.pi
+
+    return angle
+
+
 class Kalman(object):
     def __init__(self, *args, **kwargs):
         self.odom_tf = tf.TransformBroadcaster()
@@ -83,7 +98,7 @@ class Kalman(object):
 
         u_k = np.array(
             [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.radians(cmd.data[1])) * dt])
-        x_k = np.dot(A, self.x)
+        x_k = np.dot(A, self.x) + u_k
         P_k = np.abs(np.dot(np.dot(A, self.P), A.T)) + self.Q
 
         H_position = np.array(
@@ -181,8 +196,11 @@ class ERP42(Sensor):
             [0., 0., 0., 0., ]
         ])
 
+        self.gear = 2
+
     def handleData(self, msg):
-        speed = msg.speed * (1.0 if msg.Gear == 2 else -1.0)
+        self.gear = msg.Gear
+        speed = msg.speed
         cov = getEmpty((4, 4))
         cov[2][2] = 0.01
 
@@ -212,7 +230,8 @@ class Xsens(Sensor):
         if self.init_yaw is None:
             self.init_yaw = yaw
 
-        self.yaw = yaw - self.init_yaw
+        self.yaw = normalize_angle(
+            yaw - self.init_yaw + (np.pi if erp.gear == 2 else 0.0))
 
         # print("%.4f\t%.4f\t%.4f" % (yaw, self.init_yaw, self.yaw))
 

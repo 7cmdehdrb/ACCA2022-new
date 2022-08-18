@@ -39,7 +39,7 @@ def markerCallback(msg):
     parking_sub.unregister()
 
 
-def createPath(circle1, circle2, selected_parking_area):
+def createPath(circle1, circle2, selected_parking_area, state):
     global path_pub
 
     _, _, yaw = euler_from_quaternion([
@@ -105,8 +105,8 @@ def createPath(circle1, circle2, selected_parking_area):
     ys2 = [circle1.pose.position.y +
            circle1.scale.x / 2.0 * m.sin(y) for y in yaw_range]
 
-    xs = [start_x] + xs1 + xs2 + [end_x]
-    ys = [start_y] + ys1 + ys2 + [end_y]
+    xs = [state.x] + [start_x] + xs1 + xs2 + [end_x]
+    ys = [state.y] + [start_y] + ys1 + ys2 + [end_y]
 
     cx, cy, cyaw, _, _ = calc_spline_course(xs, ys, 0.01)
 
@@ -133,6 +133,7 @@ def getTwoCircle(idx):
 
     h = selected_parking_area.scale.x   # 2.0
     w = selected_parking_area.scale.y   # 0.8
+    reverse_threshold = 0.1             # min: 0, max : 0.25
 
     # ===== circle 1 =====
 
@@ -154,9 +155,9 @@ def getTwoCircle(idx):
     ])
 
     cir_center1 = Point(
-        center1.x - h * 0.25 * m.cos(yaw) +
+        center1.x - h * reverse_threshold * m.cos(yaw) +
         w * 0.5 * m.cos(yaw + m.pi / 2),
-        center1.y - h * 0.25 * m.sin(yaw) +
+        center1.y - h * reverse_threshold * m.sin(yaw) +
         w * 0.5 * m.sin(yaw + m.pi / 2),
         0
     )
@@ -228,11 +229,19 @@ if __name__ == "__main__":
 
     sleep(3.)
 
-    r = rospy.Rate(1)
+    idx = 0
+
+    r = rospy.Rate(0.25)
     while not rospy.is_shutdown():
-        circle1, circle2, selected_parking_area = getTwoCircle(0)
-        path = createPath(circle1, circle2, selected_parking_area)
+
+        circle1, circle2, selected_parking_area = getTwoCircle(idx)
+        path = createPath(circle1, circle2, selected_parking_area, state)
 
         path_pub.publish(path)
+
+        idx += 1
+
+        if idx >= len(parking_areas):
+            idx = 0
 
         r.sleep()
