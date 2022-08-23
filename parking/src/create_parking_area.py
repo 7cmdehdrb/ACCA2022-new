@@ -31,7 +31,8 @@ def saveCallback(msg):
     global parking_areas
 
     path = rospkg.RosPack().get_path("parking") + "/parking/" + \
-        rospy.get_param("/create_parking_area/parking_file", "parking.csv")
+        rospy.get_param("/create_parking_area/parking_file",
+                        "hor_parking2.csv")
 
     with open(path, 'w') as csvfile:
         for parking in parking_areas:

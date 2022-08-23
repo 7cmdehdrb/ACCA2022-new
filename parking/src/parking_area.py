@@ -15,7 +15,7 @@ from std_msgs.msg import ColorRGBA
 
 
 class ParkingArea(object):
-    def __init__(self, x, y, quat, w, h):
+    def __init__(self, x=0, y=0, quat=Quaternion(0, 0, 0, 1), w=0, h=0):
 
         self.position = Point(x, y, 0.)
         self.orientation = quat

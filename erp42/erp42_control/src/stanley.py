@@ -18,7 +18,7 @@ class Stanley(object):
     def __init__(self):
         self.__L = 1.040  # [m] Wheel base of vehicle
         self.__k = rospy.get_param(
-            "/stanley_controller/c_gain", 1.1)  # control gain
+            "/stanley_controller/c_gain", 1.5)  # control gain
         self.__hdr_ratio = rospy.get_param(
             "/stanley_controller/hdr_ratio", 1.0)
 
@@ -41,7 +41,7 @@ class Stanley(object):
         self.__hdr_ratio = value
         return self.__hdr_ratio
 
-    def stanley_control(self, state, cx, cy, cyaw, last_target_idx):
+    def stanley_control(self, state, cx, cy, cyaw, last_target_idx, reverse=False):
         """
         Stanley steering control.
         :param state: (State object) => yaw and v
@@ -65,7 +65,8 @@ class Stanley(object):
             cyaw[current_target_idx] - state.yaw)) * self.__hdr_ratio
 
         # theta_d corrects the cross track error
-        theta_d = np.arctan2(self.__k * error_front_axle, state.v)
+        theta_d = np.arctan2(self.__k * error_front_axle,
+                             state.v) * (-1.0 if reverse else 1.0)
 
         # Field
         self.__hdr = theta_e

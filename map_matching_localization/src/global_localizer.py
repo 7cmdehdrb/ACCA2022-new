@@ -14,6 +14,7 @@ from header import Queue
 
 
 score_threshold = rospy.get_param("/global_localizer/score_threshold", 1.0)
+<<<<<<< HEAD
 
 
 
@@ -48,6 +49,8 @@ class AverageFilter:
         self.prev = ave
         return ave
 
+=======
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
 
 
 class Odom(object):
@@ -98,13 +101,20 @@ if __name__ == "__main__":
     hz = 10
     freq = 1 / hz
 
+    hz = 100.
+    freq = 1 / hz
+
     map_frame = Odom(topic="/ndt_matching/ndt_pose")
     odom_frame = Odom(topic="/odometry/kalman")
     scan_status = ScanStatus()
 
+    initial_pose_pub = rospy.Publisher(
+        "/initialpose", PoseWithCovarianceStamped, queue_size=1)
+
     tf_pub = tf.TransformBroadcaster()
     tf_sub = tf.TransformListener()
 
+<<<<<<< HEAD
     dx = 0.
     dy = 0.
 
@@ -142,20 +152,66 @@ if __name__ == "__main__":
 
                 else:
                     rospy.logwarn("Cannot Subscribe odom topics")
+=======
+    trans = (0., 0., 0.)
+    rot = (0., 0., 0., 1.)
+
+    r = rospy.Rate(hz)
+    while not rospy.is_shutdown():
+        if odom_frame.frame_id is not None and map_frame.frame_id is not None:
+            # Subscribe odom / map
+            if scan_status.queue.isTrue(threshhold=10):
+                # Trustable TF
+                dyaw = map_frame.yaw - odom_frame.yaw
+
+                trans = (
+                    map_frame.pose.pose.position.x -
+                    (odom_frame.pose.pose.position.x * m.cos(dyaw) -
+                     odom_frame.pose.pose.position.y * m.sin(dyaw)),
+                    map_frame.pose.pose.position.y -
+                    (odom_frame.pose.pose.position.x * m.sin(dyaw) +
+                     odom_frame.pose.pose.position.y * m.cos(dyaw)),
+                    0.
+                )
+                rot = quaternion_from_euler(0., 0., dyaw)
+
+            elif scan_status.queue.isFalse(threshhold=10):
+                # Untrustable TF : Relocalize
+                if tf_sub.canTransform("map", "odom", rospy.Time(0)):
+                    transformed_pose = tf_sub.transformPose(
+                        ps=odom_frame.pose, target_frame="map")
+
+                    p = PoseWithCovarianceStamped(
+                        Header(None, rospy.Time.now(), "map"),
+                        PoseWithCovariance(
+                            transformed_pose.pose,
+                            None
+                        )
+                    )
+
+                    initial_pose_pub.publish(p)
+
+                    scan_status.queue.inputValue(True)
+
+                    rospy.logwarn("Relocalizing...")
+
+                else:
+                    # Cannot Transform
+                    rospy.logwarn(
+                        "Cannot lookup transform between map and odom")
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
 
             else:
-                tx = map_frame.pose.pose.position.x - odom_frame.pose.pose.position.x
-                ty = map_frame.pose.pose.position.y - odom_frame.pose.pose.position.y
-                tyaw = map_frame.yaw - odom_frame.yaw
-
-                rospy.logwarn("Wait for transform between map and odom")
+                rospy.logwarn("Scan is not trustable : %.4f" %
+                              scan_status.scroe)
 
         else:
-            rospy.logwarn("Scan is not trustable : %.4f" % scan_status.scroe)
+            # Cannot subscribe map / odom
+            rospy.logwarn("Wait for Odometry...")
 
         tf_pub.sendTransform(
-            translation=(tx, ty, 0.),
-            rotation=quaternion_from_euler(0., 0., tyaw),
+            translation=trans,
+            rotation=rot,
             time=rospy.Time.now(),
             child="odom",
             parent="map"
