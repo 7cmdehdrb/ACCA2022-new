@@ -36,9 +36,9 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-add_executable(map_odom_tf_publisher src/map_odom_tf_publisher.cpp)
-target_link_libraries(map_odom_tf_publisher ${catkin_LIBRARIES})
-add_dependencies(map_odom_tf_publisher ${catkin_EXPORTED_TARGETS})
+# add_executable(map_odom_tf_publisher src/map_odom_tf_publisher.cpp)
+# target_link_libraries(map_odom_tf_publisher ${catkin_LIBRARIES})
+# add_dependencies(map_odom_tf_publisher ${catkin_EXPORTED_TARGETS})
 
 
 
