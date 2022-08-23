@@ -18,7 +18,8 @@ class PathResponseWithType(PathResponse):
 
     def checkPathType(self):
         if (self.start[0] == self.end[0]) is False:
-            rospy.loginfo("Not Intersection!")
+            rospy.loginfo("%s - %s : Not Intersection!" %
+                          (self.start, self.end))
             return PathType.NONE
         else:
             # 0 : None, 1: -3.14 > + 3.14, 2: +3.14 > -3.14

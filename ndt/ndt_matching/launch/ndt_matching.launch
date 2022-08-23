@@ -15,9 +15,21 @@
     <!--================================================= points_map_loader =================================================-->
     <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
+<<<<<<< HEAD
     <!-- <arg name="path_pcd" default='$(find map_matching_localization)/data/0720_school_all.pcd' /> -->
     <arg name="path_pcd" default='/home/enbang/pcd/school.pcd' />
 
+=======
+<<<<<<< HEAD
+    <!-- <arg name="path_pcd" default='$(find map_matching_localization)/data/kcity_remap.pcd' /> -->
+    <!-- <arg name="path_pcd" default='/home/acca/kcity_01_pcd/GlobalMap.pcd' /> -->
+    <!-- /home/acca/0722/kcity_pcd/GlobalMap.pcd -->
+    <arg name="path_pcd" default='/home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/data/0710_kcity_02.pcd' />
+=======
+    <arg name="path_pcd" default='$(find map_matching_localization)/data/school.pcd' />
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
+    
+>>>>>>> e88d7e3b544d464584ddb237e58b2d0fd4a15c66
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
         <rosparam subst_value="true">
             area: $(arg scene_num)
@@ -43,7 +55,7 @@
     <!--================================================= ndt_matching =================================================-->
     <arg name="method_type" default="0" /> <!-- pcl_generic=0, pcl_anh=1, pcl_anh_gpu=2, pcl_openmp=3 -->
     <arg name="use_gnss" default="0" />
-    <arg name="use_odom" default="true" />
+    <arg name="use_odom" default="false" />
     <arg name="use_imu" default="false" />
     <arg name="imu_upside_down" default="false" />
     <arg name="imu_topic" default="/imu/data" />
@@ -65,7 +77,7 @@
     <param name="tf_yaw" value="$(arg tf_yaw)" />
     <param name="localizer" value="velodyne"/>
       
-    <node pkg="ndt_matching" type="ndt_matching" name="ndt_matching">
+    <node pkg="ndt_matching" type="ndt_matching" name="ndt_matching" output="log">
         <param name="method_type" value="$(arg method_type)" />
         <param name="use_gnss" value="$(arg use_gnss)" />
         <param name="use_odom" value="$(arg use_odom)" />
@@ -81,5 +93,6 @@
         <param name="gnss_reinit_fitness" value="$(arg gnss_reinit_fitness)" />
         <param name="is_publish_tf" value="$(arg is_publish_tf)" />
         <remap from="/points_raw" to="/sync_drivers/points_raw" if="$(arg sync)" />
+        <remap from="vehicle/odom" to="odometry/kalman" />
     </node>
 </launch>

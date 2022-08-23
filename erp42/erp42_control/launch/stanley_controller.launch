@@ -6,7 +6,7 @@
     <arg name="speed_control_enable" default="true" />
 
     <!-- Stanley Controller Params -->
-    <arg name="c_gain" default="0.1" />
+    <arg name="c_gain" default="0.2" />
     <arg name="hdr_ratio" default="1.0" />
 
     <!-- PID Controller Params -->

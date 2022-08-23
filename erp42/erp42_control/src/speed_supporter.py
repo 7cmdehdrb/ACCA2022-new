@@ -50,7 +50,7 @@ class SpeedSupporter(object):
 
         # print(desired_value, input_value)
 
-        return input_value
+        return input_value, 0
 
     def PIDcontrol(self, current_value, desired_value):
 

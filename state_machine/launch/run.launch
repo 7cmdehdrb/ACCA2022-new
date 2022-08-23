@@ -8,9 +8,15 @@
     <include file="$(find path_plan)/launch/load_path.launch">
         <arg name="odometry_enable" default="true" />
         <arg name="save_waypoint" default="false" />
+<<<<<<< HEAD
         <arg name="db_name" default="/school_test.db" />
         <arg name="path_name" default="school_test_path.csv" />
         <arg name="waypoints_file" default="school_test_waypoint.csv" />
+=======
+        <arg name="db_name" default="/kcity_0722.db" />
+        <arg name="path_name" default="test.csv" />
+        <arg name="waypoints_file" default="kcity.csv" />
+>>>>>>> e88d7e3b544d464584ddb237e58b2d0fd4a15c66
     </include>
 
     <!-- <node pkg="rviz" name="rviz" type="rviz" args="-d /home/acca/catkin_ws/src/ACCA2022-new/state_machine/rviz/school_auto_driving.rviz" /> -->

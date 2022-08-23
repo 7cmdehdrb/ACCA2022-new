@@ -10,17 +10,21 @@
     <!-- hdl localization -->
     <include file="$(find hdl_localization)/launch/hdl_localization.launch">
         <arg name="is_publish_tf" default="$(arg is_publish_tf)"/>
-        <arg name="points_topic" default="/velodyne_points"/>
+        <arg name="points_topic" default="/velodyne_points2"/>
         <arg name="globalmap_pcd" default="$(arg globalmap_pcd)" />
     </include>
 
 
     <!-- kalman filter -->
-    <node pkg="map_matching_localization" name="kalman" type="kalman3.py" output="screen">
+    <!-- <node pkg="map_matching_localization" name="kalman" type="kalman3.py" output="screen">
         <param name="is_publish_tf" value="$(arg is_publish_tf)"></param>
-    </node>
+    </node> -->
 
+<<<<<<< HEAD
     <!-- kalman - relocalizer -->
+=======
+    <!-- kaman - relocalizer -->
+>>>>>>> e88d7e3b544d464584ddb237e58b2d0fd4a15c66
     <!-- <node pkg="map_matching_localization" name="relocalizer" type="relocalizer.py" output="screen">
         <param name="odom_topic" value="$(arg odom_topic)"></param>
         <param name="matching_err_tol" value="$(arg matching_err_tol)"></param>

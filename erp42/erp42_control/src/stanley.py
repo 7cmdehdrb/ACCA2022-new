@@ -18,7 +18,7 @@ class Stanley(object):
     def __init__(self):
         self.__L = 1.040  # [m] Wheel base of vehicle
         self.__k = rospy.get_param(
-            "/stanley_controller/c_gain", 1.1)  # control gain
+            "/stanley_controller/c_gain", 1.5)  # control gain
         self.__hdr_ratio = rospy.get_param(
             "/stanley_controller/hdr_ratio", 1.0)
 
@@ -35,13 +35,14 @@ class Stanley(object):
 
     def setCGain(self, value):
         self.__k = value
+        print("SET C GAIN")
         return self.__k
 
     def setHdrRatio(self, value):
         self.__hdr_ratio = value
         return self.__hdr_ratio
 
-    def stanley_control(self, state, cx, cy, cyaw, last_target_idx):
+    def stanley_control(self, state, cx, cy, cyaw, last_target_idx, reverse=False):
         """
         Stanley steering control.
         :param state: (State object) => yaw and v
@@ -53,7 +54,7 @@ class Stanley(object):
         """
 
         current_target_idx, error_front_axle = self.calc_target_index(
-            state, cx, cy)
+            state, cx, cy, reverse=reverse)
 
         # print(current_target_idx)
 
@@ -62,10 +63,11 @@ class Stanley(object):
 
         # theta_e corrects the heading error
         theta_e = (self.normalize_angle(
-            cyaw[current_target_idx] - state.yaw)) * self.__hdr_ratio
+            cyaw[current_target_idx] - (state.yaw + (np.pi if reverse else 0.)))) * self.__hdr_ratio
 
         # theta_d corrects the cross track error
-        theta_d = np.arctan2(self.__k * error_front_axle, state.v)
+        theta_d = np.arctan2(self.__k * error_front_axle,
+                             state.v) * (-1.0 if reverse else 1.0)
 
         # Field
         self.__hdr = theta_e
@@ -98,7 +100,7 @@ class Stanley(object):
 
         return angle
 
-    def calc_target_index(self, state, cx, cy):
+    def calc_target_index(self, state, cx, cy, reverse=False):
         """
         Compute index in the trajectory list of the target.
         :param state: (State object)
@@ -107,8 +109,10 @@ class Stanley(object):
         :return: (int, float)
         """
         # Calc front axle position
-        fx = state.x + self.__L * np.cos(state.yaw) / 2.0
-        fy = state.y + self.__L * np.sin(state.yaw) / 2.0
+        fx = state.x + self.__L * \
+            np.cos(state.yaw) / 2.0 * (-1.0 if reverse else 1.0)
+        fy = state.y + self.__L * \
+            np.sin(state.yaw) / 2.0 * (-1.0 if reverse else 1.0)
 
         # Search nearest point index
         dx = [fx - icx for icx in cx]
