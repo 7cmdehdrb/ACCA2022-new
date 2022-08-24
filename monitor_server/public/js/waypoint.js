@@ -46,6 +46,8 @@ let msg = new ROSLIB.Message({
 
 function add_waypoint() {
   var data = document.getElementById('waypoint_id').value
+  var is_end = document.querySelector('input[name="is_end"]:checked').value;
+
   data = data.toUpperCase()
 
   if (data == "" || data.length != 2){
@@ -58,9 +60,11 @@ function add_waypoint() {
   alpha = temp[0].charCodeAt(0)
   idx = parseInt(temp[1])
 
+
   if ("A".charCodeAt(0) <= alpha && alpha <= "Z".charCodeAt(0)) {
-    msg.data = data
-  
+    msg.data = data + "/" + is_end
+    console.log(msg.data)
+
     document.getElementById('waypoint_id').value = ''
     add_topic.publish(msg)
     

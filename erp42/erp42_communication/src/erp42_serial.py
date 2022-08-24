@@ -104,6 +104,7 @@ class Control():
         while not exitThread:
             try:
                 for i in self.ser.read():
+                    # print(i)
                     line.append(i)
                     if ord(i) == 83:
                         del line[:]
@@ -184,7 +185,7 @@ if __name__ == "__main__":
     rospy.init_node("erp42_serial")
 
     # Params
-    port = rospy.get_param("/erp42_serial/erp42_port", "/dev/ttyUSB4")
+    port = rospy.get_param("/erp42_serial/erp42_port", "/dev/ttyerp")
     print(port)
 
     # Objects

@@ -1,0 +1,17 @@
+<launch>
+    <arg name="odometry_enable" default="false"/>
+    <arg name="save_waypoint" default="true" />
+    <arg name="waypoints_file" default="school_test_waypoint.csv" />
+
+    <node type="waypoints.py" name="waypoints" pkg="path_plan" output="screen">
+        <param name="save_waypoint" type="bool" value="$(arg save_waypoint)" />
+        <param name="waypoints_file" type="string" value="$(arg waypoints_file)" />
+    </node>
+
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
+        <arg name="port" value="9090"/>
+    </include>
+    
+    <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="$(find map_matching_localization)/data/school.pcd _frame_id:=/map 5" unless="$(arg odometry_enable)" />
+    <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find erp42_control)/rviz/waypoints.rviz" /> -->
+</launch>

@@ -1,4 +1,21 @@
 <launch>
+
+    <arg name="odometry_enable" default="false" />
+    <arg name="save_waypoint" default="false" />
+    <arg name="db_name" default="/school_test.db" />
+    <arg name="path_name" default="school_test_path.csv" />
+    <arg name="waypoints_file" default="school_test_waypoint.csv" />
+
+    <!-- waypoints -->
+    <include file="$(find path_plan)/launch/waypoints.launch">
+        <arg name="save_waypoint" default="$(arg save_waypoint)" />
+        <arg name="odometry_enable" default="$(arg odometry_enable)" />
+        <arg name="waypoints_file" default="$(arg waypoints_file)" />
+    </include>
+
     <!-- node -->
-    <node pkg="path_plan" type="LoadPath.py" name="LoadPath" output="screen"/>
+    <node pkg="path_plan" type="LoadPath.py" name="LoadPath" output="screen">
+        <param name="db_name" type="string" value="$(arg db_name)"/>
+        <param name="path_name" type="string" value="$(arg path_name)"/>
+    </node>
 </launch>
