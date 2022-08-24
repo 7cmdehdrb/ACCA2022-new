@@ -2,11 +2,11 @@
 
     <!-- Basic Controller Params -->
     <arg name="max_steer" default="30" />
-    <arg name="desired_speed" default="15.0" />
+    <arg name="desired_speed" default="10.0" />
     <arg name="speed_control_enable" default="true" />
 
     <!-- Stanley Controller Params -->
-    <arg name="c_gain" default="1.0" />
+    <arg name="c_gain" default="0.2" />
     <arg name="hdr_ratio" default="1.0" />
 
     <!-- PID Controller Params -->
@@ -34,5 +34,6 @@
         <param name="ce_gain" type="double" value="$(arg ce_gain)" />
         <param name="hdr_threshold" type="double" value="$(arg hdr_threshold)" />
         <param name="ctr_threshold" type="double" value="$(arg ctr_threshold)" />
+        <param name="speed_control_enable" type="bool" value="$(arg speed_control_enable)" />
     </node>
 </launch>

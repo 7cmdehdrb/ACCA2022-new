@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from time import sleep
 import rospy
 import numpy as np
 from geometry_msgs.msg import PoseWithCovarianceStamped
@@ -10,7 +11,7 @@ from header import Queue
 # Param
 
 odom_topic = rospy.get_param(
-    param_name="/relocalizer/odom_topic", default="odometry/kalman")
+    param_name="/relocalizer/odom_topic", default="odometry/gaussian")
 matching_err_tol = float(rospy.get_param(
     param_name="/relocalizer/matching_err_tol", default=0.05))
 inlier_fraction_tol = float(rospy.get_param(
@@ -37,6 +38,7 @@ class Relocalizer(object):
         if self.matching_err_queue.isFalse(10) is True:
             rospy.loginfo("RELOCALIZING...")
             self.init_pub.publish(self.odom_pose)
+            self.matching_err_queue.inputValue(True)
 
     def isTrustable(self, matching_err, inlier_fraction):
         return matching_err <= matching_err_tol and inlier_fraction >= inlier_fraction_tol
@@ -47,7 +49,7 @@ class Relocalizer(object):
     def transformOdometryToPoseWithCovarianceStamped(self, odom):
         pose = PoseWithCovarianceStamped()
 
-        pose.header.frame_id = odom.header.frame_id
+        pose.header.frame_id = "map"
         pose.header.stamp = rospy.Time.now()
 
         pose.pose.pose = odom.pose.pose

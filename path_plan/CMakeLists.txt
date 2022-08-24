@@ -15,6 +15,7 @@ add_message_files(
    FILES
    PathRequest.msg
    PathResponse.msg
+   Cone.msg
 )
 generate_messages(
     DEPENDENCIES

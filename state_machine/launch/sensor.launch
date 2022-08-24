@@ -2,7 +2,7 @@
 
 <launch>
     <arg name="imu_port" default="/dev/ttyIMU" /> 
-    <arg name="gps_port" default="/dev/ttyACM1" /> 
+    <arg name="gps_port" default="/dev/ttyACM0" /> 
 
     <include file="$(find ublox_gps)/launch/ublox_device.launch">
         <arg name="gps_port" default="$(arg gps_port)" /> 

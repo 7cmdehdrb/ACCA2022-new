@@ -1,31 +1,29 @@
 <launch>
     <arg name="odom_topic" default="odometry/kalman"/>
-    <arg name="matching_err_tol" default="0.5"/>
-    <arg name="inlier_fraction_tol" default="0.5"/>
+    <arg name="matching_err_tol" default="0.1"/>
+    <arg name="inlier_fraction_tol" default="0.9"/>
     <arg name="is_publish_tf" default="false"/>
-    <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0710_kcity_02.pcd" />
+    <arg name="globalmap_pcd" default="/home/enbang/k_citi_0722_02_downnew.pcd" />
 
-    <include file="$(find state_machine)/launch/sensor.launch" />
+    <!-- <include file="$(find state_machine)/launch/sensor.launch" /> -->
 
     <!-- hdl localization -->
     <include file="$(find hdl_localization)/launch/hdl_localization.launch">
         <arg name="is_publish_tf" default="$(arg is_publish_tf)"/>
-        <arg name="points_topic" default="/velodyne_points"/>
+        <arg name="points_topic" default="/velodyne_points2"/>
         <arg name="globalmap_pcd" default="$(arg globalmap_pcd)" />
     </include>
 
-    <!-- gps localizer -->
-    <node pkg="gps_localizer" name="gps_localizer" type="gps_localization.py" />
 
     <!-- kalman filter -->
-    <node pkg="map_matching_localization" name="kalman" type="kalman.py" output="screen">
+    <!-- <node pkg="map_matching_localization" name="kalman" type="kalman3.py" output="screen">
         <param name="is_publish_tf" value="$(arg is_publish_tf)"></param>
-    </node>
+    </node> -->
 
     <!-- kaman - relocalizer -->
-    <node pkg="map_matching_localization" name="relocalizer" type="relocalizer.py" output="screen">
+    <!-- <node pkg="map_matching_localization" name="relocalizer" type="relocalizer.py" output="screen">
         <param name="odom_topic" value="$(arg odom_topic)"></param>
         <param name="matching_err_tol" value="$(arg matching_err_tol)"></param>
         <param name="inlier_fraction_tol" value="$(arg inlier_fraction_tol)"></param>
-    </node>
+    </node> -->
 </launch>

@@ -1,14 +1,17 @@
 <launch>
     <include file="$(find map_matching_localization)/launch/localization.launch">
-        <arg name="is_publish_tf" default="false" />
+        <arg name="is_publish_tf" default="true" />
+        <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0710_kcity_02.pcd" />
+        <!-- <arg name="globalmap_pcd" default="/home/acca/school_pcd/CornerMap.pcd" /> -->
     </include>
 
     <include file="$(find path_plan)/launch/load_path.launch">
         <arg name="odometry_enable" default="true" />
         <arg name="save_waypoint" default="false" />
-        <arg name="db_name" default="/path.db" />
-        <arg name="path_name" default="path.csv" />
+        <arg name="db_name" default="/kcity_0722.db" />
+        <arg name="path_name" default="test.csv" />
         <arg name="waypoints_file" default="kcity.csv" />
-        <arg name="globalmap_pcd" default="$(find map_matching_localization)/data/0710_kcity_02.pcd" />
     </include>
+
+    <node pkg="rviz" name="rviz" type="rviz" args="-d /home/acca/catkin_ws/src/ACCA2022-new/state_machine/rviz/school_auto_driving.rviz" />
 </launch>
