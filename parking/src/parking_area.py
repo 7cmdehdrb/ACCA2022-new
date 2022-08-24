@@ -31,7 +31,7 @@ class ParkingArea(object):
         marker.pose.orientation = self.orientation
         marker.scale = self.scale
 
-        marker.color = ColorRGBA(1., 0., 0., 0.2)
+        marker.color = ColorRGBA(1., 0., 0., 0.7)
 
         marker.type = 1
         marker.id = id
@@ -39,6 +39,15 @@ class ParkingArea(object):
         marker.lifetime = Duration(secs=duration)
 
         return marker
+
+    def interval(xs=4, scale_x=2.5, yaw=m.pi/6, the_number_of_parking_areas=6):
+        interval = scale_x/m.cos(yaw)
+        interval_list = []
+        j = 0
+        for i in range(the_number_of_parking_areas):
+            interval_list.append(xs + interval*j)
+            j += 1
+        print(interval_list)
 
     def parseArray(self):
         _, _, yaw = euler_from_quaternion(
@@ -64,3 +73,6 @@ class ParkingArea(object):
         return np.array([
             p1, p2, p3, p4, p5
         ])
+
+    interval()
+    print(m.pi/6)

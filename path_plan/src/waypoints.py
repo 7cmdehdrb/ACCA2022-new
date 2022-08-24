@@ -103,7 +103,7 @@ class TemperalPoint(object):
 class WayPoints(object):
     def __init__(self):
         self.file_name = rospy.get_param(
-            "/waypoints/waypoints_file", "path.csv")
+            "/waypoints/waypoints_file", "waypoints.csv")
         self.path = rospkg.RosPack().get_path("path_plan") + \
             "/waypoints/" + self.file_name
 

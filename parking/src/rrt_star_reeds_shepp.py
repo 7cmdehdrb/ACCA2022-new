@@ -45,7 +45,7 @@ class RRTStarReedsShepp(RRTStar):
     """
 
     def __init__(self, start, goal, obstacle_list, rand_area,
-                 max_iter=200,
+                 max_iter=100,
                  connect_circle_dist=50.0
                  ):
         """
@@ -233,7 +233,7 @@ class RRTStarReedsShepp(RRTStar):
         return path
 
 
-def main(max_iter=50):
+def main(max_iter=500):
     print("Start " + __file__)
 
     # ====Search Path with RRT====
