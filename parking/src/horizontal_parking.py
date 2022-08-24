@@ -50,6 +50,7 @@ def wait_for_stop(duration):
             return 0
 
         msg.Speed = int(0)
+        msg.brake = 120
         cmd_pub.publish(msg)
         r.sleep()
 
@@ -99,10 +100,10 @@ def createPath(circle1, circle2, selected_parking_area, state):
     # Set start point
     start_x = circle2.pose.position.x + \
         circle2.scale.x / 2.0 * \
-        m.cos(yaw_range[0]) + circle2.scale.x / 2.0 * m.cos(yaw)
+        m.cos(yaw_range[0]) + (circle2.scale.x / 2.0 + 0.0) * m.cos(yaw)
     start_y = circle2.pose.position.y + \
         circle2.scale.x / 2.0 * \
-        m.sin(yaw_range[0]) + circle2.scale.x / 2.0 * m.sin(yaw)
+        m.sin(yaw_range[0]) + (circle2.scale.x / 2.0 + 0.0) * m.sin(yaw)
 
     xs1 = [circle2.pose.position.x + circle2.scale.x /
            2.0 * m.cos(y) for y in yaw_range]
@@ -126,10 +127,10 @@ def createPath(circle1, circle2, selected_parking_area, state):
     # Set end point
     end_x = circle1.pose.position.x + \
         circle1.scale.x / 2.0 * \
-        m.cos(yaw_range[-1]) - circle1.scale.x / 2.0 * m.cos(yaw)
+        m.cos(yaw_range[-1]) - (circle1.scale.x / 2.0 - 0.2) * m.cos(yaw)
     end_y = circle1.pose.position.y + \
         circle1.scale.x / 2.0 * \
-        m.sin(yaw_range[-1]) - circle1.scale.x / 2.0 * m.sin(yaw)
+        m.sin(yaw_range[-1]) - (circle1.scale.x / 2.0 - 0.2) * m.sin(yaw)
 
     xs2 = [circle1.pose.position.x +
            circle1.scale.x / 2.0 * m.cos(y) for y in yaw_range]
@@ -146,7 +147,7 @@ def createPath(circle1, circle2, selected_parking_area, state):
         gx=start_x,
         gy=start_y,
         gyaw=gyaw,
-        maxc=0.3,
+        maxc=0.1,
         step_size=0.05
     )
 
@@ -212,7 +213,7 @@ def getTwoCircle(idx):
 
     h = selected_parking_area.scale.x   # 2.0
     w = selected_parking_area.scale.y   # 0.8
-    reverse_threshold = 0.1                # min: 0, max : 0.25
+    reverse_threshold = 0.05                # min: 0, max : 0.25
 
     # ===== circle 1 =====
 
@@ -292,7 +293,7 @@ def getTwoCircle(idx):
 if __name__ == "__main__":
     rospy.init_node("horizontal_parking")
 
-    state = State("/odometry/kalman")
+    state = OdomState("/odometry/kalman")
     parking_areas = []
 
     parking_sub = rospy.Subscriber(
@@ -335,7 +336,7 @@ if __name__ == "__main__":
 
             print("Straight", target_idx)
 
-            msg.Speed = int(3)
+            msg.Speed = int(7)
             di, target_idx = stanley.stanley_control(
                 state=state,
                 cx=spath.cx,
@@ -347,6 +348,7 @@ if __name__ == "__main__":
 
             di = np.clip(di, -m.radians(30), m.radians(30))
             msg.Steer = m.degrees(-di)
+            msg.brake = 0
             msg.Gear = 2
 
             car_vec = np.array([
@@ -363,8 +365,8 @@ if __name__ == "__main__":
                 horizontal_parking_state = HorizontalParking.Reverse
                 target_idx = 0
 
-                stanley.setHdrRatio(1.5)
-                stanley.setCGain(10)
+                # stanley.setHdrRatio(1.0)
+                # stanley.setCGain(0.5)
 
                 wait_for_stop(5)
 
@@ -372,7 +374,7 @@ if __name__ == "__main__":
 
             print("Reverse", target_idx)
 
-            msg.Speed = int(1)
+            msg.Speed = int(5)
             di, target_idx = stanley.stanley_control(
                 state=state,
                 cx=rpath.cx,
@@ -384,7 +386,8 @@ if __name__ == "__main__":
 
             di = np.clip(di, -m.radians(30), m.radians(30))
             msg.Steer = m.degrees(di)
-            msg.Gear = 1
+            msg.brake = 0
+            msg.Gear = 0
 
             car_vec = np.array([
                 m.cos(state.yaw + m.pi), m.sin(state.yaw + m.pi)
@@ -406,7 +409,7 @@ if __name__ == "__main__":
 
             print("Home", target_idx, len(hpath.cx))
 
-            msg.Speed = int(1)
+            msg.Speed = int(5)
             di, target_idx = stanley.stanley_control(
                 state=state,
                 cx=hpath.cx,
@@ -418,6 +421,7 @@ if __name__ == "__main__":
 
             di = np.clip(di, -m.radians(30), m.radians(30))
             msg.Steer = m.degrees(-di)
+            msg.brake = 0
             msg.Gear = 2
 
             car_vec = np.array([
@@ -438,6 +442,7 @@ if __name__ == "__main__":
 
         elif horizontal_parking_state == HorizontalParking.End:
             msg.Speed = int(0)
+            msg.brake = 100
 
         else:
             rospy.logfatal("Invalid Horizontal Parking State!")

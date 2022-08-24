@@ -31,7 +31,7 @@ class ParkingArea(object):
         marker.pose.orientation = self.orientation
         marker.scale = self.scale
 
-        marker.color = ColorRGBA(1., 0., 0., 0.2)
+        marker.color = ColorRGBA(1., 0., 0., 0.7)
 
         marker.type = 1
         marker.id = id

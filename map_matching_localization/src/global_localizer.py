@@ -14,43 +14,6 @@ from header import Queue
 
 
 score_threshold = rospy.get_param("/global_localizer/score_threshold", 1.0)
-<<<<<<< HEAD
-
-
-
-
-class LowPassFilter:
-    def __init__(self, cutoff_freq, ts):
-        self.ts = ts
-        self.cutoff_freq = cutoff_freq
-        self.pre_out = 0.
-        self.tau = self.calc_filter_coef()
-
-    def calc_filter_coef(self):
-        w_cut = 2 * np.pi * self.cutoff_freq
-        return 1 / w_cut
-
-    def filter(self, data):
-        out = (self.tau * self.pre_out + self.ts * data) / (self.tau + self.ts)
-        self.pre_out = out
-        return out
-
-
-
-class AverageFilter:
-    def __init__(self):
-        self.n = 0
-        self.prev = 0.0
-
-    def filter(self, data):
-        self.n += 1
-        alpha = (self.n - 1) / (self.n + 0.0)
-        ave = alpha * self.prev + (1 - alpha) * data
-        self.prev = ave
-        return ave
-
-=======
->>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
 
 
 class Odom(object):
@@ -114,45 +77,6 @@ if __name__ == "__main__":
     tf_pub = tf.TransformBroadcaster()
     tf_sub = tf.TransformListener()
 
-<<<<<<< HEAD
-    dx = 0.
-    dy = 0.
-
-    tx = 0.
-    ty = 0.
-    tyaw = 0.
-
-    ave_x = LowPassFilter(cutoff_freq=5.0, ts=freq)
-    ave_y = LowPassFilter(cutoff_freq=5.0, ts=freq)
-    ave_yaw = LowPassFilter(cutoff_freq=5.0, ts=freq)
-
-
-    r = rospy.Rate(hz)
-    while not rospy.is_shutdown():
-
-        if scan_status.queue.isTrue(threshhold=10):
-            if tf_sub.canTransform("map", "odom", rospy.Time(0)):
-                if odom_frame.frame_id is not None and map_frame.frame_id is not None:
-                    p2 = tf_sub.transformPose("map", odom_frame.pose)
-
-                    dx = map_frame.pose.pose.position.x - p2.pose.position.x
-                    dy = map_frame.pose.pose.position.y - p2.pose.position.y
-                    _, _, p2_yaw = euler_from_quaternion([p2.pose.orientation.x, p2.pose.orientation.y, p2.pose.orientation.z, p2.pose.orientation.w])
-                    dyaw = map_frame.yaw - p2_yaw
-
-                    tx += dx
-                    ty += dy
-                    tyaw += dyaw
-                    
-                    # print(dx, dy, dyaw)
-
-                    rospy.loginfo(
-                        "Translation Matrix : [%.6f, %.6f, 0.0]" % (tx, ty))
-                    rospy.loginfo("Rotation Matrix : [0.0, 0.0, %.6f]" % tyaw)
-
-                else:
-                    rospy.logwarn("Cannot Subscribe odom topics")
-=======
     trans = (0., 0., 0.)
     rot = (0., 0., 0., 1.)
 
@@ -199,7 +123,6 @@ if __name__ == "__main__":
                     # Cannot Transform
                     rospy.logwarn(
                         "Cannot lookup transform between map and odom")
->>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
 
             else:
                 rospy.logwarn("Scan is not trustable : %.4f" %
