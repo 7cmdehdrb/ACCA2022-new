@@ -18,6 +18,7 @@ from parking_area import ParkingArea
 from rrt_star_reeds_shepp import *
 from std_msgs.msg import Int16, Float32MultiArray
 # from parking.msg import surround_obstacle
+from path_plan.msg import PathResponse
 
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
@@ -29,6 +30,7 @@ except Exception as ex:
 the_number_of_parkinarea = 6
 
 
+'''
 def publishPath(pub, cx, cy, cyaw):
     path = Path()
 
@@ -50,6 +52,20 @@ def publishPath(pub, cx, cy, cyaw):
         path.poses.append(pose)
 
     pub.publish(path)
+    '''
+
+
+def publishPath(pub, cx, cy, cyaw):
+
+    path = PathResponse()
+
+    path.cx = cx
+    path.cy = cy
+    path.cyaw = cyaw
+
+    pub.publish(path)
+
+    return PathResponse()
 
 
 '''def erase_other_zone():
@@ -249,10 +265,7 @@ if __name__ == "__main__":
         "/obstacles", PoseArray, queue_size=1
     )
     path_pub = rospy.Publisher(
-        "/path", Path, queue_size=1
-    )
-    test_pub = rospy.Publisher(
-        "/test", PoseStamped, queue_size=1
+        "/path", PathResponse, queue_size=1
     )
 
     '''surround_obstacle_list_sub = rospy.Subscriber(
