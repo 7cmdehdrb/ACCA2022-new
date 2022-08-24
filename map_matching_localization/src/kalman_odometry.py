@@ -337,7 +337,6 @@ if __name__ == "__main__":
     last_time = rospy.Time.now()
 
     r = rospy.Rate(hz)
-<<<<<<< HEAD
 
     # while not rospy.is_shutdown():
     #     is_all_available = True
@@ -353,8 +352,6 @@ if __name__ == "__main__":
 
     #     r.sleep()
 
-=======
->>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
     while not rospy.is_shutdown():
 
         current_time = rospy.Time.now()

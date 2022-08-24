@@ -1,15 +1,9 @@
 <launch>
     <arg name="odometry_enable" default="false" />
     <arg name="save_waypoint" default="false" />
-<<<<<<< HEAD
-    <arg name="db_name" default="/jin0.db" />
+    <arg name="db_name" default="/jin.db" />
     <arg name="path_name" default="static.csv" />
-    <arg name="waypoints_file" default="school_test_waypoint.csv" />
-=======
-    <arg name="db_name" default="/kcity_02.db" />
-    <arg name="path_name" default="kcity02.csv" />
     <arg name="waypoints_file" default="kcity_bonsun.csv" />
->>>>>>> e88d7e3b544d464584ddb237e58b2d0fd4a15c66
 
     <!-- waypoints -->
     <include file="$(find path_plan)/launch/waypoints.launch">

@@ -14,10 +14,6 @@ from header import Queue
 
 
 score_threshold = rospy.get_param("/global_localizer/score_threshold", 1.0)
-<<<<<<< HEAD
-
-
-
 
 class LowPassFilter:
     def __init__(self, cutoff_freq, ts):
@@ -49,8 +45,6 @@ class AverageFilter:
         self.prev = ave
         return ave
 
-=======
->>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
 
 
 class Odom(object):
@@ -114,45 +108,6 @@ if __name__ == "__main__":
     tf_pub = tf.TransformBroadcaster()
     tf_sub = tf.TransformListener()
 
-<<<<<<< HEAD
-    dx = 0.
-    dy = 0.
-
-    tx = 0.
-    ty = 0.
-    tyaw = 0.
-
-    ave_x = LowPassFilter(cutoff_freq=5.0, ts=freq)
-    ave_y = LowPassFilter(cutoff_freq=5.0, ts=freq)
-    ave_yaw = LowPassFilter(cutoff_freq=5.0, ts=freq)
-
-
-    r = rospy.Rate(hz)
-    while not rospy.is_shutdown():
-
-        if scan_status.queue.isTrue(threshhold=10):
-            if tf_sub.canTransform("map", "odom", rospy.Time(0)):
-                if odom_frame.frame_id is not None and map_frame.frame_id is not None:
-                    p2 = tf_sub.transformPose("map", odom_frame.pose)
-
-                    dx = map_frame.pose.pose.position.x - p2.pose.position.x
-                    dy = map_frame.pose.pose.position.y - p2.pose.position.y
-                    _, _, p2_yaw = euler_from_quaternion([p2.pose.orientation.x, p2.pose.orientation.y, p2.pose.orientation.z, p2.pose.orientation.w])
-                    dyaw = map_frame.yaw - p2_yaw
-
-                    tx += dx
-                    ty += dy
-                    tyaw += dyaw
-                    
-                    # print(dx, dy, dyaw)
-
-                    rospy.loginfo(
-                        "Translation Matrix : [%.6f, %.6f, 0.0]" % (tx, ty))
-                    rospy.loginfo("Rotation Matrix : [0.0, 0.0, %.6f]" % tyaw)
-
-                else:
-                    rospy.logwarn("Cannot Subscribe odom topics")
-=======
     trans = (0., 0., 0.)
     rot = (0., 0., 0., 1.)
 
@@ -199,7 +154,6 @@ if __name__ == "__main__":
                     # Cannot Transform
                     rospy.logwarn(
                         "Cannot lookup transform between map and odom")
->>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
 
             else:
                 rospy.logwarn("Scan is not trustable : %.4f" %
