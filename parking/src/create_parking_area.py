@@ -21,8 +21,8 @@ def poseCallback(msg):
 
     quat = msg.pose.orientation
 
-    w = 0.8
-    h = 2.0
+    w = 1.7
+    h = 4.5
 
     parking_areas.append(ParkingArea(x=x, y=y, quat=quat, w=w, h=h))
 
