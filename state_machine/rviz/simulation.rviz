@@ -6,8 +6,12 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+<<<<<<< HEAD
+        - /Odometry2
+=======
         - /Odometry1/Shape1
         - /TF1/Tree1
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
       Splitter Ratio: 0.5
     Tree Height: 796
   - Class: rviz/Selection
@@ -51,7 +55,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 200
       Reference Frame: <Fixed Frame>
       Value: true
     - Alpha: 1
@@ -105,7 +109,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.05000000074505806
+      Size (m): 0.10000000149011612
       Style: Flat Squares
       Topic: /velodyne_points2
       Unreliable: false
@@ -133,13 +137,52 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.05000000074505806
       Style: Flat Squares
       Topic: /points_map
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+<<<<<<< HEAD
+        Value: false
+      Enabled: false
+=======
+        Value: true
+      Enabled: true
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
+      Keep: 100
+      Name: Odometry
+      Position Tolerance: 0.10000000149011612
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 237; 212; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic: /ndt_matching/ndt_pose
+      Unreliable: false
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -165,40 +208,6 @@ Visualization Manager:
         Alpha: 1
         Axes Length: 1
         Axes Radius: 0.10000000149011612
-        Color: 237; 212; 0
-        Head Length: 0.30000001192092896
-        Head Radius: 0.10000000149011612
-        Shaft Length: 1
-        Shaft Radius: 0.05000000074505806
-        Value: Arrow
-      Topic: /ndt_matching/ndt_pose
-      Unreliable: false
-      Value: true
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: false
-      Enabled: true
-      Keep: 100
-      Name: Odometry
-      Position Tolerance: 0.10000000149011612
-      Shape:
-        Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
         Head Radius: 0.10000000149011612
@@ -215,7 +224,7 @@ Visualization Manager:
         All Enabled: true
         base_link:
           Value: true
-        map:
+        odom:
           Value: true
         odom:
           Value: true
@@ -227,11 +236,18 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
+<<<<<<< HEAD
+        odom:
+          base_link:
+            velodyne:
+              {}
+=======
         map:
           odom:
             base_link:
               velodyne:
                 {}
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -308,16 +324,26 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
+<<<<<<< HEAD
+      Distance: 98.78014373779297
+=======
       Distance: 150.87631225585938
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
+<<<<<<< HEAD
+        X: -540.34765625
+        Y: 104.52888488769531
+        Z: -6.448749542236328
+=======
         X: 44.18143844604492
         Y: -22.58268165588379
         Z: -2.151217222213745
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -326,7 +352,11 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
+<<<<<<< HEAD
+      Yaw: 2.751765012741089
+=======
       Yaw: 3.5894968509674072
+>>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
     Saved: ~
 Window Geometry:
   Displays:

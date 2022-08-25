@@ -44,6 +44,7 @@ class Odom(object):
             [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w])
 
 
+
 class ScanStatus(object):
     def __init__(self):
         self.sub = rospy.Subscriber(
@@ -58,7 +59,10 @@ class ScanStatus(object):
 
 
 if __name__ == "__main__":
-    rospy.init_node("global_localizer")
+    rospy.init_node("global_localizer")\
+
+    hz = 10
+    freq = 1 / hz
 
     hz = 100.
     freq = 1 / hz

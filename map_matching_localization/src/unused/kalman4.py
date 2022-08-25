@@ -41,8 +41,9 @@ class Kalman(object):
 
         # initial value
         self.x = np.array([
-            0, 0, 0, 0
+            -548.489685059, 118.183517456, 0, -0.448286
         ])
+
         self.P = np.array([
             [1., 0., 0., 0.],
             [0., 1., 0., 0.],
@@ -251,7 +252,7 @@ class Xsens(Sensor):
                 rospy.loginfo("SET INITIAL IMU! : %.6f" % self.ndt_yaw)
 
     def statusCallback(self, msg):
-        if msg.score < 0.05:
+        if msg.score < 0.3:
             self.flag_pub.publish()
             self.status_sub.unregister()
 
@@ -342,8 +343,10 @@ class GPS(Sensor):
         self.gps_odom_pub = rospy.Publisher(
             "odometry/gps", Odometry, queue_size=1)
 
-        self.x = 0.
-        self.y = 0.
+        # -548.489685059, 118.183517456
+
+        self.x = -548.489685059
+        self.y = 118.183517456
 
         self.gps = Proj(init="epsg:4326")   # lat, log
         self.tm = Proj(init="epsg:2097")    # m
@@ -363,7 +366,7 @@ class GPS(Sensor):
             self.gps_flag = False
 
     def statusCallback(self, msg):
-        if msg.score < 0.05:
+        if msg.score < 0.3:
             self.flag_pub.publish()
             self.status_sub.unregister()
 

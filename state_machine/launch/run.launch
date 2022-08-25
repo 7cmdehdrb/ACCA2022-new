@@ -8,8 +8,8 @@
     <include file="$(find path_plan)/launch/load_path.launch">
         <arg name="odometry_enable" default="true" />
         <arg name="save_waypoint" default="false" />
-        <arg name="db_name" default="/path.db" />
-        <arg name="path_name" default="path.csv" />
+        <arg name="db_name" default="/kcity_0722.db" />
+        <arg name="path_name" default="test.csv" />
         <arg name="waypoints_file" default="kcity.csv" />
     </include>
 

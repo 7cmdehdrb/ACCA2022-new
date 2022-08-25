@@ -28,7 +28,7 @@
     <!--================================================= voxel_grid_filter =================================================-->
     <arg name="sync" default="false" />
     <arg name="node_name" default="voxel_grid_filter" />
-    <arg name="points_topic" default="/velodyne_points2" />
+    <arg name="points_topic" default="/velodyne_points" />
     <arg name="output_log" default="false" />
     <arg name="measurement_range" default="200" />
     
@@ -42,7 +42,7 @@
     <!--================================================= ndt_matching =================================================-->
     <arg name="method_type" default="0" /> <!-- pcl_generic=0, pcl_anh=1, pcl_anh_gpu=2, pcl_openmp=3 -->
     <arg name="use_gnss" default="0" />
-    <arg name="use_odom" default="true" />
+    <arg name="use_odom" default="false" />
     <arg name="use_imu" default="false" />
     <arg name="imu_upside_down" default="false" />
     <arg name="imu_topic" default="/imu/data" />
@@ -64,7 +64,7 @@
     <param name="tf_yaw" value="$(arg tf_yaw)" />
     <param name="localizer" value="velodyne"/>
       
-    <node pkg="ndt_matching" type="ndt_matching" name="ndt_matching">
+    <node pkg="ndt_matching" type="ndt_matching" name="ndt_matching" output="log">
         <param name="method_type" value="$(arg method_type)" />
         <param name="use_gnss" value="$(arg use_gnss)" />
         <param name="use_odom" value="$(arg use_odom)" />

@@ -70,7 +70,7 @@ class Kalman(object):
             [0.5, 0., 0., 0.],
             [0., 0.5, 0., 0.],
             [0., 0., 0.01, 0.],
-            [0., 0., 0., 0.01]
+            [0., 0., 0., 0.1]
         ])
 
         self.dt = 0.
@@ -122,6 +122,7 @@ class Kalman(object):
         self.x = X
         self.P = P_k - \
             np.dot(np.dot((K_position + K_erp + K_imu), np.identity(n=4)), P_k)
+        
 
         self.dt = dt
 
@@ -294,9 +295,9 @@ class GPS(Sensor):
 
         self.cov = np.array([
             [msg.position_covariance[0] *
-                m.sqrt(111319.490793) + 0.5, 0., 0., 0., ],
+                m.sqrt(111319.490793) + 37.5, 0., 0., 0., ],
             [0., msg.position_covariance[0] *
-                m.sqrt(111319.490793) + 0.5, 0., 0., ],
+                m.sqrt(111319.490793) + 37.5, 0., 0., ],
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])

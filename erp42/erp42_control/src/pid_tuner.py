@@ -14,7 +14,7 @@ from erp42_control.msg import *
 
 class PID(object):
     def __init__(self):
-        self.p_gain = 1.0
+        self.p_gain = 0.5
         self.i_gain = 0.0
         self.d_gain = 0.0
 
@@ -22,7 +22,6 @@ class PID(object):
         self.i_err = 0.0
         self.d_err = 0.0
 
-        rospy.Subscriber("load", Float32, self.load_callback)
         rospy.Subscriber("p_gain", Float32, callback=self.p_callback)
         rospy.Subscriber("i_gain", Float32, callback=self.i_callback)
         rospy.Subscriber("d_gain", Float32, callback=self.d_callback)
@@ -84,7 +83,7 @@ if __name__ == "__main__":
 
         input_speed = pid.PIDControl(
             current_value=speed,
-            desired_value=10,
+            desired_value=7,
             dt=dt
         )
 
@@ -92,7 +91,7 @@ if __name__ == "__main__":
 
         cmd_pub.publish(
             ControlMessage(
-                0, 0, 2, int(mps2kph(input_speed)), 0, 0, 0
+                0, 0, 0, int(mps2kph(input_speed)), 0, 0, 0
             )
         )
 
