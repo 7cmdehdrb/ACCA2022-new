@@ -12,12 +12,10 @@ import math as m
 import genpy
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import Point, Quaternion, Vector3, PoseStamped, PoseArray
-from path_plan.msg import PathRequest, PathResponse
 from nav_msgs.msg import Path, Odometry
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 from erp42_control.msg import ControlMessage
-from tf.transformations import euler_from_quaternion
 from cubic_spline_planner import calc_spline_course
 
 
@@ -64,9 +62,9 @@ class obstacle(object):
 
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)
                 
-        self.path_pub = rospy.Publisher("Obs_path", Path, queue_size=10)
-        self.obs_pub = rospy.Publisher("Obs_position", MarkerArray, queue_size=10) 
-        self.obs_pub2 = rospy.Publisher("waypoint", MarkerArray, queue_size=10)        
+        self.path_pub = rospy.Publisher("/obs_path", Path, queue_size=10)
+        self.obs_pub = rospy.Publisher("/obs_position", MarkerArray, queue_size=10) 
+        self.obs_pub2 = rospy.Publisher("/obs/waypoint", MarkerArray, queue_size=10)        
        
         
         self.ObsMsg = PoseArray()
@@ -76,9 +74,10 @@ class obstacle(object):
         self.volume = 0.001
         self.angle = 1.
         self.dis_path = 2.
-        self.detection_range_min = 1.5
-        self.detection_range_max = 7.
-        self.r = 1.5
+        self.detection_range_min = 0.1
+        self.detection_range_max = 5.
+        self.r = 1.
+        self.target_index = 120
 
         
 
@@ -152,8 +151,8 @@ class obstacle(object):
         
         target_idx_ = np.argmin(d)
 
-        if target_idx_ + 120 <= len(self.path_cx):
-            target_idx = target_idx_ + 120
+        if target_idx_ + self.target_index <= len(self.path_cx):
+            target_idx = target_idx_ + self.target_index
             
         else :
             target_idx = -1
@@ -226,12 +225,9 @@ class obstacle(object):
             
             xs = []
             ys = []
-            # print("0")
         elif len(self.obs_map) == 1:
-            # print("1")
+
             l = self.GetDistance([0, 0], self.obs_velodyne[0])
-            # print(l)
-            # print(self.r)
             th = m.asin(self.r/l)
             
             contact1_x_velodyne= self.obs_velodyne[0][0] * m.cos(th) - self.obs_velodyne[0][1] * m.sin(th)
