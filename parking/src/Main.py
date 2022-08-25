@@ -226,7 +226,7 @@ class VerticalParkingBase(object):
                 parking_sequence_pub(self.parking_state)
 
             else:
-                cmd = ControlMessage(0, 0, 1, 5, 0, 0, 0)
+                cmd = ControlMessage(0, 0, 2, 5, 0, 0, 0)
 
         elif self.parking_state.End:
             pass

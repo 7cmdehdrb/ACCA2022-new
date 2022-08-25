@@ -61,21 +61,27 @@ if __name__ == "__main__":
 
     # print(type(path))
     # print(len(path))
-    tf_sub = tf.TransformListener()
+    # tf_sub = tf.TransformListener()
 
 
-    point_stamped = PointStamped()
+    # point_stamped = PointStamped()
 
-    point = Point()
-    point.x = 5
-    point.y = 7
-    point.z = 0
+    # point = Point()
+    # point.x = 5
+    # point.y = 7
+    # point.z = 0
 
-    point_stamped.point = point
+    # point_stamped.point = point
     
-    if tf_sub.canTransform("base_link", "map", rospy.Time(0)):
-        goal_point = tf_sub.transformPoint(ps=point_stamped, target_frame="base_link")
-        print(goal_point)
-    else:
-        rospy.logwarn("Cannnot lookup transform between map and base_link : test.py")
+    # if tf_sub.canTransform("base_link", "map", rospy.Time(0)):
+    #     goal_point = tf_sub.transformPoint(ps=point_stamped, target_frame="base_link")
+    #     print(goal_point)
+    # else:
+    #     rospy.logwarn("Cannnot lookup transform between map and base_link : test.py")
 
+    a = np.arange(-10,10,1)
+    b = np.arange(-20,0,1)
+    
+    for i in b:
+        print(i)
+    

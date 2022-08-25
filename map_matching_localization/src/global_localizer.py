@@ -14,7 +14,6 @@ from header import Queue
 
 
 score_threshold = rospy.get_param("/global_localizer/score_threshold", 1.0)
-<<<<<<< HEAD
 
 class LowPassFilter:
     def __init__(self, cutoff_freq, ts):
@@ -46,8 +45,6 @@ class AverageFilter:
         self.prev = ave
         return ave
 
-=======
->>>>>>> f1af22f171b69e29e26bd075aae094c9d269421e
 
 
 class Odom(object):
