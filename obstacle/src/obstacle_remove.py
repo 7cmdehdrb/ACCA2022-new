@@ -34,10 +34,10 @@ class obstacle(object):
     
     def __init__(self):
         
-        left = pd.read_csv("/home/acca/catkin_ws/src/obstacle/data/left1.csv")
-        right = pd.read_csv("/home/acca/catkin_ws/src/obstacle/data/right1.csv")
-        center = pd.read_csv("/home/acca/catkin_ws/src/obstacle/data/center1.csv")
-        path = pd.read_csv("/home/acca/catkin_ws/src/obstacle/data/center1.csv")
+        left = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/left1.csv")
+        right = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/right1.csv")
+        center = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/center1.csv")
+        path = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/center1.csv")
         
         self.left = []
         self.right = []
@@ -74,11 +74,11 @@ class obstacle(object):
         
         # Detect Obstacle
         self.volume = 0.001
-        self.angle = 0.8
+        self.angle = 1.
         self.dis_path = 2.
-        self.detection_range_min = 0.1
-        self.detection_range_max = 5.
-        self.r = 1.
+        self.detection_range_min = 1.5
+        self.detection_range_max = 7.
+        self.r = 1.5
 
         
 
@@ -387,7 +387,7 @@ if __name__ == "__main__":
     last_idx = 0
     length = 0
     
-    r = rospy.Rate(1.)
+    r = rospy.Rate(5.)
     
     while not rospy.is_shutdown():
         obs.InrangeObstacle(state)
@@ -410,9 +410,9 @@ if __name__ == "__main__":
             state, obs.cx, obs.cy, obs.cyaw, target_idx)
 
         msg = ControlMessage()
-        msg.Speed = 3.
+        msg.Speed = 5.
         msg.Steer = -m.degrees(di)
-
+        msg.Gear = 2
         cmd_pub.publish(msg)
                 
         r.sleep()
