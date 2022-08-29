@@ -1,6 +1,8 @@
-from msilib import sequence
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
 import os
-from re import search
 import sys
 import rospy
 import rospkg
@@ -47,8 +49,10 @@ class ParkingState(Enum):
     End = 8           # end
 
 
-class VerticalParkingBase(object):
-    __metaclass__ = ABCMeta
+print(11111111111111111)
+
+
+class VerticalParking(object):
 
     def __init__(self, state=OdomState(), stanley=Stanley()):
         self.state = state
@@ -89,7 +93,8 @@ class VerticalParkingBase(object):
 
         is_end = target_idx > len(self.path.cx) * 0.95
 
-        # speed 값 적당한 값을 채워 넣어야 함
+        # speed 값에 적당한 값을 채워 넣어야 함
+        # 모드가 리셋일 때도 기어를 그대로 나둬도 되는지..... 체크
         return ControlMessage(0, 0, 2, 5, di, 0, 0), is_end
 
     def calc_angle(self, first_vec, second_vec):
@@ -105,12 +110,21 @@ class VerticalParkingBase(object):
 
         return theta
 
+    def AreaCallback(self, msg):
+
+        _list = msg.markers
+        num = len(_list)
+
     def scan_stop_point(self, startpoint):
         x, y = startpoint[0], startpoint[1]
         _list = []  # list_of_CenterPoint
 
         path = rospkg.RosPack().get_path("parking") + "/parking/" + \
             rospy.get_param("/create_parking_area/parking_file", "parking.csv")
+
+        num = 6
+        parking_area = rospy.Subscriber(
+            '/parking_areas', MarkerArray, callback=self.AreaCallback)
 
         with open(path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
@@ -123,7 +137,7 @@ class VerticalParkingBase(object):
 
             _, _, yaw = euler_from_quaternion(quat1, quat2, quat3, quat4)
         # stop area 지정
-        Idx_stop_area = 3
+        Idx_stop_area = num - 2
         alpha_vec = [x-_list[Idx_stop_area][0], y-_list[Idx_stop_area][1]]
         beta_vec = [_list[0][0] - _list[1][0], _list[0][1] - _list[1][1]]
 
@@ -143,6 +157,7 @@ class VerticalParkingBase(object):
         self.local_path = msg
 
     def main(self):
+        print('here')
         cmd = ControlMessage()
 
         parking_sequence_pub = rospy.Publisher(
@@ -154,7 +169,9 @@ class VerticalParkingBase(object):
         if self.parking_state.Searching:
 
             if self.startPoint is None:
-                self.startPoint = Point(self.state.x, self.state.y, 0.)
+                #self.startPoint = Point(self.state.x, self.state.y, 0.)
+                # for inside test
+                self.startPoint = Point(0, 7, 0)
 
             WP2_x, WP2_y = self.scan_stop_point(self.startPoint)
 
@@ -171,7 +188,7 @@ class VerticalParkingBase(object):
         elif self.parking_state == ParkingState.Deceleration1:
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)  # 기어값 체크
+                cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)  # 기어값 체크
             else:
                 self.parking_state = ParkingState.Reset
                 parking_sequence_pub(self.parking_state)
@@ -209,7 +226,7 @@ class VerticalParkingBase(object):
         elif self.parking_state == ParkingState.Deceleration3:
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)  # 기어값 체크
+                cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)  # 기어값 체크
             else:
                 self.parking_state = ParkingState.Backward
                 parking_sequence_pub(self.parking_state)
@@ -221,7 +238,7 @@ class VerticalParkingBase(object):
                 self.state.y - self.startPoint.y
             )
 
-            if distance > 10:
+            if distance > 3:
                 self.parking_state = ParkingState.End
                 parking_sequence_pub(self.parking_state)
 
@@ -238,10 +255,19 @@ class VerticalParkingBase(object):
 
 
 if __name__ == "__main__":
-    rospy.init_node("test")
+
+    rospy.init_node("parking_maintest")
+
+    cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=2)
 
     state = OdomState("/odometry/kalman")
     stanley = Stanley()
 
-    while True:
-        pass
+    main = VerticalParking()
+    r = rospy.Rate(1.)
+    while not rospy.is_shutdown():
+
+        cmd = main.main()
+        cmd_pub(cmd)
+
+        r.sleep()
