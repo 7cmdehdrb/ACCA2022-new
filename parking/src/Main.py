@@ -48,13 +48,29 @@ class ParkingState(Enum):
     Deceleration4 = 7  # deceleration
     End = 8           # end
 
+# for test
 
-print(11111111111111111)
+
+def load_csv():
+    path = rospkg.RosPack().get_path("parking") + "/parking/" + \
+        rospy.get_param("/create_parking_area/parking_file",
+                        "center.csv")
+
+    x, y, yaw = [], [], []
+
+    with open(path, "r") as csvFile:
+        reader = csv.reader(csvFile, delimiter=",")
+        for row in reader:
+            x.append(row[0])
+            y.append(row[1])
+            yaw.append(row[2])
+
+    return x, y, yaw
 
 
 class VerticalParking(object):
 
-    def __init__(self, state=OdomState(), stanley=Stanley()):
+    def __init__(self, state, stanley):
         self.state = state
         self.stanley = stanley
         self.path = PathResponse()
@@ -68,13 +84,14 @@ class VerticalParking(object):
         self.brake = 50
 
     def createPath(self, end_point=Point()):
-        cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, end_point.x], [
-            self.state.y, end_point.y], ds=0.1)
-
+        # cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, end_point.x], [
+        #     self.state.y, end_point.y], ds=0.1)
+        x, y, yaw = load_csv()
+        print(x)
         path = PathResponse()
-        path.cx = cx
-        path.cy = cy
-        path.cyaw = cyaw
+        path.cx = x
+        path.cy = y
+        path.cyaw = yaw
 
         return PathResponse()
 
@@ -116,7 +133,8 @@ class VerticalParking(object):
         num = len(_list)
 
     def scan_stop_point(self, startpoint):
-        x, y = startpoint[0], startpoint[1]
+
+        x, y = startpoint.x, startpoint.y
         _list = []  # list_of_CenterPoint
 
         path = rospkg.RosPack().get_path("parking") + "/parking/" + \
@@ -135,7 +153,7 @@ class VerticalParking(object):
                 _list.append([row[0], row[1]])
                 quat1, quat2, quat3, quat4 = row[2], row[3], row[4], row[5]
 
-            _, _, yaw = euler_from_quaternion(quat1, quat2, quat3, quat4)
+        _, _, yaw = euler_from_quaternion([quat1, quat2, quat3, quat4])
         # stop area 지정
         Idx_stop_area = num - 2
         alpha_vec = [x-_list[Idx_stop_area][0], y-_list[Idx_stop_area][1]]
@@ -157,14 +175,14 @@ class VerticalParking(object):
         self.local_path = msg
 
     def main(self):
-        print('here')
+        is_end = False
         cmd = ControlMessage()
 
         parking_sequence_pub = rospy.Publisher(
             '/parking_sequence', Int32, queue_size=3)
 
         parking_sequence_msg = 0
-        parking_sequence_pub(parking_sequence_msg)
+        parking_sequence_pub.publish(parking_sequence_msg)
 
         if self.parking_state.Searching:
 
@@ -262,8 +280,7 @@ if __name__ == "__main__":
 
     state = OdomState("/odometry/kalman")
     stanley = Stanley()
-
-    main = VerticalParking()
+    main = VerticalParking(state, stanley)
     r = rospy.Rate(1.)
     while not rospy.is_shutdown():
 
