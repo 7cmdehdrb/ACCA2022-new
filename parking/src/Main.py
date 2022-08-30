@@ -27,6 +27,19 @@ except Exception as ex:
     rospy.logfatal("Import Error : Vertical Parking")
     rospy.logfatal(ex)
 
+def loadCSV():
+
+    x, y, yaw = [], [], []
+
+    with open('/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path/center.csv', "r") as csvFile:
+        reader = csv.reader(csvFile, delimiter=",")
+        for row in reader:
+            x.append(row[0])
+            y.append(row[1])
+            x.append(row[2])
+    return x, y, yaw
+
+
 class ParkingState(Enum):
     '''Searching = 0     # find empty parking lot
     Reset = 1        # go back to start point & path plan
@@ -46,7 +59,6 @@ class ParkingState(Enum):
     End = 8           # end
 
 
-
 class VerticalParkingBase(object):
     __metaclass__ = ABCMeta
 
@@ -64,13 +76,14 @@ class VerticalParkingBase(object):
         self.brake = 50
 
     def createPath(self, end_point=Point()):
-        cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, end_point.x], [
-            self.state.y, end_point.y], ds=0.1)
+        # cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, end_point.x], [
+        #     self.state.y, end_point.y], ds=0.1)
 
+        x, y, yaw = loadCSV()
         path = PathResponse()
-        path.cx = cx
-        path.cy = cy
-        path.cyaw = cyaw
+        path.cx = x
+        path.cy = y
+        path.cyaw = yaw
 
         return PathResponse()
 
@@ -145,9 +158,6 @@ class VerticalParkingBase(object):
         is_end = False
         cmd = ControlMessage()
 
-        parking_sequence_pub = rospy.Publisher(
-            '/parking_sequence', Int32, queue_size=3)
-
         parking_sequence_msg = 0
         parking_sequence_pub.publish(parking_sequence_msg)
 
@@ -198,8 +208,6 @@ class VerticalParkingBase(object):
         elif self.parking_state.Parking:
 
             rospy.wait_for_message('path', PathResponse)
-            path_sub = rospy.Subscriber(
-                "/path", PathResponse, callback=self.path_callback)
             cmd, is_end = self.makeControlMessage(self.local_path)
 
             if is_end == True:
@@ -243,6 +251,11 @@ if __name__ == "__main__":
     state = OdomState("/odometry/kalman")
     stanley = Stanley()
     parking = VerticalParkingBase(state, stanley)
+
+    rospy.Subscriber(
+        "/path", PathResponse, callback=parking.path_callback)
+    parking_sequence_pub = rospy.Publisher(
+        '/parking_sequence', Int32, queue_size=3)
     
     while True:
         parking.main()

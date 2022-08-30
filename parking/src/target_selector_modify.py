@@ -63,7 +63,6 @@ class TargetSelector():
 
         rospy.loginfo("Subscribe obstacle MarkerArray")
 
-
     # FOR adaptive_clustering
     def obstacleCallback(self, msg):
         self.poses = msg
