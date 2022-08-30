@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 
 import os
 import sys
@@ -58,17 +56,9 @@ def load_csv():
 
     x, y, yaw = [], [], []
 
-    with open(path, "r") as csvFile:
-        reader = csv.reader(csvFile, delimiter=",")
-        for row in reader:
-            x.append(row[0])
-            y.append(row[1])
-            yaw.append(row[2])
 
-    return x, y, yaw
-
-
-class VerticalParking(object):
+class VerticalParkingBase(object):
+    __metaclass__ = ABCMeta
 
     def __init__(self, state, stanley):
         self.state = state
@@ -110,8 +100,6 @@ class VerticalParking(object):
 
         is_end = target_idx > len(self.path.cx) * 0.95
 
-        # speed 값에 적당한 값을 채워 넣어야 함
-        # 모드가 리셋일 때도 기어를 그대로 나둬도 되는지..... 체크
         return ControlMessage(0, 0, 2, 5, di, 0, 0), is_end
 
     def calc_angle(self, first_vec, second_vec):
@@ -127,18 +115,13 @@ class VerticalParking(object):
 
         return theta
 
-    def AreaCallback(self, msg):
-
-        _list = msg.markers
-        num = len(_list)
-
-    def scan_stop_point(self, startpoint):
-
-        x, y = startpoint.x, startpoint.y
+    def scan_stop_point(self):
+        x, y = self.startPoint.x, self.startPoint.y
         _list = []  # list_of_CenterPoint
 
         path = rospkg.RosPack().get_path("parking") + "/parking/" + \
-            rospy.get_param("/create_parking_area/parking_file", "parking.csv")
+            rospy.get_param(
+                "/create_parking_area/parking_file", "parking2.csv")
 
         num = 6
         parking_area = rospy.Subscriber(
@@ -153,9 +136,9 @@ class VerticalParking(object):
                 _list.append([row[0], row[1]])
                 quat1, quat2, quat3, quat4 = row[2], row[3], row[4], row[5]
 
-        _, _, yaw = euler_from_quaternion([quat1, quat2, quat3, quat4])
-        # stop area 지정
-        Idx_stop_area = num - 2
+            _, _, yaw = euler_from_quaternion([quat1, quat2, quat3, quat4])
+        print(_list)
+        Idx_stop_area = 1
         alpha_vec = [x-_list[Idx_stop_area][0], y-_list[Idx_stop_area][1]]
         beta_vec = [_list[0][0] - _list[1][0], _list[0][1] - _list[1][1]]
 
@@ -164,7 +147,6 @@ class VerticalParking(object):
 
         scale_alpha_vec = np.hypot(alpha_vec[0], alpha_vec[1])
 
-        # stop의 기준이 되는 주차 자리 좌표부터 두번째 waypoint 좌표까지 거리
         len = scale_alpha_vec * m.cos(alpha - beta) / m.cos(yaw - beta)
         WP2_x, WP2_y = _list[Idx_stop_area][0] + len * \
             m.cos(yaw), _list[Idx_stop_area][1] + len * m.sin(yaw)
@@ -178,9 +160,6 @@ class VerticalParking(object):
         is_end = False
         cmd = ControlMessage()
 
-        parking_sequence_pub = rospy.Publisher(
-            '/parking_sequence', Int32, queue_size=3)
-
         parking_sequence_msg = 0
         parking_sequence_pub.publish(parking_sequence_msg)
 
@@ -191,10 +170,10 @@ class VerticalParking(object):
                 # for inside test
                 self.startPoint = Point(0, 7, 0)
 
-            WP2_x, WP2_y = self.scan_stop_point(self.startPoint)
+            WP2_x, WP2_y = self.scan_stop_point()
 
             self.path = self.createPath(
-                Point(WP2_x, WP2_y, 0.))   # 2번째 waypoint 좌표 넣어야 함
+                Point(WP2_x, WP2_y, 0.))
 
             if is_end != True:
                 cmd, is_end = self.makeControlMessage(self.path)
@@ -206,7 +185,7 @@ class VerticalParking(object):
         elif self.parking_state == ParkingState.Deceleration1:
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)  # 기어값 체크
+                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Reset
                 parking_sequence_pub(self.parking_state)
@@ -223,7 +202,7 @@ class VerticalParking(object):
         elif self.parking_state == ParkingState.Deceleration2:
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)  # 기어값 체크
+                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Parking
                 parking_sequence_pub(self.parking_state)
@@ -233,8 +212,6 @@ class VerticalParking(object):
         elif self.parking_state.Parking:
 
             rospy.wait_for_message('path', PathResponse)
-            path_sub = rospy.Subscriber(
-                "/path", PathResponse, callback=self.path_callback)
             cmd, is_end = self.makeControlMessage(self.local_path)
 
             if is_end == True:
@@ -244,7 +221,7 @@ class VerticalParking(object):
         elif self.parking_state == ParkingState.Deceleration3:
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)  # 기어값 체크
+                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Backward
                 parking_sequence_pub(self.parking_state)
@@ -261,7 +238,7 @@ class VerticalParking(object):
                 parking_sequence_pub(self.parking_state)
 
             else:
-                cmd = ControlMessage(0, 0, 1, 5, 0, 0, 0)
+                cmd = ControlMessage(0, 0, 2, 5, 0, 0, 0)
 
         elif self.parking_state.End:
             pass
@@ -274,17 +251,19 @@ class VerticalParking(object):
 
 if __name__ == "__main__":
 
+    state = OdomState("/odometry/kalman")
+    stanley = Stanley()
+    parking = VerticalParkingBase(state, stanley)
+    parking_sequence_pub = rospy.Publisher(
+        '/parking_sequence', Int32, queue_size=3)
+
+    path_sub = rospy.Subscriber(
+        "/path", PathResponse, callback=parking.path_callback)
+
     rospy.init_node("parking_maintest")
 
     cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=2)
 
-    state = OdomState("/odometry/kalman")
-    stanley = Stanley()
-    main = VerticalParking(state, stanley)
-    r = rospy.Rate(1.)
-    while not rospy.is_shutdown():
-
-        cmd = main.main()
-        cmd_pub(cmd)
-
-        r.sleep()
+    while True:
+        parking.main()
+        pass

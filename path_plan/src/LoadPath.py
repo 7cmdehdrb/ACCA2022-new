@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from yaml import load
 import rospy
 import time
 import csv
@@ -11,6 +10,8 @@ from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Int8
+import pandas as pd
+
 db_name = rospy.get_param("/LoadPath/db_name", "/path.db")
 
 
@@ -44,6 +45,10 @@ class LoadPath():
             Response.cx.append(info[0])
             Response.cy.append(info[1])
             Response.cyaw.append(info[2])
+        
+        new = pd.DataFrame((zip(Response.cx, Response.cy, Response.cyaw)))
+        new.to_csv("/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path/left1.csv", header=False, index=False)
+        rospy.loginfo("df to csv")
 
         return Response
 
@@ -115,6 +120,7 @@ if __name__ == "__main__":
 
     PathPoint_sub = rospy.Subscriber(
         "/path_request", PathRequest, callback=load_path.RequestCallback)
+    
     listpath_pub = rospy.Publisher(
         "/path_response", PathResponse, queue_size=1)
     rospath_pub = rospy.Publisher("/global_path", Path, queue_size=1)

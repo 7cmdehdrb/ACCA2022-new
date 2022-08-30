@@ -15,7 +15,10 @@
     <!--================================================= points_map_loader =================================================-->
     <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
-    <arg name="path_pcd" default='$(find map_matching_localization)/data/school.pcd' />
+    <!-- <arg name="path_pcd" default='$(find map_matching_localization)/data/kcity_remap.pcd' /> -->
+    <!-- <arg name="path_pcd" default='/home/acca/kcity_01_pcd/GlobalMap.pcd' /> -->
+    <!-- /home/acca/0722/kcity_pcd/GlobalMap.pcd -->
+    <arg name="path_pcd" default='/home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/data/0710_kcity_02.pcd' />
     
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
         <rosparam subst_value="true">

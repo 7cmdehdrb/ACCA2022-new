@@ -193,6 +193,7 @@ class ERP42(Sensor):
         cov = getEmpty((4, 4))
         cov[2][2] = 0.2
         self.steer = msg.steer
+        rospy.loginfo(str(self.steer))
         return np.array([0., 0., msg.speed, 0.], dtype=np.float64), cov
 
 

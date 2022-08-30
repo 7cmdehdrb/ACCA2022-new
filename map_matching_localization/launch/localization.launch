@@ -3,7 +3,7 @@
     <arg name="matching_err_tol" default="0.1"/>
     <arg name="inlier_fraction_tol" default="0.9"/>
     <arg name="is_publish_tf" default="false"/>
-    <arg name="globalmap_pcd" default="/home/enbang/k_citi_0722_02_downnew.pcd" />
+    <arg name="globalmap_pcd" default="/home/enbang/pcd/KCITYbonson.pcd" />
 
     <!-- <include file="$(find state_machine)/launch/sensor.launch" /> -->
 
@@ -20,7 +20,7 @@
         <param name="is_publish_tf" value="$(arg is_publish_tf)"></param>
     </node> -->
 
-    <!-- kaman - relocalizer -->
+    <!-- kalman - relocalizer -->
     <!-- <node pkg="map_matching_localization" name="relocalizer" type="relocalizer.py" output="screen">
         <param name="odom_topic" value="$(arg odom_topic)"></param>
         <param name="matching_err_tol" value="$(arg matching_err_tol)"></param>

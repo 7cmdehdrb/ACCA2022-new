@@ -32,8 +32,9 @@ class HorizontalParking(Enum):
     Straight = 0
     Reverse = 1
     Home = 2
-    End = 3
-    Wait = 4
+    Final = 3
+    End = 4
+    Wait = 5
 
 
 def wait_for_stop(duration):
@@ -97,13 +98,21 @@ def createPath(circle1, circle2, selected_parking_area, state):
     yaw_range = np.arange(yaw_start, yaw_end, 0.01 *
                           (1.0 if yaw_end > yaw_start else -1.0))
 
-    # Set start point
+    # Set start point : left side of green circlr
     start_x = circle2.pose.position.x + \
         circle2.scale.x / 2.0 * \
         m.cos(yaw_range[0]) + (circle2.scale.x / 2.0 + 0.0) * m.cos(yaw)
     start_y = circle2.pose.position.y + \
         circle2.scale.x / 2.0 * \
         m.sin(yaw_range[0]) + (circle2.scale.x / 2.0 + 0.0) * m.sin(yaw)
+
+    # +n m of start point
+    start_x2 = circle2.pose.position.x + \
+        circle2.scale.x / 2.0 * \
+        m.cos(yaw_range[0]) + (circle2.scale.x / 2.0 + 1.0) * m.cos(yaw)
+    start_y2 = circle2.pose.position.y + \
+        circle2.scale.x / 2.0 * \
+        m.sin(yaw_range[0]) + (circle2.scale.x / 2.0 + 1.0) * m.sin(yaw)
 
     xs1 = [circle2.pose.position.x + circle2.scale.x /
            2.0 * m.cos(y) for y in yaw_range]
@@ -124,13 +133,17 @@ def createPath(circle1, circle2, selected_parking_area, state):
     yaw_range = np.arange(yaw_start, yaw_end, 0.01 *
                           (1.0 if yaw_end > yaw_start else -1.0))
 
-    # Set end point
-    end_x = circle1.pose.position.x + \
-        circle1.scale.x / 2.0 * \
-        m.cos(yaw_range[-1]) - (circle1.scale.x / 2.0 - 0.2) * m.cos(yaw)
-    end_y = circle1.pose.position.y + \
-        circle1.scale.x / 2.0 * \
-        m.sin(yaw_range[-1]) - (circle1.scale.x / 2.0 - 0.2) * m.sin(yaw)
+    # Set end point : +n m(relative with car height) of end point of parking lot
+    fs = 1.5
+    end_x = selected_parking_area.position.x + (selected_parking_area.scale.x / 2.0) * \
+        m.cos(yaw + m.pi) - (1.040 / 2.0) * m.cos(yaw + m.pi) * fs
+    end_y = selected_parking_area.position.y + (selected_parking_area.scale.y / 2.0) * \
+        m.sin(yaw + m.pi) - (1.040 / 2.0) * m.sin(yaw + m.pi) * fs
+
+    end_x2 = selected_parking_area.position.x + (selected_parking_area.scale.x / 2.0) * \
+        m.cos(yaw) - (1.040 / 2.0) * m.cos(yaw) * fs
+    end_y2 = selected_parking_area.position.y + (selected_parking_area.scale.y / 2.0) * \
+        m.sin(yaw) - (1.040 / 2.0) * m.sin(yaw) * fs
 
     xs2 = [circle1.pose.position.x +
            circle1.scale.x / 2.0 * m.cos(y) for y in yaw_range]
@@ -151,22 +164,31 @@ def createPath(circle1, circle2, selected_parking_area, state):
         step_size=0.05
     )
 
+    scx2, scy2, scyaw2, _, _ = calc_spline_course(
+        [start_x, start_x2], [start_y, start_y2], ds=0.01)
+
+    xs = [start_x2] + [start_x] + xs1 + xs2 + [end_x]
+    ys = [start_y2] + [start_y] + ys1 + ys2 + [end_y]
+
+    gcx, gcy, gcyaw, _, _ = calc_spline_course(xs, ys, 0.01)
+
+    hcx, hcy, hcyaw, _, _ = calc_spline_course(
+        [end_x, end_x2], [end_y, end_y2], 0.01)
+
+    fcx, fcy, fcyaw, _, _ = calc_spline_course(
+        [end_x2, selected_parking_area.position.x],
+        [end_y2, selected_parking_area.position.y],
+        0.01
+    )
+
     straight_path = PathResponse(
         None,
         None,
         None,
-        scx,
-        scy,
-        scyaw
+        scx + scx2,
+        scy + scy2,
+        scyaw + scyaw2
     )
-
-    xs = [start_x] + xs1 + xs2 + [end_x]
-    ys = [start_y] + ys1 + ys2 + [end_y]
-
-    gcx, gcy, gcyaw, _, _ = calc_spline_course(xs, ys, 0.01)
-
-    hcx, hcy, hcyaw, _, _ = calc_spline_course([end_x, selected_parking_area.position.x], [
-                                               end_y, selected_parking_area.position.y], 0.01)
 
     reverse_path = PathResponse(
         None,
@@ -186,9 +208,18 @@ def createPath(circle1, circle2, selected_parking_area, state):
         hcyaw
     )
 
-    cx = scx + gcx + hcx
-    cy = scy + gcy + hcy
-    cyaw = scyaw + gcyaw + hcyaw
+    final_path = PathResponse(
+        None,
+        None,
+        None,
+        fcx,
+        fcy,
+        fcyaw
+    )
+
+    cx = scx + gcx + hcx + fcx
+    cy = scy + gcy + hcy + fcy
+    cyaw = scyaw + gcyaw + hcyaw + fcyaw
 
     path = Path()
     path.header = Header(None, rospy.Time.now(), "map")
@@ -203,7 +234,7 @@ def createPath(circle1, circle2, selected_parking_area, state):
 
         path.poses.append(p)
 
-    return straight_path, reverse_path, home_path, path
+    return straight_path, reverse_path, home_path, final_path, path
 
 
 def getTwoCircle(idx):
@@ -262,10 +293,10 @@ def getTwoCircle(idx):
     arrange = np.arange(0., h, 0.01)
 
     xs = center1.x + h * 0.5 * \
-        m.cos(yaw) + w * m.cos(yaw + m.pi / 2) - \
+        m.cos(yaw) + r1 * 2 * m.cos(yaw + m.pi / 2) - \
         arrange * m.cos(yaw + m.pi / 2)
     ys = center1.y + h * 0.5 * \
-        m.sin(yaw) + w * m.sin(yaw + m.pi / 2) - \
+        m.sin(yaw) + r1 * 2 * m.sin(yaw + m.pi / 2) - \
         arrange * m.sin(yaw + m.pi / 2)
     idx = np.argmin(np.abs(arrange - np.hypot(xs - center1.x, ys - center1.y)))
 
@@ -324,7 +355,7 @@ if __name__ == "__main__":
     idx = 0
 
     circle1, circle2, selected_parking_area = getTwoCircle(idx)
-    spath, rpath, hpath, path = createPath(
+    spath, rpath, hpath, fpath, path = createPath(
         circle1, circle2, selected_parking_area, state)
 
     r = rospy.Rate(10)
@@ -435,6 +466,40 @@ if __name__ == "__main__":
                            (np.hypot(car_vec[0], car_vec[1]) * np.hypot(position_vec[0], position_vec[1])))
 
             if target_idx >= len(hpath.cx) - 5 and abs(theta) >= m.pi / 2.0:
+                horizontal_parking_state = HorizontalParking.Final
+                target_idx = 0
+
+                wait_for_stop(5)
+
+        elif horizontal_parking_state == HorizontalParking.Final:
+
+            print("Final", target_idx)
+
+            msg.Speed = int(1)
+            di, target_idx = stanley.stanley_control(
+                state=state,
+                cx=fpath.cx,
+                cy=fpath.cy,
+                cyaw=fpath.cyaw,
+                last_target_idx=target_idx,
+                reverse=True
+            )
+
+            di = np.clip(di, -m.radians(30), m.radians(30))
+            msg.Steer = m.degrees(di)
+            msg.Gear = 0
+
+            car_vec = np.array([
+                m.cos(state.yaw + m.pi), m.sin(state.yaw + m.pi)
+            ])
+            position_vec = np.array(
+                [fpath.cx[-1] - state.x, fpath.cy[-1] - state.y]
+            )
+
+            theta = m.acos(np.dot(car_vec, position_vec) /
+                           (np.hypot(car_vec[0], car_vec[1]) * np.hypot(position_vec[0], position_vec[1])))
+
+            if target_idx >= len(fpath.cx) - 5 and abs(theta) >= m.pi / 2.0:
                 horizontal_parking_state = HorizontalParking.End
                 target_idx = 0
 
