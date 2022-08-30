@@ -7,7 +7,6 @@ from geometry_msgs.msg import *
 from visualization_msgs.msg import *
 from time import sleep
 
-
 def adaptive_obstacle(msg):
     global markers
 
@@ -29,8 +28,6 @@ def adaptive_obstacle(msg):
 if __name__ == "__main__":
     rospy.init_node('parking_tf')
 
-    # print(dir(tf))
-    # print("@")
     tf_listener = tf.TransformListener()
 
     obstcle_sub = rospy.Subscriber(
@@ -69,16 +66,3 @@ if __name__ == "__main__":
             rospy.logwarn("Cannot lookup transform between map and velodyne")
 
         r.sleep()
-
-    '''print(ob[0])
-    print('########################')
-    print(ob[1])
-    print(len(ob))
-    print(type(ob[0]))
-    print(ob[0].points)
-    print('------------------------------')
-    print(ob[0].points[0].x)
-
-    print(type(ob[0].points))
-    print(type(ob[0].points[0]))
-'''

@@ -55,7 +55,7 @@ class LocalPath():
         point_stamped.header.stamp = rospy.Time(0)
         point_stamped.header.frame_id = "map"
         point_stamped.point = point
-        
+        tf_sub.canTransform("")
         if tf_sub.canTransform("base_link", "map", rospy.Time(0)):
             self.goal_point = tf.TransformListener.transformPoint(ps=point_stamped, target_frame="base_link")
         else:
@@ -67,23 +67,23 @@ class LocalPath():
         self.factors = []
         self.calc_target_point()
         
-        current_goal_l = np.polyfit([self.goal_point.x, self.state.x], [self.goal_point.y, self.state.y], 1)
+        current_goal_l = np.polyfit([self.goal_point.point.x, self.state.x], [self.goal_point.point.y, self.state.y], 1)
         
         vertical_a = (-1)/current_goal_l[0]
-        vertical_b = ((self.goal_point.y+ self.state.y)/2)-vertical_a*((self.goal_point.x +self.state.x)/2) 
+        vertical_b = ((self.goal_point.point.y+ self.state.y)/2)-vertical_a*((self.goal_point.point.x +self.state.x)/2) 
         
         vertical_y = np.arange((-1)*d_max, d_max, step)
         vertical_x = (vertical_y - vertical_b)/vertical_a
         
-        self.traject_xs = np.arrange(self.state.x, self.goal_point.x, 0.2)
+        self.traject_xs = np.arrange(self.state.x, self.goal_point.point.x, 0.2)
         
         for i in range(len(vertical_x)):
-            factor = np.polyfit([self.state.x, self.goal_point.x, vertical_x[i]], [self.state.y, self.goal_point.y, vertical_y[i]], 2)
+            factor = np.polyfit([self.state.x, self.goal_point.point.x, vertical_x[i]], [self.state.y, self.goal_point.point.y, vertical_y[i]], 2)
             self.factors.append(self.factors)
             traject = factor[0]*self.traject_xs**2 + factor[1]*self.traject_xs + factor[2]
             self.traject_ys.append(traject)
 
-
+        rospy.loginfo("generate trajectory")
     def calc_cost1(self, obstacle):
         total_cost = []
         # obstacle position
@@ -110,6 +110,7 @@ class LocalPath():
         
         self.traject_idx = total_cost.index(min(total_cost))
         
+        rospy.loginfo("calc_cost1")
         
     def calc_cost2(self, obstacle):
         total_cost = [] 
@@ -179,6 +180,8 @@ class LocalPath():
 
         path_pub.publish(msg)
 
+        rospy.loginfo("pub path")
+
 if __name__ == "__main__":
     rospy.init_node("LocalPathPlan")
     r = rospy.Rate(10)
@@ -195,6 +198,7 @@ if __name__ == "__main__":
 
 
     while not rospy.is_shutdown():
+        rospy.wait_for_message("/path_response", PathResponse)
         path.generate_trajectory(2, 0.25)
         for obstacle in path.obstacles:
             path.calc_cost1(obstacle)

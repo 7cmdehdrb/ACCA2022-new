@@ -1,6 +1,6 @@
-from msilib import sequence
+#!/usr/bin/env python
+
 import os
-from re import search
 import sys
 import rospy
 import rospkg
@@ -27,7 +27,6 @@ except Exception as ex:
     rospy.logfatal("Import Error : Vertical Parking")
     rospy.logfatal(ex)
 
-
 class ParkingState(Enum):
     '''Searching = 0     # find empty parking lot
     Reset = 1        # go back to start point & path plan
@@ -47,10 +46,11 @@ class ParkingState(Enum):
     End = 8           # end
 
 
+
 class VerticalParkingBase(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, state=OdomState(), stanley=Stanley()):
+    def __init__(self, state, stanley):
         self.state = state
         self.stanley = stanley
         self.path = PathResponse()
@@ -89,7 +89,6 @@ class VerticalParkingBase(object):
 
         is_end = target_idx > len(self.path.cx) * 0.95
 
-        # speed 값 적당한 값을 채워 넣어야 함
         return ControlMessage(0, 0, 2, 5, di, 0, 0), is_end
 
     def calc_angle(self, first_vec, second_vec):
@@ -105,12 +104,12 @@ class VerticalParkingBase(object):
 
         return theta
 
-    def scan_stop_point(self, startpoint):
-        x, y = startpoint[0], startpoint[1]
+    def scan_stop_point(self):
+        x, y = self.startPoint.x, self.startPoint.y
         _list = []  # list_of_CenterPoint
 
         path = rospkg.RosPack().get_path("parking") + "/parking/" + \
-            rospy.get_param("/create_parking_area/parking_file", "parking.csv")
+            rospy.get_param("/create_parking_area/parking_file", "parking2.csv")
 
         with open(path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
@@ -121,9 +120,9 @@ class VerticalParkingBase(object):
                 _list.append([row[0], row[1]])
                 quat1, quat2, quat3, quat4 = row[2], row[3], row[4], row[5]
 
-            _, _, yaw = euler_from_quaternion(quat1, quat2, quat3, quat4)
-        # stop area 지정
-        Idx_stop_area = 3
+            _, _, yaw = euler_from_quaternion([quat1, quat2, quat3, quat4])
+        print(_list)
+        Idx_stop_area = 1
         alpha_vec = [x-_list[Idx_stop_area][0], y-_list[Idx_stop_area][1]]
         beta_vec = [_list[0][0] - _list[1][0], _list[0][1] - _list[1][1]]
 
@@ -132,7 +131,7 @@ class VerticalParkingBase(object):
 
         scale_alpha_vec = np.hypot(alpha_vec[0], alpha_vec[1])
 
-        # stop의 기준이 되는 주차 자리 좌표부터 두번째 waypoint 좌표까지 거리
+
         len = scale_alpha_vec * m.cos(alpha - beta) / m.cos(yaw - beta)
         WP2_x, WP2_y = _list[Idx_stop_area][0] + len * \
             m.cos(yaw), _list[Idx_stop_area][1] + len * m.sin(yaw)
@@ -143,23 +142,24 @@ class VerticalParkingBase(object):
         self.local_path = msg
 
     def main(self):
+        is_end = False
         cmd = ControlMessage()
 
         parking_sequence_pub = rospy.Publisher(
             '/parking_sequence', Int32, queue_size=3)
 
         parking_sequence_msg = 0
-        parking_sequence_pub(parking_sequence_msg)
+        parking_sequence_pub.publish(parking_sequence_msg)
 
         if self.parking_state.Searching:
 
             if self.startPoint is None:
                 self.startPoint = Point(self.state.x, self.state.y, 0.)
 
-            WP2_x, WP2_y = self.scan_stop_point(self.startPoint)
+            WP2_x, WP2_y = self.scan_stop_point()
 
             self.path = self.createPath(
-                Point(WP2_x, WP2_y, 0.))   # 2번째 waypoint 좌표 넣어야 함
+                Point(WP2_x, WP2_y, 0.)) 
 
             if is_end != True:
                 cmd, is_end = self.makeControlMessage(self.path)
@@ -171,7 +171,7 @@ class VerticalParkingBase(object):
         elif self.parking_state == ParkingState.Deceleration1:
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)  # 기어값 체크
+                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Reset
                 parking_sequence_pub(self.parking_state)
@@ -188,7 +188,7 @@ class VerticalParkingBase(object):
         elif self.parking_state == ParkingState.Deceleration2:
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)  # 기어값 체크
+                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Parking
                 parking_sequence_pub(self.parking_state)
@@ -209,7 +209,7 @@ class VerticalParkingBase(object):
         elif self.parking_state == ParkingState.Deceleration3:
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)  # 기어값 체크
+                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)  
             else:
                 self.parking_state = ParkingState.Backward
                 parking_sequence_pub(self.parking_state)
@@ -242,6 +242,8 @@ if __name__ == "__main__":
 
     state = OdomState("/odometry/kalman")
     stanley = Stanley()
-
+    parking = VerticalParkingBase(state, stanley)
+    
     while True:
+        parking.main()
         pass

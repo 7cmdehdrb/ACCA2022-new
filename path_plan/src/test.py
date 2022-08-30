@@ -79,9 +79,7 @@ if __name__ == "__main__":
     # else:
     #     rospy.logwarn("Cannnot lookup transform between map and base_link : test.py")
 
-    a = np.arange(-10,10,1)
-    b = np.arange(-20,0,1)
-    
-    for i in b:
-        print(i)
-    
+    a = Point(1,2,3)
+    print(a.x)
+    print(a)    
+
