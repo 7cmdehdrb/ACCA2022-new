@@ -10,7 +10,7 @@ import csv
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import *
-from std_msgs.msg import Empty, Int32
+from std_msgs.msg import Empty, Int8
 from parking_area import ParkingArea
 from time import sleep
 
@@ -37,9 +37,9 @@ def sequence_callback(msg):
 if __name__ == "__main__":
     rospy.init_node("load_parking_area")
 
-    rospy.wait_for_message('/parking_sequence', Int32)
+    rospy.wait_for_message('/parking_sequence', Int8)
     parking_sequence_sub = rospy.Subscriber(
-        '/parking_sequence', Int32, callback=sequence_callback)
+        '/parking_sequence', Int8, callback=sequence_callback)
     sleep(0.1)
     path = rospkg.RosPack().get_path("parking") + "/parking/" + \
         rospy.get_param("/create_parking_area/parking_file",

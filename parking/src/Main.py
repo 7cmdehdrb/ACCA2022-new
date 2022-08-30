@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import os
 import sys
@@ -6,15 +7,16 @@ import rospy
 import rospkg
 import numpy as np
 import math as m
+from nav_msgs.msg import Path
 from geometry_msgs.msg import *
 from path_plan.msg import PathResponse
 from erp42_control.msg import ControlMessage
 from cubic_spline_planner import calc_spline_course
 from abc import *
 from enum import Enum
-from std_msgs.msg import Int32
+from std_msgs.msg import Int8
 from visualization_msgs.msg import Marker, MarkerArray
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import csv
 from nav_msgs.msg import Odometry
 
@@ -27,17 +29,16 @@ except Exception as ex:
     rospy.logfatal("Import Error : Vertical Parking")
     rospy.logfatal(ex)
 
-def loadCSV():
+# def loadCSV():
+#     x, y, yaw = [], [], []
 
-    x, y, yaw = [], [], []
-
-    with open('/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path/center.csv', "r") as csvFile:
-        reader = csv.reader(csvFile, delimiter=",")
-        for row in reader:
-            x.append(row[0])
-            y.append(row[1])
-            x.append(row[2])
-    return x, y, yaw
+#     with open('/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path/center.csv', "r") as csvFile:
+#         reader = csv.reader(csvFile, delimiter=",")
+#         for row in reader:
+#             x.append(row[0])
+#             y.append(row[1])
+#             yaw.append(row[2])
+#     return x, y, yaw
 
 
 class ParkingState(Enum):
@@ -60,7 +61,6 @@ class ParkingState(Enum):
 
 
 class VerticalParkingBase(object):
-    __metaclass__ = ABCMeta
 
     def __init__(self, state, stanley):
         self.state = state
@@ -69,23 +69,54 @@ class VerticalParkingBase(object):
         self.local_path = PathResponse()
 
         self.startPoint = None
-
         self.parking_state = ParkingState.Searching
-
+        self.gear = 1
         self.target_idx = 0
-        self.brake = 50
+        self.brake = 70 
 
+
+    def toRosPath(self, xs, ys, yaws):
+        # ros path publish
+        path = Path()
+        path.header.frame_id = "map"
+        path.header.stamp = rospy.Time.now()
+
+        for i in range(len(xs)):
+
+            pose = PoseStamped()
+
+            pose.header.frame_id = "map"
+            pose.header.stamp = rospy.Time.now()
+
+            pose.pose.position.x = xs[i]
+            pose.pose.position.y = ys[i]
+
+            quat = quaternion_from_euler(0., 0., yaws[i])
+
+            pose.pose.orientation.x = quat[0]
+            pose.pose.orientation.y = quat[1]
+            pose.pose.orientation.z = quat[2]
+            pose.pose.orientation.w = quat[3]
+
+            path.poses.append(pose)
+            
+        rospath_pub.publish(path)
+        
+        
     def createPath(self, end_point=Point()):
-        # cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, end_point.x], [
-        #     self.state.y, end_point.y], ds=0.1)
+        cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, end_point.x], [
+            self.state.y, end_point.y], ds=0.1)
+        
+        self.toRosPath(cx, cy, cyaw)
 
-        x, y, yaw = loadCSV()
         path = PathResponse()
-        path.cx = x
-        path.cy = y
-        path.cyaw = yaw
+        path.cx = cx
+        path.cy = cy
+        path.cyaw = cyaw
 
-        return PathResponse()
+        return path
+
+
 
     def makeControlMessage(self, path):
         di, target_idx = self.stanley.stanley_control(
@@ -102,7 +133,7 @@ class VerticalParkingBase(object):
 
         is_end = target_idx > len(self.path.cx) * 0.95
 
-        return ControlMessage(0, 0, 2, 5, di, 0, 0), is_end
+        return ControlMessage(0, 0, self.gear, 5, di, 0, 0), is_end
 
     def calc_angle(self, first_vec, second_vec):
 
@@ -122,7 +153,8 @@ class VerticalParkingBase(object):
         _list = []  # list_of_CenterPoint
 
         path = rospkg.RosPack().get_path("parking") + "/parking/" + \
-            rospy.get_param("/create_parking_area/parking_file", "parking2.csv")
+            rospy.get_param(
+                "/create_parking_area/parking_file", "parking3.csv")
 
         with open(path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
@@ -134,9 +166,10 @@ class VerticalParkingBase(object):
                 quat1, quat2, quat3, quat4 = row[2], row[3], row[4], row[5]
 
             _, _, yaw = euler_from_quaternion([quat1, quat2, quat3, quat4])
-        print(_list)
-        Idx_stop_area = 1
-        alpha_vec = [x-_list[Idx_stop_area][0], y-_list[Idx_stop_area][1]]
+        
+        Idx_stop_area = len(_list) - 2
+        
+        alpha_vec = [x -_list[Idx_stop_area][0], y -_list[Idx_stop_area][1]]
         beta_vec = [_list[0][0] - _list[1][0], _list[0][1] - _list[1][1]]
 
         beta = self.calc_angle([1, 0], beta_vec) - m.radians(90)
@@ -144,10 +177,9 @@ class VerticalParkingBase(object):
 
         scale_alpha_vec = np.hypot(alpha_vec[0], alpha_vec[1])
 
-
-        len = scale_alpha_vec * m.cos(alpha - beta) / m.cos(yaw - beta)
-        WP2_x, WP2_y = _list[Idx_stop_area][0] + len * \
-            m.cos(yaw), _list[Idx_stop_area][1] + len * m.sin(yaw)
+        _len = scale_alpha_vec * m.cos(alpha - beta) / m.cos(yaw - beta)
+        WP2_x, WP2_y = _list[Idx_stop_area][0] + _len * \
+            m.cos(yaw), _list[Idx_stop_area][1] + _len * m.sin(yaw)
 
         return WP2_x, WP2_y
 
@@ -161,80 +193,82 @@ class VerticalParkingBase(object):
         parking_sequence_msg = 0
         parking_sequence_pub.publish(parking_sequence_msg)
 
-        if self.parking_state.Searching:
-
+        if self.parking_state == ParkingState.Searching:
+            rospy.loginfo(str(self.parking_state))
+            self.gear = 2
             if self.startPoint is None:
                 self.startPoint = Point(self.state.x, self.state.y, 0.)
+                # for inside test
+                # self.startPoint = Point(0, 7, 0)
 
             WP2_x, WP2_y = self.scan_stop_point()
 
             self.path = self.createPath(
-                Point(WP2_x, WP2_y, 0.)) 
+                Point(WP2_x, WP2_y, 0.))
 
             if is_end != True:
                 cmd, is_end = self.makeControlMessage(self.path)
 
             else:
                 self.parking_state = ParkingState.Deceleration1
-                parking_sequence_pub(self.parking_state)
 
         elif self.parking_state == ParkingState.Deceleration1:
+            rospy.loginfo(str(self.parking_state))
 
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)
+                cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Reset
-                parking_sequence_pub(self.parking_state)
+                parking_sequence_pub.publish(self.parking_state)
 
         elif self.parking_state.Reset:
+            rospy.loginfo(str(self.parking_state))
             self.path = self.createPath(self.startPoint)
-
+            self.gear = 0
             if is_end != True:
                 cmd, is_end = self.makeControlMessage(self.path)
             else:
                 self.parking_state = ParkingState.Deceleration2
-                parking_sequence_pub(self.parking_state)
 
         elif self.parking_state == ParkingState.Deceleration2:
-
+            rospy.loginfo(str(self.parking_state))
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)
+                cmd = ControlMessage(0, 0, 0, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Parking
-                parking_sequence_pub(self.parking_state)
 
             # Call Function for Local Path Planning
 
         elif self.parking_state.Parking:
-
-            rospy.wait_for_message('path', PathResponse)
+            rospy.loginfo(str(self.parking_state))
+            self.gear = 2
+            rospy.wait_for_message('/path', PathResponse)
             cmd, is_end = self.makeControlMessage(self.local_path)
 
             if is_end == True:
                 self.parking_state = ParkingState.Deceleration3
-                parking_sequence_pub(self.parking_state)
 
         elif self.parking_state == ParkingState.Deceleration3:
-
+            rospy.loginfo(str(self.parking_state))
             if self.state.v != 0:
-                cmd = ControlMessage(0, 0, 1, 0, 0, self.brake, 0)  
+                cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Backward
-                parking_sequence_pub(self.parking_state)
                 self.startPoint = Point(self.state.x, self.state.y, 0.0)
 
         elif self.parking_state.Backward:
+            rospy.loginfo(str(self.parking_state))
             distance = np.hypot(
                 self.state.x - self.startPoint.x,
                 self.state.y - self.startPoint.y
             )
 
-            if distance > 10:
+            if distance > 3: ##
                 self.parking_state = ParkingState.End
-                parking_sequence_pub(self.parking_state)
+                parking_sequence_pub.publish(self.parking_state)
 
             else:
-                cmd = ControlMessage(0, 0, 2, 5, 0, 0, 0)
+                cmd = ControlMessage(0, 0, 0, 5, 0, 0, 0)
 
         elif self.parking_state.End:
             pass
@@ -242,21 +276,24 @@ class VerticalParkingBase(object):
         else:
             rospy.logfatal("Invalid Parking State")
 
-        return cmd
-
-
+        cmd_pub.publish(cmd)
 if __name__ == "__main__":
-    rospy.init_node("test")
-
+    rospy.init_node("parking_maintest")
+    
     state = OdomState("/odometry/kalman")
     stanley = Stanley()
     parking = VerticalParkingBase(state, stanley)
-
-    rospy.Subscriber(
-        "/path", PathResponse, callback=parking.path_callback)
     parking_sequence_pub = rospy.Publisher(
-        '/parking_sequence', Int32, queue_size=3)
-    
-    while True:
+        '/parking_sequence', Int8, queue_size=3)
+
+    path_sub = rospy.Subscriber(
+        "/path", PathResponse, callback=parking.path_callback)
+
+    rospath_pub = rospy.Publisher("/searching_path", Path, queue_size=1)
+
+    cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=2)
+
+    r = rospy.Rate(5)
+    while not rospy.is_shutdown():
         parking.main()
-        pass
+        r.sleep()

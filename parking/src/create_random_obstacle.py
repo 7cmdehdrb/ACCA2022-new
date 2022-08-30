@@ -92,31 +92,6 @@ def markerCallback(msg):
     return point_list
 
 
-def parseMarker(id, position, duration=1):
-    marker = Marker()
-
-    marker.header.frame_id = "map"
-    marker.header.stamp = rospy.Time.now()
-
-    marker.pose.position.x = position[0]
-    marker.pose.position.y = position[1]
-    marker.pose.orientation.x = 0.0
-    marker.pose.orientation.y = 0.0
-    marker.pose.orientation.z = 0.4
-    marker.pose.orientation.w = 1.0
-    marker.scale.x = 0.3
-    marker.scale.y = 0.3
-
-    marker.color = ColorRGBA(0., 1., 0., 0.2)
-
-    marker.type = 1
-    marker.id = id
-    marker.ns = str(id)
-    marker.lifetime = Duration(secs=duration)
-
-    return marker
-
-
 if __name__ == "__main__":
     rospy.init_node("create_obstacle")
     parking_areas = []
@@ -135,16 +110,18 @@ if __name__ == "__main__":
     static_ob = Static_obstacle(
         the_number_of_obstacle, parking_area_w, parking_areas)
 
-    ob_list = static_ob.random_obstacle()
-
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
 
-        msg = MarkerArray()
+        msg = PoseArray()
+        ob_list = static_ob.random_obstacle()
 
-        for i, parking in enumerate(ob_list):
-            msg.markers.append(parseMarker(
-                id=i, position=ob_list[i], duration=int(freq)))
+        for parking in ob_list:
+            msg.header.frame_id = 'map'
+            pose = Pose()
+            pose.position = [parking[0], parking[1], 0]
+            pose.orientation = [0, 0, 0, 1]
+            msg.poses.append(pose)
 
         pub.publish(msg)
 

@@ -6,7 +6,7 @@ import math as m
 import rospy
 from visualization_msgs.msg import *
 from geometry_msgs.msg import *
-from std_msgs.msg import Int16, Int32
+from std_msgs.msg import Int8
 from parking_area import ParkingArea
 from std_msgs.msg import ColorRGBA
 from genpy import Duration
@@ -35,8 +35,10 @@ def checkIsInParking(obstacle, center_point_of_area):
         obstacle[0] -
         center_point_of_area[0], obstacle[1] - center_point_of_area[1]
     ])
+    
+    abs_multiple = np.sqrt(area_VEC[0]**2+area_VEC[1]**2) * np.sqrt(ob_VEC[0]**2+ob_VEC[1]**2)
 
-    theta = m.acos(np.dot(area_VEC, ob_VEC) / dist)
+    theta = m.acos(np.dot(area_VEC, ob_VEC) / abs_multiple)
 
     x_dist = abs(dist * m.sin(theta))
     y_dist = abs(dist * m.cos(theta))
@@ -154,27 +156,26 @@ def markerCallback(msg):
 
     rospy.loginfo("Subscribe parking area MarkerArray")
 
-# FOR random_obstacle
-def obstacleCallback(msg):
+# # FOR random_obstacle
+# def obstacleCallback(msg):
 
-    global list_of_obstalce
-    list_of_obstalce = []
+#     global list_of_obstalce
+#     list_of_obstalce = []
 
-    for marker in msg.markers:
-        point = marker.pose.position
-        list_of_obstalce.append([point.x, point.y])
+#     for marker in msg.markers:
+#         point = marker.pose.position
+#         list_of_obstalce.append([point.x, point.y])
 
-    rospy.loginfo("Subscribe obstacle MarkerArray")
+#     rospy.loginfo("Subscribe obstacle MarkerArray")
 
 
 # FOR adaptive_clustering
 def obstacleCallback(msg):
-
     global list_of_obstacle
     list_of_obstacle = []
-    for position in msg.poses:
-        temp_x = position.x
-        temp_y = position.y
+    for pose in msg.poses:
+        temp_x = pose.position.x
+        temp_y = pose.position.y
         list_of_obstacle.append([temp_x, temp_y])
 
 
@@ -205,7 +206,7 @@ if __name__ == "__main__":
     # for random
     rospy.wait_for_message("/obstacle_around_parking_areas", MarkerArray)
 
-    target_zone_pub = rospy.Publisher('/target_zone', Int16, queue_size=1)
+    target_zone_pub = rospy.Publisher('/target_zone', Int8, queue_size=1)
 
     marker_sub = rospy.Subscriber(
         "/parking_areas", MarkerArray, callback=markerCallback)
@@ -215,7 +216,7 @@ if __name__ == "__main__":
         "/obstacle_around_parking_areas", PoseArray, callback=obstacleCallback)
 '''
     parking_sequence_sub = rospy.Subscriber(
-        '/parking_sequence', Int32, callback=SequenceCallback)
+        '/parking_sequence', Int8, callback=SequenceCallback)
 
     # FOR random_obstacle
     obstacle_sub = rospy.Subscriber(
@@ -249,7 +250,7 @@ while not rospy.is_shutdown():
         target_zone = where_to_park(All_of_parking_area)
 
         # parking_zone = where_to_park(available_zone)
-        target_zone_msg = Int16()
+        target_zone_msg = Int8()
         target_zone_msg.data = target_zone
 
         target_zone_pub.publish(target_zone_msg)
