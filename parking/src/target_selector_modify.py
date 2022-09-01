@@ -37,15 +37,16 @@ class TargetSelector():
     def markerCallback(self, msg):
         self.markers = msg
 
-    ob_VEC = np.array([
-        obstacle[0] -
-        center_point_of_area[0], obstacle[1] - center_point_of_area[1]
-    ])
+        for marker in self.markers.markers:
+            point = marker.pose.position
+            orientation = marker.pose.orientation
+            scale = marker.scale
+            self.scale_y = scale.y
+            self.scale_x = scale.x
+            Parking_area = ParkingArea(
+                x=point.x, y=point.y, quat=orientation, w=scale.y, h=scale.x)
 
-    abs_multiple = np.sqrt(
-        area_VEC[0]**2+area_VEC[1]**2) * np.sqrt(ob_VEC[0]**2+ob_VEC[1]**2)
-
-    theta = m.acos(np.dot(area_VEC, ob_VEC) / abs_multiple)
+            self.parking_areas.append(Parking_area.parseArray().tolist())
 
             _, _, yaw = euler_from_quaternion(
                 [orientation.x, orientation.y, orientation.z, orientation.w])
@@ -80,8 +81,7 @@ class TargetSelector():
                 pose.pose.position.y = p.position.y
                 pose.pose.position.z = 0
 
-                temp = self.tf_sub.transformPose(
-                    ps=pose, target_frame="base_link")
+                temp = self.tf_sub.transformPose(ps=pose, target_frame="map")
                 self.obstacles.append(
                     [temp.pose.position.x, temp.pose.position.y])
 
@@ -120,17 +120,15 @@ class TargetSelector():
                 abs_multiple = np.sqrt(
                     area_VEC[0]**2+area_VEC[1]**2) * np.sqrt(ob_VEC[0]**2+ob_VEC[1]**2)
 
-# # FOR random_obstacle
-# def obstacleCallback(msg):
+                theta = m.acos(np.dot(area_VEC, ob_VEC) / abs_multiple)
 
-#     global list_of_obstalce
-#     list_of_obstalce = []
+                x_dist = abs(dist * m.sin(theta))
+                y_dist = abs(dist * m.cos(theta))
 
-#     for marker in msg.markers:
-#         point = marker.pose.position
-#         list_of_obstalce.append([point.x, point.y])
+                if x_dist <= self.scale_x / 2.0 and y_dist <= self.scale_y / 2.0:
 
-#     rospy.loginfo("Subscribe obstacle MarkerArray")
+                    if i+1 not in self.obstacle_zone:
+                        self.obstacle_zone.append(i+1)
 
         for ob_zone in self.obstacle_zone:
             try:
@@ -138,14 +136,19 @@ class TargetSelector():
             except:
                 pass
 
-# FOR adaptive_clustering
-def obstacleCallback(msg):
-    global list_of_obstacle
-    list_of_obstacle = []
-    for pose in msg.poses:
-        temp_x = pose.position.x
-        temp_y = pose.position.y
-        list_of_obstacle.append([temp_x, temp_y])
+    def where_to_park(self, available_zone):
+        available_zone.insert(0, 0)
+        available_zone.append(the_number_of_parkingarea+1)
+        row = []  # save continuous times
+        area_in_a_row = []  # save continuous parking area
+        # (temporary list) save continuous parking area
+        temp_of_area_in_a_row = [0]
+        j = 0  # save old parking area temporary
+        temp_number_of_in_a_row = 1  # save the number of continuous parking area
+
+        for i in available_zone:
+            if i == 0:
+                continue
 
             if i == j + 1:
                 if j not in temp_of_area_in_a_row:
@@ -198,19 +201,13 @@ if __name__ == "__main__":
 
     target_zone_pub = rospy.Publisher('/target_zone', Int8, queue_size=1)
 
-    target_zone_pub = rospy.Publisher('/target_zone', Int8, queue_size=1)
+    map_obstacle_pub = rospy.Publisher(
+        "/map_obstacle", PoseArray, queue_size=1)
 
     marker_sub = rospy.Subscriber(
         "/parking_areas", MarkerArray, callback=target_select.markerCallback)
 
     # FOR adaptive_clustering
-    '''obstacle_sub = rospy.Subscriber(
-        "/obstacle_around_parking_areas", PoseArray, callback=obstacleCallback)
-'''
-    parking_sequence_sub = rospy.Subscriber(
-        '/parking_sequence', Int8, callback=SequenceCallback)
-
-    # FOR random_obstacle
     obstacle_sub = rospy.Subscriber(
         "/adaptive_clustering/poses", PoseArray, callback=target_select.obstacleCallback)
 

@@ -16,7 +16,7 @@ from cubic_spline_planner import calc_spline_course
 # from dynamic_window_approach import *
 from parking_area import ParkingArea
 from rrt_star_reeds_shepp import *
-from std_msgs.msg import Int16, Float32MultiArray
+from std_msgs.msg import Int8
 # from parking.msg import surround_obstacle
 from path_plan.msg import PathResponse
 
@@ -30,29 +30,32 @@ except Exception as ex:
 the_number_of_parkinarea = 6
 
 
-'''
-def publishPath(pub, cx, cy, cyaw):
+def toRosPath(xs, ys, yaws):
+    # ros path publish
     path = Path()
-
     path.header.frame_id = "map"
     path.header.stamp = rospy.Time.now()
 
-    for i in range(len(cx)):
+    for i in range(len(xs)):
+
         pose = PoseStamped()
 
         pose.header.frame_id = "map"
         pose.header.stamp = rospy.Time.now()
 
-        quat = quaternion_from_euler(0., 0., cyaw[i])
+        pose.pose.position.x = xs[i]
+        pose.pose.position.y = ys[i]
 
-        pose.pose.position = Point(cx[i], cy[i], 0.)
-        pose.pose.orientation = Quaternion(
-            quat[0], quat[1], quat[2], quat[3])
+        quat = quaternion_from_euler(0., 0., yaws[i])
+
+        pose.pose.orientation.x = quat[0]
+        pose.pose.orientation.y = quat[1]
+        pose.pose.orientation.z = quat[2]
+        pose.pose.orientation.w = quat[3]
 
         path.poses.append(pose)
 
-    pub.publish(path)
-    '''
+    rospath_pub.publish(path)
 
 
 def publishPath(pub, cx, cy, cyaw):
@@ -169,16 +172,18 @@ if __name__ == "__main__":
 
     rospy.init_node("parking_local_path_planner")
 
-    rospy.wait_for_message("/target_zone", Int16)
+    rospy.wait_for_message("/target_zone", Int8)
 
     state = State("/odometry/kalman")
     parking_areas = []
+
+    rospath_pub = rospy.Publisher("/local_path", Path, queue_size=1)
 
     marker_sub = rospy.Subscriber(
         "/parking_areas", MarkerArray, callback=markerCallback)
 
     parking_zone_sub = rospy.Subscriber(
-        '/target_zone', Int16, callback=parking_zone_callback)
+        '/target_zone', Int8, callback=parking_zone_callback)
 
     obstacle_pub = rospy.Publisher(
         "/obstacles", PoseArray, queue_size=1
@@ -248,6 +253,7 @@ if __name__ == "__main__":
             yaws = [syaw for (x, y, syaw) in path]
 
             publishPath(path_pub, xs, ys, yaws)
+            toRosPath(xs, ys, yaws)
         except:
             pass
 

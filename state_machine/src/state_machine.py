@@ -11,6 +11,7 @@ from enum import Enum
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
+from std_msgs.msg import Float32, Int16
 from time import sleep
 
 try:
@@ -67,6 +68,15 @@ class StateMachine(object):
         )
         self.trafficSign = Signmsg()
 
+        # Delivery
+        self.deliverySub = rospy.Subscriber('/delivery_dis', Float32, callback=self.deliveryCallback)
+        self.deliveryBoard = Float32()
+        
+        # Dynamic
+        self.dynamicSub = rospy.Subscriber('/dynamic', Int16, callback=self.dynamicCallback)
+        self.dynamicSign = Int16()
+        
+        
         """
             Fields
         """
@@ -101,6 +111,12 @@ class StateMachine(object):
     def trafficCallback(self, msg):
         self.trafficSign = msg
 
+    def deliveryCallback(self, msg):
+        self.deliveryBoard = msg
+
+    def dynamicCallback(self, msg):
+        self.dynamicSign = msg
+
     def switchPath(self):
         # When current path is almost end
         if len(self.path.cx) * 0.95 < self.target_idx:
@@ -117,12 +133,12 @@ class StateMachine(object):
                     self.request_time = rospy.Time.now()
                     self.selector.goNext()
                     self.selector.makeRequest()
-
+                    
                     # next path is end
                     if self.selector.path.next is None:
                         self.mission_state = MissionState.END
                         rospy.loginfo("Missin State : End")
-
+                    
                     # currnet path is not end
                     elif self.selector.path.end.is_end is True:
                         # next path's end point may have traffic sign
@@ -134,7 +150,11 @@ class StateMachine(object):
                         self.mission_state = MissionState.DRIVING
                         rospy.loginfo("Missin State : Driving")
 
-                    self.target_idx = 0
+
+
+                self.target_idx = 0
+    def deliveryControl(self):
+        pass
 
     def drivingControl(self):
         try:
