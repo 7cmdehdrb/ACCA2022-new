@@ -68,82 +68,6 @@ def publishPath(pub, cx, cy, cyaw):
     return PathResponse()
 
 
-'''def erase_other_zone():
-    obstacle_list = []
-    # left_big_circle
-    left_big_radius = scale_y / m.tan(m.pi/4 - yaw/2)
-    delta_x1 = -scale_y/2 - scale_x * m.tan(yaw)*m.sin(yaw)
-    delta_y1 = -left_big_radius + m.cos(yaw)
-    obstacle_list.append([points_of_parking_areas[target_idx][2][0]+delta_x1,
-                          points_of_parking_areas[target_idx][2][1]+delta_y1, left_big_radius])
-
-    # right_big_circle(upper)
-    right_big1_radius = scale_x * m.tan(yaw)*m.tan(m.pi/4 - yaw/2)
-    delta_x2 = scale_x * m.tan(yaw)
-    delta_y2 = -right_big1_radius
-    obstacle_list.append([points_of_parking_areas[target_idx][3][0]+delta_x2,
-                         points_of_parking_areas[target_idx][3][1]+delta_y2, right_big1_radius])
-
-    # right_big_circle(lower)
-    right_big2_radius = scale_y - scale_x * \
-        m.tan(yaw) * (1 + m.tan(m.pi/4 - yaw/2)) + 1
-    delta_x4 = right_big2_radius * m.cos(yaw)
-    delta_y4 = right_big2_radius * m.sin(yaw)
-    obstacle_list.append([points_of_parking_areas[target_idx][1][0]+delta_x2,
-                         points_of_parking_areas[target_idx][1][1]+delta_y2, right_big1_radius])
-
-    # back small : 2
-    # back_small_left
-    back_small_radius = scale_x / 4
-    delta_x_3 = (scale_x * m.cos(yaw)) / 4
-    delta_y_3 = (scale_x * m.sin(yaw)) / 4
-    obstacle_list.append([points_of_parking_areas[target_idx][4][0] + delta_x_3,
-                         points_of_parking_areas[target_idx][4][1] + delta_y_3, back_small_radius])
-
-    # back_small_right
-    obstacle_list.append([points_of_parking_areas[target_idx][4][0] + delta_x_3 * 3,
-                         points_of_parking_areas[target_area_Idx][4][1] + delta_y_3 * 3, back_small_radius])
-
-    # left_small_back
-    obstacle_list.append([points_of_parking_areas[target_idx][4][0] - delta_x_3 * 2,
-                         points_of_parking_areas[target_idx][4][1] - delta_y_3 * 2, scale_x/2])
-
-    # obstacle_array = np.array(obstacle_list)
-
-    return obstacle_list  # obstacle_array'''
-
-
-'''def erase_other_zone():
-    x1 = (points_of_parking_areas[target_idx][2][0] +
-          points_of_parking_areas[target_idx][3][0]) / 2
-    y1 = (points_of_parking_areas[target_idx][2][1] +
-          points_of_parking_areas[target_idx][3][1]) / 2
-    x4 = (points_of_parking_areas[target_idx][4][0] +
-          points_of_parking_areas[target_idx][1][0]) / 2
-    y4 = (points_of_parking_areas[target_idx][4][1] +
-          points_of_parking_areas[target_idx][1][1]) / 2
-
-    x2 = (x1 * 2 + x4) / 3
-    y2 = (y1 * 2 + y4) / 3
-    x3 = (x1 + 2 * x4) / 3
-    y3 = (y1 + 2 * y4) / 3
-
-    L = [x1, x2, x3, x4]
-    R = [y1, y2, y3, y4]
-
-    obstacle_list = []
-
-    for x, y in zip(L, R):
-        obstacle_list.append([x - scale_x / m.cos(yaw), y, scale_x/2])
-        obstacle_list.append([x + scale_x / m.cos(yaw), y, scale_x/2])
-
-    obstacle_list.append([points_of_parking_areas[target_idx][4][0],
-                          points_of_parking_areas[target_idx][4][1], scale_x/2 + 0.001])
-    obstacle_list.append([points_of_parking_areas[target_idx][1][0],
-                          points_of_parking_areas[target_idx][1][1], scale_x/2 + 0.001])
-    return obstacle_list'''
-
-
 def erase_other_zone():
 
     obstacleList = []
@@ -224,11 +148,6 @@ def parking_zone_callback(msg):
     #  print(target_area_Idx)
 
 
-'''def surround_obstacle_callback(msg):
-    global surround_obstacle
-    surround_obstacle = msg.data
-'''
-
 if __name__ == "__main__":
 
     'global variable initial setting'
@@ -250,7 +169,7 @@ if __name__ == "__main__":
 
     rospy.init_node("parking_local_path_planner")
 
-    rospy.wait_for_message("/target_zone", MarkerArray)
+    rospy.wait_for_message("/target_zone", Int16)
 
     state = State("/odometry/kalman")
     parking_areas = []
@@ -268,9 +187,6 @@ if __name__ == "__main__":
         "/path", PathResponse, queue_size=1
     )
 
-    '''surround_obstacle_list_sub = rospy.Subscriber(
-        '/erase_oher_zone', Float32MultiArray, callback=surround_obstacle_callback)
-'''
     rospy.wait_for_message("/parking_areas", MarkerArray)
 
     sleep(1.)
@@ -302,6 +218,7 @@ if __name__ == "__main__":
     r = rospy.Rate(hz)
     print(len(obstacleList))
     while not rospy.is_shutdown():
+        print('it is running')
 
         msg = PoseArray()
         msg.header.frame_id = "map"

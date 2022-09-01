@@ -43,7 +43,7 @@ if __name__ == "__main__":
     sleep(0.1)
     path = rospkg.RosPack().get_path("parking") + "/parking/" + \
         rospy.get_param("/create_parking_area/parking_file",
-                        "parking2.csv")
+                        "parking3.csv")
 
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
 
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
-
+        print('it is running')
         msg = MarkerArray()
 
         for i, parking in enumerate(parking_areas):
