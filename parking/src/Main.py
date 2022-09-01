@@ -20,7 +20,6 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import csv
 from nav_msgs.msg import Odometry
 
-
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
     from stanley import Stanley
@@ -29,26 +28,7 @@ except Exception as ex:
     rospy.logfatal("Import Error : Vertical Parking")
     rospy.logfatal(ex)
 
-# def loadCSV():
-#     x, y, yaw = [], [], []
-
-#     with open('/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path/center.csv', "r") as csvFile:
-#         reader = csv.reader(csvFile, delimiter=",")
-#         for row in reader:
-#             x.append(row[0])
-#             y.append(row[1])
-#             yaw.append(row[2])
-#     return x, y, yaw
-
-
 class ParkingState(Enum):
-    '''Searching = 0     # find empty parking lot
-    Reset = 1        # go back to start point & path plan
-    Parking = 2       # tracking parking path
-    Backward =  3     # escape
-    End = 4        # end
-    Deceleration = 5  # deceleration
-'''
     Searching = 0     # find empty parking lot
     Deceleration1 = 1  # deceleration
     Reset = 2         # go back to start point & path plan
@@ -73,7 +53,10 @@ class VerticalParkingBase(object):
         self.gear = 1
         self.target_idx = 0
         self.brake = 70 
+        self.trig = True
 
+    def path_callback(self, msg):
+        self.local_path = msg
 
     def toRosPath(self, xs, ys, yaws):
         # ros path publish
@@ -115,8 +98,6 @@ class VerticalParkingBase(object):
         path.cyaw = cyaw
 
         return path
-
-
 
     def makeControlMessage(self, path):
         di, target_idx = self.stanley.stanley_control(
@@ -183,9 +164,22 @@ class VerticalParkingBase(object):
 
         return WP2_x, WP2_y
 
-    def path_callback(self, msg):
-        self.local_path = msg
-
+    def point_Pub(self, x, y):
+        
+        point_stamped = PointStamped()
+        point = Point()
+        
+        point_stamped.header.frame_id = "map"
+        point_stamped.header.stamp = rospy.Time(0)
+        
+        point.x = x
+        point.y = y
+        point.x = 0
+        
+        point_stamped.point = point
+        
+        point_pub.publish(point_stamped)
+        
     def main(self):
         is_end = False
         cmd = ControlMessage()
@@ -193,8 +187,9 @@ class VerticalParkingBase(object):
         parking_sequence_msg = 0
         parking_sequence_pub.publish(parking_sequence_msg)
 
+        rospy.loginfo(str(self.parking_state))
+        
         if self.parking_state == ParkingState.Searching:
-            rospy.loginfo(str(self.parking_state))
             self.gear = 2
             if self.startPoint is None:
                 self.startPoint = Point(self.state.x, self.state.y, 0.)
@@ -202,7 +197,9 @@ class VerticalParkingBase(object):
                 # self.startPoint = Point(0, 7, 0)
 
             WP2_x, WP2_y = self.scan_stop_point()
-
+            
+            self.point_Pub(WP2_x, WP2_y)
+            
             self.path = self.createPath(
                 Point(WP2_x, WP2_y, 0.))
 
@@ -213,25 +210,22 @@ class VerticalParkingBase(object):
                 self.parking_state = ParkingState.Deceleration1
 
         elif self.parking_state == ParkingState.Deceleration1:
-            rospy.loginfo(str(self.parking_state))
-
             if self.state.v != 0:
                 cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Reset
                 parking_sequence_pub.publish(self.parking_state)
 
-        elif self.parking_state.Reset:
-            rospy.loginfo(str(self.parking_state))
-            self.path = self.createPath(self.startPoint)
+        elif self.parking_state.Reset:            
             self.gear = 0
+            self.path = self.createPath(self.startPoint)
+            
             if is_end != True:
                 cmd, is_end = self.makeControlMessage(self.path)
             else:
                 self.parking_state = ParkingState.Deceleration2
 
-        elif self.parking_state == ParkingState.Deceleration2:
-            rospy.loginfo(str(self.parking_state))
+        elif self.parking_state == ParkingState.Deceleration2:            
             if self.state.v != 0:
                 cmd = ControlMessage(0, 0, 0, 0, 0, self.brake, 0)
             else:
@@ -239,8 +233,7 @@ class VerticalParkingBase(object):
 
             # Call Function for Local Path Planning
 
-        elif self.parking_state.Parking:
-            rospy.loginfo(str(self.parking_state))
+        elif self.parking_state.Parking:            
             self.gear = 2
             rospy.wait_for_message('/path', PathResponse)
             cmd, is_end = self.makeControlMessage(self.local_path)
@@ -249,7 +242,6 @@ class VerticalParkingBase(object):
                 self.parking_state = ParkingState.Deceleration3
 
         elif self.parking_state == ParkingState.Deceleration3:
-            rospy.loginfo(str(self.parking_state))
             if self.state.v != 0:
                 cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)
             else:
@@ -257,7 +249,6 @@ class VerticalParkingBase(object):
                 self.startPoint = Point(self.state.x, self.state.y, 0.0)
 
         elif self.parking_state.Backward:
-            rospy.loginfo(str(self.parking_state))
             distance = np.hypot(
                 self.state.x - self.startPoint.x,
                 self.state.y - self.startPoint.y
@@ -277,6 +268,8 @@ class VerticalParkingBase(object):
             rospy.logfatal("Invalid Parking State")
 
         cmd_pub.publish(cmd)
+        
+        
 if __name__ == "__main__":
     rospy.init_node("parking_maintest")
     
@@ -293,7 +286,14 @@ if __name__ == "__main__":
 
     cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=2)
 
+    point_pub = rospy.Publisher("/point_pub", PointStamped, queue_size=1)
+    
     r = rospy.Rate(5)
     while not rospy.is_shutdown():
-        parking.main()
+        if parking.trig == True:
+            parking.main()
+    
+        
         r.sleep()
+
+        
