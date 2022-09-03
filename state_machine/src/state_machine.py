@@ -2,7 +2,6 @@
 
 import sys
 import os
-from parking.src.reeds_shepp_path_planning import Path
 import rospy
 import rospkg
 import tf
