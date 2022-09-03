@@ -2,7 +2,10 @@
     <param name="/use_sim_time" value="true" />    
     <!-- tf -->
     <node pkg="tf" type="static_transform_publisher" name="velodyne_link" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_link velodyne 100" />
-  
+    <node pkg="tf" type="static_transform_publisher" name="imu_link" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_link imu 100" />
+    <node pkg="tf" type="static_transform_publisher" name="gps_link" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_link gps 100" />
+
+
     <arg name="tf_x" default="0.0"/>
     <arg name="tf_y" default="0.0"/>
     <arg name="tf_z" default="0.0"/>
