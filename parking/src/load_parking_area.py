@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     path = rospkg.RosPack().get_path("parking") + "/parking/" + \
         rospy.get_param("/create_parking_area/parking_file",
-                        "parking2.csv")
+                        "parking3.csv")
 
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
 
