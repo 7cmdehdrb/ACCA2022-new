@@ -81,7 +81,7 @@ class TargetSelector():
                 pose.pose.position.y = p.position.y
                 pose.pose.position.z = 0
                 
-                temp = self.tf_sub.transformPose(ps=pose, target_frame="base_link")
+                temp = self.tf_sub.transformPose(ps=pose, target_frame="map")
                 self.obstacles.append([temp.pose.position.x, temp.pose.position.y])
                 
                 posearray.poses.append(temp.pose)
@@ -92,7 +92,7 @@ class TargetSelector():
             map_obstacle_pub.publish(posearray)
 
         else:
-            rospy.logwarn("Cannot lookup transform between map and base_link : local_path.py")
+            rospy.logwarn("Cannot lookup transform between map and base_link : target_selector_modify.py")
     
     def SequenceCallback(self, msg):
         self.parking_state = msg.data
@@ -208,11 +208,6 @@ if __name__ == "__main__":
     parking_sequence_sub = rospy.Subscriber(
         '/parking_sequence', Int8, callback=target_select.SequenceCallback)
 
-
-    # area_interval_vec = [m.cos(target_select.pyaw - m.radians(90)),
-    #                      m.sin(target_select.pyaw - m.radians(90))]
-
-    # center_point_list = [point.x, point.y]
 
     hz = 1.
     freq = 1 / hz
