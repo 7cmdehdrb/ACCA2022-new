@@ -5,14 +5,13 @@ import rospy
 import rospkg
 import numpy as np
 import math as m
-# import tf
+import tf
 import csv
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import *
-from std_msgs.msg import Empty, Int32
+from std_msgs.msg import Empty
 from parking_area import ParkingArea
-from time import sleep
 
 
 def loadCSV(path):
@@ -29,21 +28,12 @@ def loadCSV(path):
     return res
 
 
-def sequence_callback(msg):
-    global sequence
-    sequence = msg
-
-
 if __name__ == "__main__":
     rospy.init_node("load_parking_area")
 
-    rospy.wait_for_message('/parking_sequence', Int32)
-    parking_sequence_sub = rospy.Subscriber(
-        '/parking_sequence', Int32, callback=sequence_callback)
-    sleep(0.1)
     path = rospkg.RosPack().get_path("parking") + "/parking/" + \
         rospy.get_param("/create_parking_area/parking_file",
-                        "parking2.csv")
+                        "hor_parking5.csv")
 
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
 

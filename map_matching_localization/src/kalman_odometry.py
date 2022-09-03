@@ -90,6 +90,8 @@ class Kalman(object):
         z_erp = erp.data
         z_imu = imu.data
 
+        # print(z_position)
+
         cov_position = gps.cov
         cov_erp = erp.cov
         cov_imu = imu.cov
@@ -98,7 +100,7 @@ class Kalman(object):
 
         u_k = np.array(
             [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.radians(cmd.data[1])) * dt])
-        x_k = np.dot(A, self.x) + u_k
+        x_k = np.dot(A, self.x)
         P_k = np.abs(np.dot(np.dot(A, self.P), A.T)) + self.Q
 
         H_position = np.array(
@@ -275,10 +277,11 @@ class GPS(Sensor):
             self.last_position = current_point
 
         distance = self.calculateDistance(self.last_position, current_point)
+        # print(distance)
 
         self.last_position = current_point
 
-        if distance < 0.012:
+        if distance < 0.02:
             distance = 0
 
         return distance

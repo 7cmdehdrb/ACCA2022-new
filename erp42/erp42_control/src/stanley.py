@@ -33,6 +33,9 @@ class Stanley(object):
     def resetIdx(self):
         self.__ind = 0
 
+    def getCGain(self):
+        return self.__k
+
     def setCGain(self, value):
         self.__k = value
         print("SET C GAIN")

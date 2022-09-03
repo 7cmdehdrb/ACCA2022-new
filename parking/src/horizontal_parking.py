@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+from calendar import c
 import rospy
 import rospkg
 import numpy as np
@@ -51,7 +52,7 @@ def wait_for_stop(duration):
             return 0
 
         msg.Speed = int(0)
-        msg.brake = 120
+        msg.brake = 70
         cmd_pub.publish(msg)
         r.sleep()
 
@@ -73,6 +74,7 @@ def markerCallback(msg):
 
 
 def createPath(circle1, circle2, selected_parking_area, state):
+
     global path_pub
 
     _, _, yaw = euler_from_quaternion([
@@ -81,6 +83,8 @@ def createPath(circle1, circle2, selected_parking_area, state):
         selected_parking_area.orientation.z,
         selected_parking_area.orientation.w
     ])
+
+    print(yaw)
 
     # std_vec : Unit Vector, cross_vec : Vector from circle1 point to contact point
     std_vec = np.array([m.cos(yaw), m.sin(yaw)])
@@ -133,27 +137,17 @@ def createPath(circle1, circle2, selected_parking_area, state):
     yaw_range = np.arange(yaw_start, yaw_end, 0.01 *
                           (1.0 if yaw_end > yaw_start else -1.0))
 
-<<<<<<< HEAD
     # Set end point : +n m(relative with car height) of end point of parking lot
-    fs = 1.5
-    end_x = selected_parking_area.position.x + (selected_parking_area.scale.x / 2.0) * \
-        m.cos(yaw + m.pi) - (1.040 / 2.0) * m.cos(yaw + m.pi) * fs
-    end_y = selected_parking_area.position.y + (selected_parking_area.scale.y / 2.0) * \
-        m.sin(yaw + m.pi) - (1.040 / 2.0) * m.sin(yaw + m.pi) * fs
+    fs = 2.8
+    end_x = selected_parking_area.position.x + ((selected_parking_area.scale.x / 2.0) * \
+        m.cos(yaw + m.pi)) - ((1.040 / 2.0) * m.cos(yaw + m.pi) * fs)
+    end_y = selected_parking_area.position.y + ((selected_parking_area.scale.x / 2.0) * \
+        m.sin(yaw + m.pi)) - ((1.040 / 2.0) * m.sin(yaw + m.pi) * fs)
 
     end_x2 = selected_parking_area.position.x + (selected_parking_area.scale.x / 2.0) * \
         m.cos(yaw) - (1.040 / 2.0) * m.cos(yaw) * fs
-    end_y2 = selected_parking_area.position.y + (selected_parking_area.scale.y / 2.0) * \
+    end_y2 = selected_parking_area.position.y + (selected_parking_area.scale.x / 2.0) * \
         m.sin(yaw) - (1.040 / 2.0) * m.sin(yaw) * fs
-=======
-    # Set end point
-    end_x = circle1.pose.position.x + \
-        circle1.scale.x / 2.0 * \
-        m.cos(yaw_range[-1]) - (circle1.scale.x / 2.0 - 0.2) * m.cos(yaw)
-    end_y = circle1.pose.position.y + \
-        circle1.scale.x / 2.0 * \
-        m.sin(yaw_range[-1]) - (circle1.scale.x / 2.0 - 0.2) * m.sin(yaw)
->>>>>>> ecb733fcf4bc4879dbed2489f86f9f86ca3aca73
 
     xs2 = [circle1.pose.position.x +
            circle1.scale.x / 2.0 * m.cos(y) for y in yaw_range]
@@ -227,9 +221,13 @@ def createPath(circle1, circle2, selected_parking_area, state):
         fcyaw
     )
 
-    cx = scx + gcx + hcx + fcx
-    cy = scy + gcy + hcy + fcy
-    cyaw = scyaw + gcyaw + hcyaw + fcyaw
+    cx = straight_path.cx + reverse_path.cx + home_path.cx + final_path.cx
+    cy = straight_path.cy + reverse_path.cy  + home_path.cy + final_path.cy
+    cyaw = straight_path.cyaw + reverse_path.cyaw  + home_path.cyaw + final_path.cyaw
+
+    cx = reverse_path.cx
+    cy = reverse_path.cy
+    cyaw = reverse_path.cyaw
 
     path = Path()
     path.header = Header(None, rospy.Time.now(), "map")
@@ -254,7 +252,7 @@ def getTwoCircle(idx):
 
     h = selected_parking_area.scale.x   # 2.0
     w = selected_parking_area.scale.y   # 0.8
-    reverse_threshold = 0.05                # min: 0, max : 0.25
+    reverse_threshold = 0.0    # min: 0, max : 0.25
 
     # ===== circle 1 =====
 
@@ -334,7 +332,7 @@ def getTwoCircle(idx):
 if __name__ == "__main__":
     rospy.init_node("horizontal_parking")
 
-    state = OdomState("/odometry/kalman")
+    state = State("/ndt_matching/ndt_pose")
     parking_areas = []
 
     parking_sub = rospy.Subscriber(
@@ -355,6 +353,8 @@ if __name__ == "__main__":
     target_idx = 0
     stanley = Stanley()
 
+    stanley.setCGain(0.03)
+
     last_time = rospy.Time.now()
     current_time = rospy.Time.now()
 
@@ -368,8 +368,10 @@ if __name__ == "__main__":
     spath, rpath, hpath, fpath, path = createPath(
         circle1, circle2, selected_parking_area, state)
 
-    r = rospy.Rate(10)
+    r = rospy.Rate(30)
     while not rospy.is_shutdown():
+
+        print(state.x, state.y)
 
         msg = ControlMessage()
 
@@ -377,7 +379,7 @@ if __name__ == "__main__":
 
             print("Straight", target_idx)
 
-            msg.Speed = int(7)
+            msg.Speed = int(5)
             di, target_idx = stanley.stanley_control(
                 state=state,
                 cx=spath.cx,
@@ -406,8 +408,8 @@ if __name__ == "__main__":
                 horizontal_parking_state = HorizontalParking.Reverse
                 target_idx = 0
 
-                # stanley.setHdrRatio(1.0)
-                # stanley.setCGain(0.5)
+                # stanley.setHdrRatio(1.2)
+                stanley.setCGain(0.1)
 
                 wait_for_stop(5)
 
@@ -415,7 +417,7 @@ if __name__ == "__main__":
 
             print("Reverse", target_idx)
 
-            msg.Speed = int(5)
+            msg.Speed = int(3)
             di, target_idx = stanley.stanley_control(
                 state=state,
                 cx=rpath.cx,
@@ -450,7 +452,7 @@ if __name__ == "__main__":
 
             print("Home", target_idx, len(hpath.cx))
 
-            msg.Speed = int(5)
+            msg.Speed = int(3)
             di, target_idx = stanley.stanley_control(
                 state=state,
                 cx=hpath.cx,
@@ -485,7 +487,7 @@ if __name__ == "__main__":
 
             print("Final", target_idx)
 
-            msg.Speed = int(1)
+            msg.Speed = int(3)
             di, target_idx = stanley.stanley_control(
                 state=state,
                 cx=fpath.cx,
