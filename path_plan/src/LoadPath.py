@@ -10,7 +10,6 @@ from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Int8
-import pandas as pd
 
 db_name = rospy.get_param("/LoadPath/db_name", "/path.db")
 
