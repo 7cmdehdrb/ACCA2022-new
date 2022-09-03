@@ -1,11 +1,28 @@
 #!/usr/bin/env python
 
 import rospy
+import sys
+import rospkg
 import numpy as np
 from geometry_msgs.msg import PoseArray,Pose
 from lidar_camera_calibration.msg import obTF
 import ros_numpy
 import math
+
+try:
+    sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
+    from speed_supporter import SpeedSupporter
+    from stanley import Stanley
+    from state import State, OdomState
+    from path_selector import PathSelector, PathType
+    
+    sys.path.append(rospkg.RosPack().get_path("state_machine") + "/src")
+    from state_machine import StateMachine, MissionState
+
+
+except Exception as ex:
+    rospy.logfatal(ex)
+    rospy.logfatal("Import Error : State Machine")
 
 """
 Subscribe 'scan_filtered' and
@@ -113,10 +130,15 @@ if __name__ == "__main__":
 
     lidar = Lidar(publisher=pub)
 
+    state = OdomState(odometry_topic="/odometry/kalman")
+    
+    controller = StateMachine(state = state)
+    
     r = rospy.Rate(30.0)
     while not rospy.is_shutdown():
-        lidar.main()
-        r.sleep()
+        if controller.mission_state == MissionState.DYNAMIC:
+            lidar.main()
+            r.sleep()
         
 # code from : https://github.com/7cmdehdrb/ACCA/blob/master/cone_tracker/src/check_obstacles.py
 # after : check https://github.com/7cmdehdrb/ACCA/blob/master/cone_tracker/src/estopTF.py

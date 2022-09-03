@@ -26,7 +26,6 @@ try:
     
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
     from parking_final import Parking
-    from 
     from obstacle_final import obstacle
 
 except Exception as ex:
