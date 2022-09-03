@@ -34,32 +34,16 @@ class obstacle(object):
     
     def __init__(self):
         
-        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/left1.csv")
-        right_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/right1.csv")
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/center1.csv")
-        
+        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/static_test.csv")
+
         self.left = []
-        self.right = []
         self.path = []
-        self.path_cx = []
-        self.path_cy = []
-        self.path_cx_new = []
-        self.path_cy_new = []
-        self.path_cyaw = []
+
         self.obs_mapping = []
 
         for i, j in zip(left_data.cx, left_data.cy):
             self.left.append([i, j])
-        for i, j in zip(right_data.cx, right_data.cy):
-            self.right.append([i, j])
 
-        for i, j, k in zip(path_data.cx, path_data.cy, path_data.cyaw):
-            self.path.append([i, j])
-            self.path_cx.append(i)
-            self.path_cy.append(j)
-            self.path_cx_new.append(i)
-            self.path_cy_new.append(j)
-            self.path_cyaw.append(k)
 
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)  
         self.path_response = rospy.Subscriber("/path_response", PathResponse, callback=self.path_callback)    
@@ -84,6 +68,9 @@ class obstacle(object):
    
     def path_callback(self, msg):
         self.PathMsg = msg
+
+        for i in range(len(self.PathMsg)):
+            self.path.append([self.PathMsg.cx[i], self.PathMsg.cy[i]])
         
     def GetDistance(self, point1, point2):
         distance = m.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
@@ -161,8 +148,8 @@ class obstacle(object):
             for obs in self.obstacle:
             
                 a, b = obs[0], obs[1]
-                target_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, [a, b])
-                p = -1. / self.path_cyaw[target_idx]
+                target_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [a, b])
+                p = -1. / self.PathMsg.cyaw[target_idx]
                 c = b - p * a
                 
                 t1 = (2*a + 2*p*b - 2*p*c + m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
@@ -199,16 +186,16 @@ class obstacle(object):
             
     def CreatPath(self, state):
         
-        state_tar_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, [state.x, state.y])
+        state_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [state.x, state.y])
 
         if len(self.waypoint_arr) != 0:
             max_tar_idx = -1
-            self.waypoint_arr.sort(key = lambda x : self.calc_target_index(self.path_cx_new, self.path_cy_new, x))
+            self.waypoint_arr.sort(key = lambda x : self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, x))
         
             if len(self.waypoint_arr) >= 2:
                     
-                min_tar_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, self.waypoint_arr[0])
-                max_tar_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, self.waypoint_arr[-1])
+                min_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, self.waypoint_arr[0])
+                max_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, self.waypoint_arr[-1])
                 xs = [self.path[min_tar_idx - 40][0]]
                 ys = [self.path[min_tar_idx - 40][1]]
         
@@ -221,25 +208,25 @@ class obstacle(object):
                     ys.append(self.path[max_tar_idx + 40][1])
                     
                 except IndexError:
-                    xs.append(self.path[len(self.path_cx) - 1][0])
-                    ys.append(self.path[len(self.path_cx) - 1][1])   
+                    xs.append(self.path[len(self.PathMsg.cx) - 1][0])
+                    ys.append(self.path[len(self.PathMsg.cx) - 1][1])   
 
                 if max_tar_idx + 40 >= state_tar_idx:
                     self.cx, self.cy, self.cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)    
                 else :
-                    self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw
+                    self.cx, self.cy, self.cyaw = self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw
                     
             else : # waypoint array len : 1
-                max_tar_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, self.waypoint_arr[0])
+                max_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, self.waypoint_arr[0])
                 xs = [self.path[max_tar_idx - 40][0], self.waypoint_arr[0][0], self.path[max_tar_idx + 40][0]]
                 ys = [self.path[max_tar_idx - 40][1], self.waypoint_arr[0][1], self.path[max_tar_idx + 40][1]]
         
                 if max_tar_idx >= state_tar_idx:
                     self.cx, self.cy, self.cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)
                 else :
-                    self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw           
+                    self.cx, self.cy, self.cyaw = self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw           
         else :
-            self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw
+            self.cx, self.cy, self.cyaw = self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw
         
                 
     def publishPath(self, cx, cy, cyaw):
@@ -335,7 +322,7 @@ if __name__ == "__main__":
     r = rospy.Rate(10.)
     
     while not rospy.is_shutdown():
-        if obs.PathMsg.path_id == 'M1M2':
+        if obs.PathMsg.path_id == 'A3B1':
             obs.DetectObstacle(state)
             obs.CreateWaypoint()
             obs.CreatPath(state)

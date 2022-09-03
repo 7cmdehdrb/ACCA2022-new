@@ -360,14 +360,14 @@ if __name__ == "__main__":
     parking_state = DiagonalParking.detect_area
     r = rospy.Rate(5)
 
-    if parking.PathMsg.path_id == "adfdf" :
-        if parking.parking_state == 'detect area':
-            parking.SelectArea(state)
-        
-        else:
-            parking.parking(state, stanley)
-    
-    else:
-        pass
+    while not rospy.is_shutdown():
+        if parking.PathMsg.path_id == 'E1A1':
 
+            if parking.parking_state == 'detect area':
+                parking.SelectArea(state)
+            
+            else:
+                parking.parking(state, stanley)
+        else:
+            pass
 

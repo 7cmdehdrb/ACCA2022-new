@@ -90,8 +90,6 @@ class Kalman(object):
         z_erp = erp.data
         z_imu = imu.data
 
-        # print(z_position)
-
         cov_position = gps.cov
         cov_erp = erp.cov
         cov_imu = imu.cov
@@ -100,7 +98,7 @@ class Kalman(object):
 
         u_k = np.array(
             [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.radians(cmd.data[1])) * dt])
-        x_k = np.dot(A, self.x)
+        x_k = np.dot(A, self.x) + u_k
         P_k = np.abs(np.dot(np.dot(A, self.P), A.T)) + self.Q
 
         H_position = np.array(
@@ -277,11 +275,10 @@ class GPS(Sensor):
             self.last_position = current_point
 
         distance = self.calculateDistance(self.last_position, current_point)
-        # print(distance)
 
         self.last_position = current_point
 
-        if distance < 0.02:
+        if distance < 0.012:
             distance = 0
 
         return distance
@@ -340,21 +337,6 @@ if __name__ == "__main__":
     last_time = rospy.Time.now()
 
     r = rospy.Rate(hz)
-
-    # while not rospy.is_shutdown():
-    #     is_all_available = True
-    #     for s in sensors:
-    #         if s.once is False:
-    #             is_all_available = False
-    #             break
-
-    #     if is_all_available is True:
-    #         break
-
-    #     rospy.logwarn("Wait for Sensors...")
-
-    #     r.sleep()
-
     while not rospy.is_shutdown():
 
         current_time = rospy.Time.now()

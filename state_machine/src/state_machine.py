@@ -162,7 +162,7 @@ class StateMachine(object):
                             self.mission_state = MissionState.DELIVERY
                             rospy.loginfo("Missin State : Delivery")
                         
-                        elif self.path.path_id == "static":
+                        elif self.path.path_id == "":
                             self.mission_state = MissionState.STATIC
                             rospy.loginfo("Missin State : Static")
     
@@ -172,15 +172,15 @@ class StateMachine(object):
                             rospy.loginfo("Missin State : Traffic")
                             
                     else:
-                        if self.path.path_id == "parking":
+                        if self.path.path_id == "E1A1":
                             self.mission_state = MissionState.PARKING
                             rospy.loginfo("Missin State : Parking")
                         
-                        elif self.path.path_id == "static":
+                        elif self.path.path_id == "A3B1":
                             self.mission_state = MissionState.STATIC
                             rospy.loginfo("Missin State : Static")
                         
-                        elif self.path.path_id == "dynamic":
+                        elif self.path.path_id == "B3C1":
                             self.mission_state = MissionState.DYNAMIC
                             rospy.loginfo("Missin State : Dynamic")
                         
@@ -244,7 +244,7 @@ class StateMachine(object):
         if len(self.path.cx) * 0.8 < self.target_idx:
             # Almost in front of traffic sign
             desired_speed *= 0.5
-
+            self.trafficSign.straight = 0
             if self.selector.path.next.path_type == PathType.STRAIGHT:
                 if self.trafficSign.straight == 1:
                     # Non-Stop
@@ -253,6 +253,7 @@ class StateMachine(object):
                 else:
                     # Stop
                     rospy.loginfo("STRAIGHT : STOP!!")
+                    self.trafficSign.straight = 1
                     return ControlMessage(0, 0, 2, 0, 0, 100, 0)
 
             elif self.selector.path.next.path_type == PathType.RIGHT:
