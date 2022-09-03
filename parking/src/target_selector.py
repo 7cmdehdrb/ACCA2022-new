@@ -16,15 +16,10 @@ from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 
 
-the_number_of_parkingarea = 6
-All_of_parking_area = [1, 2, 3, 4, 5, 6]
-
-
 class TargetSelector():
     def __init__(self):
         self.markers = MarkerArray()
         self.poses = PoseArray()
-        self.parking_state = Int8()
         self.center_points = []
         self.parking_areas = []
         self.obstacles = []
@@ -33,25 +28,33 @@ class TargetSelector():
         self.scale_x = 0
         self.obstacle_zone = []
         self.tf_sub = tf.TransformListener()
+        self.the_number_of_parkingarea = 6
+        self.All_of_parking_area = [1, 2, 3, 4, 5, 6]
+        self.target_zone = 0
+        self.parking_state = 0
+        self.trigger = False
 
     def markerCallback(self, msg):
         self.markers = msg
 
-    ob_VEC = np.array([
-        obstacle[0] -
-        center_point_of_area[0], obstacle[1] - center_point_of_area[1]
-    ])
+        for marker in self.markers.markers:
+            point = marker.pose.position
+            orientation = marker.pose.orientation
+            scale = marker.scale
+            self.scale_y = scale.y
+            self.scale_x = scale.x
+            Parking_area = ParkingArea(
+                x=point.x, y=point.y, quat=orientation, w=scale.y, h=scale.x)
 
-    abs_multiple = np.sqrt(
-        area_VEC[0]**2+area_VEC[1]**2) * np.sqrt(ob_VEC[0]**2+ob_VEC[1]**2)
-
-    theta = m.acos(np.dot(area_VEC, ob_VEC) / abs_multiple)
+            self.parking_areas.append(Parking_area.parseArray().tolist())
 
             _, _, yaw = euler_from_quaternion(
                 [orientation.x, orientation.y, orientation.z, orientation.w])
 
             center_point = [point.x, point.y, yaw]  # 주차 라인 중앙 점 좌표
             self.center_points.append(center_point)  # 주차 라인 중앙 점 좌표 list
+        self.the_number_of_parkingarea = len(self.markers.markers)
+        self.All_of_parking_area = range(self.the_number_of_parkingarea)
 
         rospy.loginfo("Subscribe parking area MarkerArray")
 
@@ -80,8 +83,7 @@ class TargetSelector():
                 pose.pose.position.y = p.position.y
                 pose.pose.position.z = 0
 
-                temp = self.tf_sub.transformPose(
-                    ps=pose, target_frame="base_link")
+                temp = self.tf_sub.transformPose(ps=pose, target_frame="map")
                 self.obstacles.append(
                     [temp.pose.position.x, temp.pose.position.y])
 
@@ -94,10 +96,11 @@ class TargetSelector():
 
         else:
             rospy.logwarn(
-                "Cannot lookup transform between map and base_link : local_path.py")
+                "Cannot lookup transform between map and velodyne : target_selector.py")
 
     def SequenceCallback(self, msg):
         self.parking_state = msg.data
+        print(self.parking_state)
 
     def checkIsInParking(self):
         for obstacle in self.obstacles:
@@ -120,32 +123,35 @@ class TargetSelector():
                 abs_multiple = np.sqrt(
                     area_VEC[0]**2+area_VEC[1]**2) * np.sqrt(ob_VEC[0]**2+ob_VEC[1]**2)
 
-# # FOR random_obstacle
-# def obstacleCallback(msg):
+                theta = m.acos(np.dot(area_VEC, ob_VEC) / abs_multiple)
 
-#     global list_of_obstalce
-#     list_of_obstalce = []
+                x_dist = abs(dist * m.sin(theta))
+                y_dist = abs(dist * m.cos(theta))
 
-#     for marker in msg.markers:
-#         point = marker.pose.position
-#         list_of_obstalce.append([point.x, point.y])
+                if x_dist <= self.scale_x / 2.0 and y_dist <= self.scale_y / 2.0:
 
-#     rospy.loginfo("Subscribe obstacle MarkerArray")
+                    if i+1 not in self.obstacle_zone:
+                        self.obstacle_zone.append(i+1)
 
         for ob_zone in self.obstacle_zone:
             try:
-                All_of_parking_area.remove(ob_zone)
+                self.All_of_parking_area.remove(ob_zone)
             except:
                 pass
 
-# FOR adaptive_clustering
-def obstacleCallback(msg):
-    global list_of_obstacle
-    list_of_obstacle = []
-    for pose in msg.poses:
-        temp_x = pose.position.x
-        temp_y = pose.position.y
-        list_of_obstacle.append([temp_x, temp_y])
+    def where_to_park(self, available_zone):
+        available_zone.insert(0, 0)
+        available_zone.append(self.the_number_of_parkingarea+1)
+        row = []  # save continuous times
+        area_in_a_row = []  # save continuous parking area
+        # (temporary list) save continuous parking area
+        temp_of_area_in_a_row = [0]
+        j = 0  # save old parking area temporary
+        temp_number_of_in_a_row = 1  # save the number of continuous parking area
+
+        for i in available_zone:
+            if i == 0:
+                continue
 
             if i == j + 1:
                 if j not in temp_of_area_in_a_row:
@@ -190,27 +196,17 @@ def obstacleCallback(msg):
 if __name__ == "__main__":
     rospy.init_node("target_selector")
 
-    list_of_obstacle = []
-
     target_select = TargetSelector()
-    # for adaptive clustering
-    rospy.wait_for_message("/adaptive_clustering/poses", PoseArray)
 
     target_zone_pub = rospy.Publisher('/target_zone', Int8, queue_size=1)
 
-    target_zone_pub = rospy.Publisher('/target_zone', Int8, queue_size=1)
+    map_obstacle_pub = rospy.Publisher(
+        "/map_obstacle", PoseArray, queue_size=1)
 
     marker_sub = rospy.Subscriber(
         "/parking_areas", MarkerArray, callback=target_select.markerCallback)
 
     # FOR adaptive_clustering
-    '''obstacle_sub = rospy.Subscriber(
-        "/obstacle_around_parking_areas", PoseArray, callback=obstacleCallback)
-'''
-    parking_sequence_sub = rospy.Subscriber(
-        '/parking_sequence', Int8, callback=SequenceCallback)
-
-    # FOR random_obstacle
     obstacle_sub = rospy.Subscriber(
         "/adaptive_clustering/poses", PoseArray, callback=target_select.obstacleCallback)
 
@@ -227,19 +223,28 @@ if __name__ == "__main__":
 
 r = rospy.Rate(10)
 while not rospy.is_shutdown():
+    print('target_selector is running')
 
     if target_select.parking_state < 2:
+        print('------------------------------------------------\naccepting obstacle data\n--------------------------------------')
+        target_zone_msg = Int8()
+    elif target_select.parking_state >= 2:
         target_select.checkIsInParking()
-
-    elif target_select.parking_state == 2:
-        target_zone = target_select.where_to_park(All_of_parking_area)
+        target_select.target_zone = target_select.where_to_park(
+            target_select.All_of_parking_area)
 
         # parking_zone = where_to_park(available_zone)
-        target_zone_msg = Int8()
-        target_zone_msg.data = target_zone
 
+        target_zone_msg.data = target_select.target_zone
+
+        # target_zone_pub.publish(target_zone_msg)
+        print('result', target_select.target_zone)
+
+        target_select.trigger = True
+
+    while target_select.trigger:
+        print('taget zone is selected')
         target_zone_pub.publish(target_zone_msg)
-        print('result', target_zone)
-    else:
-        pass
+    target_zone_pub.publish(target_zone_msg)
+
     r.sleep()

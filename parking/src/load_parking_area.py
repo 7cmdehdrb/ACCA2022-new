@@ -31,7 +31,7 @@ def loadCSV(path):
 
 def sequence_callback(msg):
     global sequence
-    sequence = msg
+    sequence = msg.data
 
 
 if __name__ == "__main__":

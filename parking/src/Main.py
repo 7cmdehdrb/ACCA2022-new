@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from audioop import reverse
 import os
 import sys
+from turtle import pos
 import rospy
 import rospkg
 import numpy as np
@@ -55,6 +57,10 @@ class VerticalParkingBase(object):
         self.target_idx = 0
         self.brake = 70
         self.trig = True
+        self.is_end = False
+        self.trigger = 0
+        self.parking_state_msg = Int8()
+        self.parking_state_msg.data = 0
 
     def path_callback(self, msg):
         self.local_path = msg
@@ -92,12 +98,12 @@ class VerticalParkingBase(object):
 
         self.toRosPath(cx, cy, cyaw)
 
-        path = PathResponse()
-        path.cx = cx
-        path.cy = cy
-        path.cyaw = cyaw
+        self.path = PathResponse()
+        self.path.cx = cx
+        self.path.cy = cy
+        self.path.cyaw = cyaw
 
-        return path
+        return self.path
 
     def makeControlMessage(self, path):
         di, target_idx = self.stanley.stanley_control(
@@ -107,14 +113,16 @@ class VerticalParkingBase(object):
             cyaw=path.cyaw,
             last_target_idx=self.target_idx
         )
+        # reverse 값 추가
 
         self.target_idx = target_idx
 
         di = np.clip(di, -m.radians(30.0), m.radians(30.0))
 
-        is_end = target_idx > len(self.path.cx) * 0.95
+        self.is_end = target_idx > len(self.path.cx) * 0.90
+        print('target_idx : %f, is_end : %s' % (self.target_idx, self.is_end))
 
-        return ControlMessage(0, 0, self.gear, 5, di, 0, 0), is_end
+        return ControlMessage(0, 0, self.gear, 5, di, 0, 0), self.is_end
 
     def calc_angle(self, first_vec, second_vec):
 
@@ -126,7 +134,6 @@ class VerticalParkingBase(object):
 
         cos = (x1*x2 + y1*y2) / (scale_first * scale_second)
         theta = m.acos(cos)
-
         return theta
 
     def scan_stop_point(self):
@@ -148,23 +155,77 @@ class VerticalParkingBase(object):
 
             _, _, yaw = euler_from_quaternion([quat1, quat2, quat3, quat4])
 
-        Idx_stop_area = len(_list) - 2
+        Idx_stop_area = len(_list) - 3
 
-        alpha_vec = [x - _list[Idx_stop_area][0], y - _list[Idx_stop_area][1]]
-        beta_vec = [_list[0][0] - _list[1][0], _list[0][1] - _list[1][1]]
+        # parking 시작 위치부터 Idx_stop_area 중심점까지 벡터
+        alpha_VEC = [_list[Idx_stop_area][0] - x, _list[Idx_stop_area][1] - y]
+        beta_VEC = [_list[1][0] - _list[0][0], _list[1]
+                    [1] - _list[0][1]]  # 주차장 결대로 그은 벡터
+        gamma_VEC = [m.cos(yaw), m.sin(yaw)]  # 주차장 정의하는 방향 벡터
 
-        beta = self.calc_angle([1, 0], beta_vec) - m.radians(90)
-        alpha = self.calc_angle([1, 0], alpha_vec)
+        angle_a = self.calc_angle(alpha_VEC, beta_VEC)
+        angle_b = self.calc_angle(alpha_VEC, gamma_VEC)
 
-        scale_alpha_vec = np.hypot(alpha_vec[0], alpha_vec[1])
+        if angle_a >= m.pi/2:
+            angle_a = m.pi - angle_a
 
-        _len = scale_alpha_vec * m.cos(alpha - beta) / m.cos(yaw - beta)
-        WP2_x, WP2_y = _list[Idx_stop_area][0] + _len * \
-            m.cos(yaw), _list[Idx_stop_area][1] + _len * m.sin(yaw)
+        if angle_b >= m.pi/2:
+            angle_b = m.pi - angle_b
+            sign = 1
+        else:
+            sign = -1
 
+        angle_c = m.pi - angle_a - angle_b
+        scale_alphaVEC = np.hypot(alpha_VEC[0], alpha_VEC[1])
+        scale_YawVEC = scale_alphaVEC * (m.sin(angle_a)/m.sin(angle_c))
+
+        WP2_x = _list[Idx_stop_area][0] + scale_YawVEC * m.cos(yaw) * sign
+        WP2_y = _list[Idx_stop_area][1] + scale_YawVEC * m.sin(yaw) * sign
+
+        ###################
+        self.standard_x, self.standard_y = _list[Idx_stop_area][0], _list[Idx_stop_area][1]
+
+        rospy.loginfo('length of vecter: %f' % scale_YawVEC)
+        print(_list)
+        print(WP2_x, 'WP2_x')
+        print(WP2_y, 'WP2_y')
+        print('x:', x)
+        print('y:', y)
         return WP2_x, WP2_y
 
     def point_Pub(self, x, y):
+
+        point_stamped = PointStamped()
+        point = Point()
+
+        point_stamped.header.frame_id = "map"
+        point_stamped.header.stamp = rospy.Time.now()
+
+        point.x = x
+        point.y = y
+        point.z = 0
+
+        point_stamped.point = point
+
+        point_pub.publish(point_stamped)
+
+    def current_loc_pub(self, x, y):
+        point_stamped = PointStamped()
+        point = Point()
+
+        point_stamped.header.frame_id = "map"
+        point_stamped.header.stamp = rospy.Time(0)
+
+        point.x = x
+        point.y = y
+        point.z = 0
+
+        point_stamped.point = point
+
+        current_loc_pub.publish(point_stamped)
+
+    #################
+    def standard_pub(self, x, y):
 
         point_stamped = PointStamped()
         point = Point()
@@ -174,99 +235,153 @@ class VerticalParkingBase(object):
 
         point.x = x
         point.y = y
-        point.x = 0
+        point.z = 0
 
         point_stamped.point = point
 
-        point_pub.publish(point_stamped)
+        standard_pub.publish(point_stamped)
+
+    def startpose_pub(self, x, y):
+        pose = Pose()
+        point = Point()
+        quat = Quaternion()
+
+        point.x = x
+        point.y = y
+        point.z = 0
+        pose.position = point
+
+        quat = quaternion_from_euler(0., 0., self.start_yaw)
+
+        pose.orientation.x = quat[0]
+        pose.orientation.y = quat[1]
+        pose.orientation.z = quat[2]
+        pose.orientation.w = quat[3]
+
+        start_point_pub.publish(pose)
 
     def main(self):
-        is_end = False
         cmd = ControlMessage()
 
-        parking_sequence_msg = 0
-        parking_sequence_pub.publish(parking_sequence_msg)
-
         rospy.loginfo(str(self.parking_state))
-
+        rospy.wait_for_message('/odometry/kalman', Odometry)
         if self.parking_state == ParkingState.Searching:
             self.gear = 2
             if self.startPoint is None:
+                rospy.loginfo(str(state.x))
+                rospy.loginfo(str(state.y))
                 self.startPoint = Point(self.state.x, self.state.y, 0.)
+                self.start_yaw = state.yaw
                 # for inside test
-                # self.startPoint = Point(0, 7, 0)
+                # self.startPoint = Point(-5.75, 2.54, 0)
 
-            WP2_x, WP2_y = self.scan_stop_point()
+                #####################################################################################
+                # self.WP2_x, self.WP2_y = self.scan_stop_point()
+                self.scan_stop_point()
+                self.WP2_x, self.WP2_y = 15.188313,  10.277684
+                self.path = self.createPath(
+                    Point(self.WP2_x, self.WP2_y, 0.))
+            self.point_Pub(self.WP2_x, self.WP2_y)
+            self.current_loc_pub(self.state.x, self.state.y)
+            self.standard_pub(self.standard_x, self.standard_y)
+            self.toRosPath(self.path.cx, self.path.cy, self.path.cyaw)
+            print('path_len', len(self.path.cx))
 
-            self.point_Pub(WP2_x, WP2_y)
-
-            self.path = self.createPath(
-                Point(WP2_x, WP2_y, 0.))
-
-            if is_end != True:
-                cmd, is_end = self.makeControlMessage(self.path)
+            if self.is_end == False:
+                cmd, self.is_end = self.makeControlMessage(self.path)
+                print('is_end : %s' % self.is_end)
 
             else:
                 self.parking_state = ParkingState.Deceleration1
+                self.parking_state_msg.data += 1
+                self.is_end = False
+                self.target_idx = 0
 
         elif self.parking_state == ParkingState.Deceleration1:
             if self.state.v != 0:
                 cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)
+                self.current_loc_pub(self.state.x, self.state.y)
             else:
                 self.parking_state = ParkingState.Reset
-                parking_sequence_pub.publish(self.parking_state)
+                self.parking_state_msg.data += 1
+                print('마지막 위치 : %f,  %f' % (self.state.x, self.state.y))
 
-        elif self.parking_state.Reset:
-            self.gear = 0
-            self.path = self.createPath(self.startPoint)
+        elif self.parking_state == self.parking_state.Reset:
 
-            if is_end != True:
-                cmd, is_end = self.makeControlMessage(self.path)
+            if self.trigger == 0:
+                print('정지 위치 : %f,  %f' % (self.state.x, self.state.y))
+                self.gear = 0
+                self.path = self.createPath(self.startPoint)
+                self.trigger += 1
+            self.current_loc_pub(self.state.x, self.state.y)
+            self.toRosPath(self.path.cx, self.path.cy, self.path.cyaw)
+
+            if self.is_end == False:
+                '------------------------------------------------------------------------------'
+                try:
+                    cmd, self.is_end = self.makeControlMessage(self.path)
+                except:
+                    print('error in reset state -> makeControlMessage')
+                '------------------------------------------------------------------------------'
+                print('path_len', len(self.path.cx))
             else:
                 self.parking_state = ParkingState.Deceleration2
+                self.parking_state_msg.data += 1
+                self.is_end = False
+                self.target_idx = 0
 
         elif self.parking_state == ParkingState.Deceleration2:
             if self.state.v != 0:
                 cmd = ControlMessage(0, 0, 0, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Parking
+                self.parking_state_msg.data += 1
 
             # Call Function for Local Path Planning
 
-        elif self.parking_state.Parking:
+        elif self.parking_state == self.parking_state.Parking:
             self.gear = 2
             rospy.wait_for_message('/path', PathResponse)
-            cmd, is_end = self.makeControlMessage(self.local_path)
+            try:
+                cmd, self.is_end = self.makeControlMessage(self.local_path)
+            except:
+                pass
 
-            if is_end == True:
+            if self.is_end == True:
                 self.parking_state = ParkingState.Deceleration3
+                self.parking_state_msg.data += 1
+                self.is_end = False
+                self.target_idx = 0
 
         elif self.parking_state == ParkingState.Deceleration3:
             if self.state.v != 0:
                 cmd = ControlMessage(0, 0, 2, 0, 0, self.brake, 0)
             else:
                 self.parking_state = ParkingState.Backward
-                self.startPoint = Point(self.state.x, self.state.y, 0.0)
+                self.parking_state_msg.data += 1
+                self.target_zone = Point(self.state.x, self.state.y, 0.0)
 
-        elif self.parking_state.Backward:
+        elif self.parking_state == self.parking_state.Backward:
             distance = np.hypot(
-                self.state.x - self.startPoint.x,
-                self.state.y - self.startPoint.y
+                self.state.x - self.target_zone.x,
+                self.state.y - self.target_zone.y
             )
 
             if distance > 3:
                 self.parking_state = ParkingState.End
-                parking_sequence_pub.publish(self.parking_state)
+                self.parking_state_msg.data += 1
 
             else:
                 cmd = ControlMessage(0, 0, 0, 5, 0, 0, 0)
 
-        elif self.parking_state.End:
+        elif self.parking_state == self.parking_state.End:
             pass
 
         else:
             rospy.logfatal("Invalid Parking State")
 
+        parking_state_pub.publish(self.parking_state_msg)
+        self.startpose_pub(self.startPoint.x, self.startPoint.y)
         cmd_pub.publish(cmd)
 
 
@@ -276,7 +391,7 @@ if __name__ == "__main__":
     state = OdomState("/odometry/kalman")
     stanley = Stanley()
     parking = VerticalParkingBase(state, stanley)
-    parking_sequence_pub = rospy.Publisher(
+    parking_state_pub = rospy.Publisher(
         '/parking_sequence', Int8, queue_size=3)
 
     path_sub = rospy.Subscriber(
@@ -288,7 +403,16 @@ if __name__ == "__main__":
 
     point_pub = rospy.Publisher("/point_pub", PointStamped, queue_size=1)
 
-    r = rospy.Rate(5)
+    current_loc_pub = rospy.Publisher(
+        "/current_location", PointStamped, queue_size=1)
+
+    start_point_pub = rospy.Publisher(
+        "/startpose", Pose, queue_size=1)
+
+    standard_pub = rospy.Publisher(
+        "/standard", PointStamped, queue_size=1)
+
+    r = rospy.Rate(20.)
     while not rospy.is_shutdown():
         if parking.trig == True:
             parking.main()
