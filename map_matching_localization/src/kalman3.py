@@ -195,12 +195,13 @@ class ERP42(Sensor):
         ])
 
     def handleData(self, msg):
+        speed = speed * (1.0 if msg.Gear == 2 else -1)
         cov = getEmpty((4, 4))
         cov[2][2] = 0.01
 
         self.cov = cov
 
-        return np.array([0., 0., msg.speed, 0.], dtype=np.float64), self.cov
+        return np.array([0., 0., speed, 0.], dtype=np.float64), self.cov
 
 
 class Xsens(Sensor):
@@ -307,9 +308,9 @@ class HDL(Sensor):
             np.array(msg.pose.covariance, dtype=np.float64), (6, 6))
         cov = odom_cov[:4, :4]
 
-        # if cov[0][0] > 1.0:
-        #     for i in range(2):
-        #         cov[i][i] = 9999.
+        if cov[0][0] > 1.0:
+            for i in range(2):
+                cov[i][i] = 9999.
 
         self.cov = cov
 
@@ -415,8 +416,8 @@ class GPS(Sensor):
             log=msg.longitude, lat=msg.latitude)
 
         if imu.yaw is not None:
-            self.x += distance * m.cos(imu.yaw - 0.05)
-            self.y += distance * m.sin(imu.yaw - 0.05)
+            self.x += distance * m.cos(imu.yaw)
+            self.y += distance * m.sin(imu.yaw)
 
         x = self.x
         y = self.y

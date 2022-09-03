@@ -26,7 +26,7 @@ def checkIsInParking(obstacle, center_point_of_area):
 
     if dist == 0.0:
         return True
-
+    
     area_VEC = np.array([
         m.cos(yaw - m.radians(90.0)), m.sin(yaw - m.radians(90.0))
     ])
@@ -51,11 +51,11 @@ def checkIsInParking(obstacle, center_point_of_area):
 def where_to_park(available_zone):
     available_zone.insert(0, 0)
     available_zone.append(the_number_of_parkinarea+1)
-    row = []  # 연속된 횟수 저장
-    area_in_a_row = []  # 연속된 자리들 저장
-    temp_of_area_in_a_row = [0]  # 연속된 자리들을 저장하는 임시 리스트
-    j = 0  # 이전 자리 임시 저장
-    temp_number_of_in_a_row = 1  # 연속된 자리 수 임시 저장
+    row = []  # save continuous times 
+    area_in_a_row = []  # save continuous parking area  
+    temp_of_area_in_a_row = [0]  # (temporary list) save continuous parking area 
+    j = 0  # save old parking area temporary 
+    temp_number_of_in_a_row = 1  # save the number of continuous parking area
 
     for i in available_zone:
         if i == 0:
@@ -124,7 +124,7 @@ def parseMarker(id, position, duration=1):
     return marker
 
 
-def markerCallback(msg):  # subscribe 해온 msg 내용을 가용한 형태로 변환
+def markerCallback(msg):
     global parking_areas
     global list_of_center_point_list
     global yaw
@@ -151,14 +151,10 @@ def markerCallback(msg):  # subscribe 해온 msg 내용을 가용한 형태로 �
 
     _, _, yaw = euler_from_quaternion(
         [orientation.x, orientation.y, orientation.z, orientation.w])
-    # print(list_0f_point_list)
-    # print(parking_areas_interval)
 
     rospy.loginfo("Subscribe parking area MarkerArray")
 
 # FOR random_obstacle
-
-
 def obstacleCallback(msg):
 
     global list_of_obstalce
@@ -172,8 +168,7 @@ def obstacleCallback(msg):
 
 
 # FOR adaptive_clustering
-
-'''def obstacleCallback(msg):
+def obstacleCallback(msg):
 
     global list_of_obstacle
     list_of_obstacle = []
@@ -181,7 +176,7 @@ def obstacleCallback(msg):
         temp_x = position.x
         temp_y = position.y
         list_of_obstacle.append([temp_x, temp_y])
-'''
+
 
 
 def SequenceCallback(msg):
@@ -191,8 +186,6 @@ def SequenceCallback(msg):
 
 if __name__ == "__main__":
     rospy.init_node("target_selector")
-
-    'global variable initial setting'
 
     list_of_obstacle = []
     parking_areas = []
@@ -230,18 +223,6 @@ if __name__ == "__main__":
 
     sleep(1.0)
 
-    '''# checkIsInParking(obstacle, center_point_of_area)
-    for ob in list_of_obstacle:
-        for i, area in enumerate(list_of_center_point_list):
-            TorF = checkIsInParking(ob, area)
-            if TorF == True:
-                obstacle_zone.append(i+1)
-
-    for ob_zone in obstacle_zone:
-        All_of_parking_area.remove(ob_zone)
-
-    print('available', All_of_parking_area)'''
-
     area_interval_vec = [m.cos(yaw - m.radians(90)),
                          m.sin(yaw - m.radians(90))]
 
@@ -249,7 +230,6 @@ if __name__ == "__main__":
 
     hz = 1.
     freq = 1 / hz
-
 
 r = rospy.Rate(hz)
 while not rospy.is_shutdown():
@@ -274,7 +254,6 @@ while not rospy.is_shutdown():
 
         target_zone_pub.publish(target_zone_msg)
         print('result', target_zone)
-        '''target_area_visual_pub.publish(target_area_visual)'''
     else:
         pass
     r.sleep()

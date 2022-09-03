@@ -44,6 +44,16 @@ class ParkingState(Enum):
     Deceleration4 = 7  # deceleration
     End = 8           # end
 
+# for test
+
+
+def load_csv():
+    path = rospkg.RosPack().get_path("parking") + "/parking/" + \
+        rospy.get_param("/create_parking_area/parking_file",
+                        "center.csv")
+
+    x, y, yaw = [], [], []
+
 
 class VerticalParkingBase(object):
     __metaclass__ = ABCMeta
@@ -62,13 +72,14 @@ class VerticalParkingBase(object):
         self.brake = 50
 
     def createPath(self, end_point=Point()):
-        cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, end_point.x], [
-            self.state.y, end_point.y], ds=0.1)
-
+        # cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, end_point.x], [
+        #     self.state.y, end_point.y], ds=0.1)
+        x, y, yaw = load_csv()
+        print(x)
         path = PathResponse()
-        path.cx = cx
-        path.cy = cy
-        path.cyaw = cyaw
+        path.cx = x
+        path.cy = y
+        path.cyaw = yaw
 
         return path
 
@@ -107,7 +118,12 @@ class VerticalParkingBase(object):
         _list = []  # list_of_CenterPoint
 
         path = rospkg.RosPack().get_path("parking") + "/parking/" + \
-            rospy.get_param("/create_parking_area/parking_file", "parking.csv")
+            rospy.get_param(
+                "/create_parking_area/parking_file", "parking2.csv")
+
+        num = 6
+        parking_area = rospy.Subscriber(
+            '/parking_areas', MarkerArray, callback=self.AreaCallback)
 
         with open(path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
@@ -139,10 +155,8 @@ class VerticalParkingBase(object):
         self.local_path = msg
 
     def main(self):
+        is_end = False
         cmd = ControlMessage()
-
-        parking_sequence_pub = rospy.Publisher(
-            '/parking_sequence', Int32, queue_size=3)
 
         parking_sequence_msg = 0
         parking_sequence_pub.publish(parking_sequence_msg)
@@ -150,9 +164,11 @@ class VerticalParkingBase(object):
         if self.parking_state.Searching:
 
             if self.startPoint is None:
-                self.startPoint = Point(self.state.x, self.state.y, 0.)
+                #self.startPoint = Point(self.state.x, self.state.y, 0.)
+                # for inside test
+                self.startPoint = Point(0, 7, 0)
 
-            WP2_x, WP2_y = self.scan_stop_point(self.startPoint)
+            WP2_x, WP2_y = self.scan_stop_point()
 
             self.path = self.createPath(
                 Point(WP2_x, WP2_y, 0.)) 
@@ -208,12 +224,12 @@ class VerticalParkingBase(object):
                 self.state.y - self.startPoint.y
             )
 
-            if distance > 10:
+            if distance > 3:
                 self.parking_state = ParkingState.End
                 parking_sequence_pub(self.parking_state)
 
             else:
-                cmd = ControlMessage(0, 0, 1, 5, 0, 0, 0)
+                cmd = ControlMessage(0, 0, 2, 5, 0, 0, 0)
 
         elif self.parking_state.End:
             pass

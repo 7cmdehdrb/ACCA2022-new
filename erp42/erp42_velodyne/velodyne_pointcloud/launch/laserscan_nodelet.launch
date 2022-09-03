@@ -8,6 +8,7 @@
 
   <node pkg="nodelet" type="nodelet" name="$(arg manager)_laserscan"
         args="load velodyne_laserscan/LaserScanNodelet $(arg manager)">
+    <remap from="/scan" to="/velodyne_scan" />
     <param name="ring" value="$(arg ring)"/>
     <param name="resolution" value="$(arg resolution)"/>
   </node>
