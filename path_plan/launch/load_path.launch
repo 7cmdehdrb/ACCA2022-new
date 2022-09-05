@@ -1,7 +1,7 @@
 <launch>
     <arg name="odometry_enable" default="true" />
     <arg name="save_waypoint" default="false" />
-    <arg name="db_name" default="/obstacle_parking.db" />
+    <arg name="db_name" default="/0903_test.db" />
     <arg name="path_name" default="obstacle_parking.csv" />
     <arg name="waypoints_file" default="school_test_waypoint.csv" />
 

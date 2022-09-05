@@ -24,7 +24,7 @@ from cubic_spline_planner import calc_spline_course
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
-    from state import State
+    from state import OdomState
     from stanley import Stanley
 except Exception as ex:
     rospy.logfatal(ex)
@@ -34,16 +34,17 @@ class obstacle(object):
     
     def __init__(self):
         
-        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/static_test.csv")
 
         self.left = []
         self.path = []
-
         self.obs_mapping = []
 
-        for i, j in zip(left_data.cx, left_data.cy):
-            self.left.append([i, j])
+        xs = [60, 70]
+        ys = [0, -30]
+        left_cx, left_cy, left_cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)    
 
+        for i in range(len(left_cx)):
+            self.left.append([left_cx[i], left_cy[i]])
 
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)  
         self.path_response = rospy.Subscriber("/path_response", PathResponse, callback=self.path_callback)    
@@ -53,7 +54,7 @@ class obstacle(object):
         self.obs_pub_way = rospy.Publisher("waypoint_position", MarkerArray, queue_size=10)        
        
         self.ObsMsg = PoseArray()
-        self.PathMsg = Path()
+        self.PathMsg = PathResponse()
         self.msg = ControlMessage()
 
         # parameter
@@ -69,7 +70,7 @@ class obstacle(object):
     def path_callback(self, msg):
         self.PathMsg = msg
 
-        for i in range(len(self.PathMsg)):
+        for i in range(len(self.PathMsg.cx)):
             self.path.append([self.PathMsg.cx[i], self.PathMsg.cy[i]])
         
     def GetDistance(self, point1, point2):
@@ -311,7 +312,7 @@ if __name__ == "__main__":
     rospy.init_node("obstacle")
 
     obs = obstacle()
-    state = State()
+    state = OdomState()
     stanley = Stanley()
     
     cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
