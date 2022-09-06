@@ -9,6 +9,13 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 #set(ROS_BUILD_TYPE RelWithDebInfo)
 
+)
+add_message_files(
+   FILES
+   PathRequest.msg
+   PathResponse.msg
+)
+
 rosbuild_init()
 
 #set the default path for built executables to the "bin" directory

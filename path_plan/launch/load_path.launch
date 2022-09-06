@@ -2,6 +2,7 @@
     <arg name="odometry_enable" default="false" />
     <arg name="save_waypoint" default="false" />
 <<<<<<< HEAD
+<<<<<<< HEAD
     <arg name="db_name" default="/school_test.db" />
     <arg name="path_name" default="school_test_path.csv" />
     <arg name="waypoints_file" default="school_test_waypoint.csv" />
@@ -10,6 +11,11 @@
     <arg name="path_name" default="kcity02.csv" />
     <arg name="waypoints_file" default="kcity_bonsun.csv" />
 >>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
+=======
+    <arg name="db_name" default="/school_test.db" />
+    <arg name="path_name" default="school_test_path.csv" />
+    <arg name="waypoints_file" default="school_test_waypoint.csv" />
+>>>>>>> e0fce322f9d4e8e5d7d34341f6284d8e0cc3f911
 
     <!-- waypoints -->
     <include file="$(find path_plan)/launch/waypoints.launch">

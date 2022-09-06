@@ -113,6 +113,7 @@ class Stanley(object):
         :return: (int, float)
         """
         # Calc front axle position
+
         fx = state.x + self.__L * \
             np.cos(state.yaw) / 2.0 * (-1.0 if reverse else 1.0)
         fy = state.y + self.__L * \

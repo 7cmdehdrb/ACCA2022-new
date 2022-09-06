@@ -133,7 +133,6 @@ def createPath(circle1, circle2, selected_parking_area, state):
     yaw_range = np.arange(yaw_start, yaw_end, 0.01 *
                           (1.0 if yaw_end > yaw_start else -1.0))
 
-<<<<<<< HEAD
     # Set end point : +n m(relative with car height) of end point of parking lot
     fs = 1.5
     end_x = selected_parking_area.position.x + (selected_parking_area.scale.x / 2.0) * \
@@ -145,15 +144,6 @@ def createPath(circle1, circle2, selected_parking_area, state):
         m.cos(yaw) - (1.040 / 2.0) * m.cos(yaw) * fs
     end_y2 = selected_parking_area.position.y + (selected_parking_area.scale.y / 2.0) * \
         m.sin(yaw) - (1.040 / 2.0) * m.sin(yaw) * fs
-=======
-    # Set end point
-    end_x = circle1.pose.position.x + \
-        circle1.scale.x / 2.0 * \
-        m.cos(yaw_range[-1]) - (circle1.scale.x / 2.0 - 0.2) * m.cos(yaw)
-    end_y = circle1.pose.position.y + \
-        circle1.scale.x / 2.0 * \
-        m.sin(yaw_range[-1]) - (circle1.scale.x / 2.0 - 0.2) * m.sin(yaw)
->>>>>>> ecb733fcf4bc4879dbed2489f86f9f86ca3aca73
 
     xs2 = [circle1.pose.position.x +
            circle1.scale.x / 2.0 * m.cos(y) for y in yaw_range]

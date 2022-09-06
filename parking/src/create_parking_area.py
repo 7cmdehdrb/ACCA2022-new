@@ -70,11 +70,11 @@ if __name__ == "__main__":
 
     parking_areas = []
 
-    sub = rospy.Subscriber("/move_base_simple/goal",
+    '''sub = rospy.Subscriber("/move_base_simple/goal",
                            PoseStamped, callback=poseCallback)
     save = rospy.Subscriber("/save_parking", Empty, callback=saveCallback)
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
-
+'''
     hz = 1
     freq = 1 / hz
 
@@ -84,8 +84,9 @@ if __name__ == "__main__":
         msg = MarkerArray()
 
         for i, parking in enumerate(parking_areas):
+            print(parking_areas)
             msg.markers.append(parking.parseMarker(id=i, duration=int(freq)))
 
-        pub.publish(msg)
-
+        '''pub.publish(msg)
+'''
         r.sleep()

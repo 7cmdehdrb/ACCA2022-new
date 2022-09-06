@@ -417,6 +417,21 @@ if __name__ == "__main__":
     last_time = rospy.Time.now()
 
     r = rospy.Rate(hz)
+
+    # while not rospy.is_shutdown():
+    #     is_all_available = True
+    #     for s in sensors:
+    #         if s.once is False:
+    #             is_all_available = False
+    #             break
+
+    #     if is_all_available is True:
+    #         break
+
+    #     rospy.logwarn("Wait for Sensors...")
+
+    #     r.sleep()
+
     while not rospy.is_shutdown():
 
         current_time = rospy.Time.now()
