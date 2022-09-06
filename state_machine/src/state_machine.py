@@ -26,7 +26,10 @@ try:
     
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
     from parking_final import Parking
+    from sign_search import SignSearch
     from obstacle_final import obstacle
+    from dynamic_ob import Lidar
+    from deliveryAB import Delivery
     
 except Exception as ex:
     rospy.logfatal(ex)
@@ -71,16 +74,20 @@ class StateMachine(object):
         self.path = PathResponse()
 
         # Traffic Sign
-        self.trafficSub = rospy.Subscriber(
-            "/sign_publish", Signmsg, callback=self.trafficCallback
-        )
-        self.trafficSign = Signmsg()
+        # self.trafficSub = rospy.Subscriber(
+        #     "/sign_publish", Signmsg, callback=self.trafficCallback
+        # )
+        # self.trafficSign = Signmsg()
+        self.traffic = SignSearch()
+        self.trafficSub = rospy.Subscriber("darknet_ros/bounding_boxes", BoundingBoxes, self.traffic.callback)
 
         # Delivery
+        self.delivery = Delivery()
         self.deliverySub = rospy.Subscriber('/delivery_AB', PoseStamped, callback=self.deliveryCallback)
         self.deliverySign = PoseStamped()
         
         # Dynamic
+        self.dynamic = Lidar()
         self.dynamicSub = rospy.Subscriber('/ob_TF', obTF, callback=self.dynamicCallback)
         self.dynamicSign = obTF()
         
@@ -261,7 +268,7 @@ class StateMachine(object):
             desired_speed *= 0.5
             self.trafficSign.straight = 1
             if self.selector.path.next.path_type == PathType.STRAIGHT:
-                if self.trafficSign.straight == 1:
+                if self.traffic.singmsg.straight == 1:
                     # Non-Stop
                     rospy.loginfo("STRAIGHT : GO!!")
                     return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0)
@@ -278,7 +285,7 @@ class StateMachine(object):
                 return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0)
 
             elif self.selector.path.next.path_type == PathType.LEFT:
-                if self.trafficSign.left == 1:
+                if self.traffic.singmsg.left == 1:
                     rospy.loginfo("LEFT : GO!!")
                     return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0)
                 else:
@@ -292,7 +299,7 @@ class StateMachine(object):
                 return ControlMessage(0, 0, 2, 0, 0, 0, 0)
 
             elif self.selector.path.nex.path_type == PathType.UTURN:
-                if self.trafficSign.left == 1 and self.trafficSign.straight == 0:
+                if self.traffic.singmsg.left == 1 and self.traffic.singmsg.straight == 0:
                     rospy.loginfo("UTURN : GO!!")
                     return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0)
                 else:
@@ -400,6 +407,7 @@ class StateMachine(object):
         return self.static.msg
     
     def dynamicControl(self):
+        self.dynamic.main()
         try:
             di, target_idx = self.stanley.stanley_control(
                 self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
@@ -416,9 +424,9 @@ class StateMachine(object):
 
         desired_speed = self.selector.path.desired_speed
         
-        if self.dynamicSign.front_left == 1 or self.dynamicSign.front_right == 1:
+        if self.dynamic.partTF.front_left == 1 or self.dynamic.partTF.front_right == 1:
             rospy.loginfo("obstacle exist : STOP!")
-            return ControlMessage(0, 0, 2, 0, 0, 200, 0)
+            return ControlMessage(0, 0, 2, 0, 0, 150, 0)
         
         else:
             rospy.loginfo("obstacle dose not exist : GO!")

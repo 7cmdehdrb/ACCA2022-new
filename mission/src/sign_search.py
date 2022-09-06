@@ -2,7 +2,11 @@
 # -*- coding:utf-8 -*-
 
 import rospy
+<<<<<<< HEAD
 from darknet_ros_msgs.msg import BoundingBox, BoundingBoxes
+=======
+from mission.msg import BoundingBox, BoundingBoxes
+>>>>>>> 915bfae65ea4d711ababde90dc81b8baa1925c3c
 import Queue
 from lidar_camera_calibration.msg import Signmsg
 
@@ -40,8 +44,11 @@ class SignSearch(object):
 
         self.calculate(boxclass,boxwhere)
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 915bfae65ea4d711ababde90dc81b8baa1925c3c
     def choosenum(self,num): #num type = string
         if num in self.stop_0:
             self.sign[-1] = 0
@@ -52,9 +59,12 @@ class SignSearch(object):
         else:
             self.sign[-1] = 3
 
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> 915bfae65ea4d711ababde90dc81b8baa1925c3c
     def calculate(self,class_list,where_list):
 
         class_set = set(class_list)
@@ -68,7 +78,10 @@ class SignSearch(object):
                 for a in class_set:
                     self.choosenum(a)
 
+<<<<<<< HEAD
     
+=======
+>>>>>>> 915bfae65ea4d711ababde90dc81b8baa1925c3c
         elif len(class_set) == 2:
             if "0000" in class_set:
                 for a in class_set:
@@ -101,6 +114,7 @@ class SignSearch(object):
         self.publishresult()
     
     def publishresult(self):
+<<<<<<< HEAD
         
         
         sign = Signmsg()
@@ -108,11 +122,17 @@ class SignSearch(object):
         #custom msg
         
         
+=======
+        self.signmsg = Signmsg()
+        
+        #custom msg
+>>>>>>> 915bfae65ea4d711ababde90dc81b8baa1925c3c
         result = max(self.sign, key=self.sign.count)
         
         print(self.sign)
         
         if result == 0 :
+<<<<<<< HEAD
             sign.left = 0
             sign.straight = 0
         elif result == 1 :
@@ -132,6 +152,26 @@ class SignSearch(object):
         del self.sign[0]
         
 
+=======
+            self.signmsg.left = 0
+            self.signmsg.straight = 0
+        elif result == 1 :
+            self.signmsg.left = 1
+            self.signmsg.straight = 0
+        elif result == 2 :
+            self.signmsg.left =0
+            self.signmsg.straight = 1
+        else:
+            self.signmsg.left = 1
+            self.signmsg.straight = 1
+        
+        
+        
+        sign_pub.publish(self.signmsg)
+
+        del self.sign[0]
+                
+>>>>>>> 915bfae65ea4d711ababde90dc81b8baa1925c3c
 
 if __name__ == '__main__':
     
