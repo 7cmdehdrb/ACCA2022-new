@@ -18,11 +18,7 @@ class Stanley(object):
     def __init__(self):
         self.__L = 1.040  # [m] Wheel base of vehicle
         self.__k = rospy.get_param(
-<<<<<<< HEAD
             "/stanley_controller/c_gain", 1.1)  # control gain
-=======
-            "/stanley_controller/c_gain", 0.1)  # control gain
->>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         self.__hdr_ratio = rospy.get_param(
             "/stanley_controller/hdr_ratio", 1.0)
 

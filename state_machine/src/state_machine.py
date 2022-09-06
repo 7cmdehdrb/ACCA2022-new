@@ -16,7 +16,8 @@ from time import sleep
 from geometry_msgs.msg import PoseStamped
 from mission.msg import obTF
 from testpy import TEST
-# parking, static not done 
+# parking, static, delivery sign(check path response) not done 
+
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
     from speed_supporter import SpeedSupporter
@@ -79,12 +80,9 @@ class StateMachine(object):
         # )
         # self.trafficSign = Signmsg()
         self.traffic = SignSearch()
-        self.trafficSub = rospy.Subscriber("darknet_ros/bounding_boxes", BoundingBoxes, self.traffic.callback)
 
         # Delivery
         self.delivery = Delivery()
-        self.deliverySub = rospy.Subscriber('/delivery_AB', PoseStamped, callback=self.deliveryCallback)
-        self.deliverySign = PoseStamped()
         
         # Dynamic
         self.dynamic = Lidar()
@@ -130,14 +128,14 @@ class StateMachine(object):
         # self.path = PathResponseWithType(msg.start, msg.end,
         #                                  msg.path_id, list(msg.cx), list(msg.cy), list(msg.cyaw))
 
-    def trafficCallback(self, msg):
-        self.trafficSign = msg
+    # def trafficCallback(self, msg):
+    #     self.trafficSign = msg
 
-    def deliveryCallback(self, msg):
-        self.deliverySign = msg
+    # def deliveryCallback(self, msg):
+    #     self.deliverySign = msg
         
-        self.sign_x = self.deliverySign.pose.position.x
-        self.sign_y = self.deliverySign.pose.position.y
+    #     self.sign_x = self.deliverySign.pose.position.x
+    #     self.sign_y = self.deliverySign.pose.position.y
         
     def dynamicCallback(self, msg):
         self.dynamicSign = msg
@@ -150,7 +148,6 @@ class StateMachine(object):
         if len(self.path.cx) - 20 < self.target_idx:
 
             rospy.logwarn("Try to change path...!")
-            rospy.logwarn(self.path.path_id)
 
             current_time = rospy.Time.now()
             dt = (current_time - self.request_time).to_sec()
@@ -163,6 +160,7 @@ class StateMachine(object):
                     self.selector.goNext()
                     self.selector.makeRequest()
                     
+                    rospy.logwarn(self.path.path_id) #test
                     # next path is end
                     if self.selector.path.next is None:
                         self.mission_state = MissionState.END
@@ -170,20 +168,23 @@ class StateMachine(object):
                     
                     # currnet path is not end
                     elif self.selector.path.end.is_end is True:
-
-                        if self.path.path_id == "delivery_A" or self.path.path_id == "delivery_B":
+                        
+                        # after test change 'self.path.path_id'
+                        if self.selector.path.data.path_id == "delivery_A" or self.selector.path.data.path_id == "delivery_B":
                             self.mission_state = MissionState.DELIVERY
+                            self.delivery.delivery = True
+
                             rospy.loginfo("Missin State : Delivery")
                         
-                        elif self.path.path_id == "A1A3":
+                        elif self.selector.path.data.path_id == "A1A3":
                             self.mission_state = MissionState.STATIC
                             rospy.loginfo("Missin State : Static")
                         
-                        elif self.path.path_id == "D1E1":
+                        elif self.selector.path.data.path_id == "D1E1":
                             self.mission_state = MissionState.PARKING
                             rospy.loginfo("Missin State : Parking")
                         
-                        elif self.path.path_id == "dynamic":
+                        elif self.selector.path.data.path_id == "dynamic":
                             self.mission_state = MissionState.DYNAMIC
                             rospy.loginfo("Missin State : Dynamic")
 
@@ -194,15 +195,15 @@ class StateMachine(object):
 
 
                     else:
-                        if self.path.path_id == "D1E1":
+                        if self.selector.path.data.path_id == "D1E1":
                             self.mission_state = MissionState.PARKING
                             rospy.loginfo("Missin State : Parking")
                         
-                        elif self.path.path_id == "A1A3":
+                        elif self.selector.path.data.path_id == "A1A3":
                             self.mission_state = MissionState.STATIC
                             rospy.loginfo("Missin State : Static")
                         
-                        elif self.path.path_id == "dynamic":
+                        elif self.selector.path.data.path_id == "dynamic":
                             self.mission_state = MissionState.DYNAMIC
                             rospy.loginfo("Missin State : Dynamic")
                         
@@ -266,9 +267,9 @@ class StateMachine(object):
         if len(self.path.cx) * 0.8 < self.target_idx:
             # Almost in front of traffic sign
             desired_speed *= 0.5
-            self.trafficSign.straight = 1
+
             if self.selector.path.next.path_type == PathType.STRAIGHT:
-                if self.traffic.singmsg.straight == 1:
+                if self.traffic.msg.straight == 1:
                     # Non-Stop
                     rospy.loginfo("STRAIGHT : GO!!")
                     return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0)
@@ -285,7 +286,7 @@ class StateMachine(object):
                 return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0)
 
             elif self.selector.path.next.path_type == PathType.LEFT:
-                if self.traffic.singmsg.left == 1:
+                if self.traffic.msg.left == 1:
                     rospy.loginfo("LEFT : GO!!")
                     return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0)
                 else:
@@ -299,7 +300,7 @@ class StateMachine(object):
                 return ControlMessage(0, 0, 2, 0, 0, 0, 0)
 
             elif self.selector.path.nex.path_type == PathType.UTURN:
-                if self.traffic.singmsg.left == 1 and self.traffic.singmsg.straight == 0:
+                if self.traffic.msg.left == 1 and self.traffic.msg.straight == 0:
                     rospy.loginfo("UTURN : GO!!")
                     return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0)
                 else:
@@ -341,14 +342,16 @@ class StateMachine(object):
 
         desired_speed = self.selector.path.desired_speed
         
-        dis = np.hypot([self.state.x-self.sign_x], [self.state.y - self.sign_y])
+        # between delivery sign and erp distance 
+        dis = np.hypot([self.state.x - self.delivery.panel_x], [self.state.y - self.delivery.panel_y])
         
         if dis < 10 : # have to change tolerance
             rospy.loginfo("traking local path")
             # switch path 
-            if self.selector.path.start == 'A1':  #have to change path start point (before delivery missionn path)   
+            if self.selector.path.start.id == 'A' or self.selector.path.start.id == 'B':  #have to change path start point (before delivery mission path)   
                 self.selector.goNext()
                 self.selector.makequest()
+                
                 di, target_idx = self.stanley.stanley_control(
                     self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
 
@@ -357,7 +360,10 @@ class StateMachine(object):
                 di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
                 desired_speed = self.selector.path.desired_speed
-                           
+
+                # not done
+                self.delivery.panel_x, self.delivery.panel_y = self.delivery.calc_path_point(self.delivery.panel_x, self.delivery.panel_y, self.path)
+
             if dis < 0.1:
                 # delivery mission end
                 rospy.loginfo("arrive at delivery sign")
@@ -365,12 +371,14 @@ class StateMachine(object):
                 self.selector.goNext()
                 self.selector.makequest()
                 
+                self.delivery.delivery = False 
+                
                 if self.selector.path.end.is_end is True:
                     self.mission_state = MissionState.TRAFFIC
                 else:
                     self.mission_state == MissionState.DRIVING
                     
-                return ControlMessage(0, 0, 2, 0, 0, 200, 0)
+                return ControlMessage(0, 0, 2, 0, 0, 150, 0)
         
         speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
                                                 desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)

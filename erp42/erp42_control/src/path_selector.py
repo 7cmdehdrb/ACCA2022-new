@@ -9,8 +9,6 @@ from enum import Enum
 from path_plan.msg import PathRequest, PathResponse
 
 
-<<<<<<< HEAD
-=======
 class PathType(Enum):
     STRAIGHT = 0
     RIGHT = 1
@@ -19,15 +17,11 @@ class PathType(Enum):
     UTURN = 4
 
 
->>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 class Waypoint(object):
     def __init__(self, id, is_end):
         self.id = id
         self.is_end = is_end
-<<<<<<< HEAD
-=======
         print(id, is_end)
->>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
 
 def findWaypoint(file_path, id):
@@ -39,11 +33,7 @@ def findWaypoint(file_path, id):
 
 
 class Node(object):
-<<<<<<< HEAD
-    def __init__(self, data, start, end, next=None):
-=======
     def __init__(self, data, start, end, next=None, desired_speed=0, path_type=PathType.NONE):
->>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         self.data = data
         self.desired_speed = desired_speed
         self.path_type = path_type
@@ -52,7 +42,7 @@ class Node(object):
         self.start = start
         self.end = end
         self.type = None
-
+        
     def append(self, data):
         self.next = data
 
@@ -109,16 +99,8 @@ class PathSelector(object):
                     start_point = findWaypoint(waypoints_path, id=start)
                     end_point = findWaypoint(waypoints_path, id=end)
 
-<<<<<<< HEAD
-                    start_point = findWaypoint(waypoints_path, id=start)
-                    end_point = findWaypoint(waypoints_path, id=end)
-
-                    temp = Node(PathRequest(start, end, start+end),
-                                start=start_point, end=end_point)
-=======
                     temp = Node(PathRequest(start, end, start+end),
                                 start=start_point, end=end_point, desired_speed=desired_speed, path_type=path_type)
->>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
                     if node is None:
                         node = temp
