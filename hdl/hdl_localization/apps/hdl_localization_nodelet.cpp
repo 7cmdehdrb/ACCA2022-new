@@ -28,7 +28,6 @@
 #include <hdl_localization/pose_estimator.hpp>
 #include <hdl_localization/delta_estimater.hpp>
 
-// #include <map_matching_localization/HdlTF.h>
 #include <hdl_localization/ScanMatchingStatus.h>
 #include <hdl_localization/HDL_TF.h>
 #include <hdl_global_localization/SetGlobalMap.h>
@@ -393,7 +392,6 @@ private:
    */
   void publish_odometry(const ros::Time& stamp, const Eigen::Matrix4f& pose) {
     // broadcast the transform over tf
-    if (is_publish_tf){
       if(tf_buffer.canTransform(robot_odom_frame_id, odom_child_frame_id, ros::Time(0))) {
         geometry_msgs::TransformStamped map_wrt_frame = tf2::eigenToTransform(Eigen::Isometry3d(pose.inverse().cast<double>()));
         map_wrt_frame.header.stamp = stamp;
@@ -416,15 +414,41 @@ private:
         odom_trans.header.frame_id = "map";
         odom_trans.child_frame_id = robot_odom_frame_id;
 
-        tf_broadcaster.sendTransform(odom_trans);
+        if (is_publish_tf){
+          tf_broadcaster.sendTransform(odom_trans);
+        }
+        else{
+          HDL_TF hdl_tf;
+          hdl_tf.header.stamp = stamp;
+          hdl_tf.header.frame_id = "map";
+
+          hdl_tf.translation = odom_trans.transform.translation;
+          hdl_tf.rotation = odom_trans.transform.rotation;
+          
+          tf_pub.publish(hdl_tf);
+        }
       } else {
         geometry_msgs::TransformStamped odom_trans = tf2::eigenToTransform(Eigen::Isometry3d(pose.cast<double>()));
         odom_trans.header.stamp = stamp;
         odom_trans.header.frame_id = "map";
         odom_trans.child_frame_id = odom_child_frame_id;
-        tf_broadcaster.sendTransform(odom_trans);
+        
+
+        if (is_publish_tf){
+          tf_broadcaster.sendTransform(odom_trans);
+        }
+        else{
+          ROS_WARN("Please change is_publish_tf to true");
+          // HDL_TF hdl_tf;
+          // hdl_tf.header.stamp = stamp;
+          // hdl_tf.header.frame_id = "map";
+
+          // hdl_tf.translation = odom_trans.transform.translation;
+          // hdl_tf.rotation = odom_trans.transform.rotation;
+          
+          // tf_pub.publish(hdl_tf);
+        }
       }
-    }
 
     // publish the transform
     nav_msgs::Odometry odom;
@@ -433,6 +457,7 @@ private:
 
     tf::poseEigenToMsg(Eigen::Isometry3d(pose.cast<double>()), odom.pose.pose);
     odom.child_frame_id = odom_child_frame_id;
+    odom.pose.pose.position.z = 0.0;
     odom.twist.twist.linear.x = 0.0;
     odom.twist.twist.linear.y = 0.0;
     odom.twist.twist.angular.z = 0.0;
@@ -441,20 +466,21 @@ private:
 
     for (int i = 0; i < cov.size(); i++)
     {
-      /* code */
+      /* initialize */
       cov[i] = 0.0;
     }
 
     if (matching_error >= (3.13 / 2.0)) {
-      cov[0] = tan(3.13 / 2.0) * 10.0;
-      cov[7] = tan(3.13 / 2.0) * 10.0;
+      cov[0] = tan(3.13 / 2.0) * 30.0;
+      cov[7] = tan(3.13 / 2.0) * 30.0;
     }
     else {
-      cov[0] = tan(matching_error) * 10.0;
-      cov[7] = tan(matching_error) * 10.0;
+      cov[0] = tan(matching_error) * 30.0;
+      cov[7] = tan(matching_error) * 30.0;
     }
 
     odom.pose.covariance = cov;
+
 
     pose_pub.publish(odom);
   }

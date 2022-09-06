@@ -1,15 +1,17 @@
 <launch>
-    <arg name="odometry_enable" default="false" />
+    <arg name="odometry_enable" default="true" />
     <arg name="save_waypoint" default="false" />
-    <arg name="db_name" default="/kcity_path.db" />
+    <arg name="db_name" default="/kcity_0715.db" />
     <arg name="odom_topic" default="odometry/kalman"/>
-    
-    <include file="$(find map_matching_localization)/launch/localization.launch" if="$(arg odometry_enable)" />
+    <arg name="waypoints_file" default="kcity_bonsun.csv" />
+
+    <!-- <include file="$(find map_matching_localization)/launch/localization.launch" if="$(arg odometry_enable)" /> -->
 
     <!-- waypoints -->
-    <include file="$(find erp42_control)/launch/waypoints.launch">
+    <include file="$(find path_plan)/launch/waypoints.launch">
         <arg name="save_waypoint" default="$(arg save_waypoint)" />
         <arg name="odometry_enable" default="$(arg odometry_enable)" />
+        <arg name="waypoints_file" default="$(arg waypoints_file)" />
     </include>
 
     <!-- save path -->

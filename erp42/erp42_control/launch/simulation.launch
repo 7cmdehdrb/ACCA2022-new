@@ -1,4 +1,0 @@
-<launch>
-    <node pkg="erp42_control" name="stanley_controller" type="stanley_controller.py" output="screen" />
-    <node pkg="erp42_control" name="fake_odom" type="fake_odom.py" />
-</launch>

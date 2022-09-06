@@ -14,6 +14,7 @@ from map_matching_localization.msg import *
 from path_plan.msg import *
 from rtcm_msgs.msg import *
 from std_msgs.msg import *
+from rtcm_msgs.msg import *
 
 
 class Sensor(object):
@@ -35,7 +36,14 @@ if __name__ == "__main__":
     rospy.init_node("check_sensor")
 
     # Add topic and type here
-    sensors = []
+    sensors = [
+        Sensor("/imu/data", Imu),
+        Sensor("/ublox_gps/fix", NavSatFix),
+        Sensor("/erp42_feedback", SerialFeedBack),
+        Sensor("/velodyne_points", PointCloud2),
+        Sensor("/ublox_gps/rtcm", Message)
+    ]
+
     exceptions = [
         "/move_base_simple/goal",
         "/initialpose",

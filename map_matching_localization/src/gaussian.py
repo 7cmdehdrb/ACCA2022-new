@@ -27,8 +27,8 @@ def gaussianConvolution(g1, g2):
     if g1.sigma == g2.sigma:
         sigma = g1.sigma
     else:
-        sigma = g1.sigma ** 2 - (g1.sigma ** 4) / \
-            (g1.sigma ** 2 - g2.sigma ** 2)
+        sigma = 2.0 * (g1.sigma ** 2 - (g1.sigma ** 4) /
+                       (g1.sigma ** 2 - g2.sigma ** 2))
     return Gaussian(g1.x, mean, abs(sigma))
 
 
@@ -49,10 +49,18 @@ if __name__ == "__main__":
 
     x1 = np.arange(10 - 5, 10 + 5, 0.1)
     g1 = Gaussian(x1, 10, 0.5)
+    g2 = Gaussian(x1, 8, float("inf"))
+    g3 = gaussianConvolution(g1, g2)
 
     plt.figure()
-    plt.legend()
     plt.plot(x1, g1.value, label="N(%.5f, %.5f)" %
              (g1.mean, g1.sigma), c="red")
+
+    plt.plot(x1, g2.value, label="N(%.5f, %.5f)" %
+             (g2.mean, g2.sigma), c="blue")
+
+    plt.plot(x1, g3.value, label="N(%.5f, %.5f)" %
+             (g3.mean, g3.sigma), c="green")
+    plt.legend()
 
     plt.show()

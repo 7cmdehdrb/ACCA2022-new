@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 import math as m
@@ -72,12 +73,12 @@ if __name__ == "__main__":
 
     df = pd.DataFrame
 
-    MAP_array = []
-    UTM_array = []
-
     r = rospy.Time.now()
-    MAP_array = []
-    UTM_array = []
+    MAP_x = []
+    MAP_y = []
+    UTM_x = []
+    UTM_y = []
+
     while not rospy.is_shutdown():
         a = int(input("start:0     stop:1  "))
         if a == 0:
@@ -86,7 +87,7 @@ if __name__ == "__main__":
             map_x = []
             map_y = []
 
-            for i in range(100):
+            for i in range(1):
                 gx, gy, mx, my = state.update()
                 utm_x.append(gx)
                 utm_y.append(gy)
@@ -96,19 +97,25 @@ if __name__ == "__main__":
             _utm_y = np.mean(utm_y)
             _map_x = np.mean(map_x)
             _map_y = np.mean(map_y)
-            map = (_map_x, _map_y)
-            utm = (_utm_x, _utm_y)
-            MAP_array.append(map)
-            UTM_array.append(utm)
+            MAP_x.append(_map_x)
+            MAP_y.append(_map_y)
+            UTM_x.append(_utm_x)
+            UTM_y.append(_utm_y)
+ 
         elif a == 1:
             break
         else:
             print("error number")
             pass
-    print("self.MAP_array = {}".format(MAP_array))
-    print("self.UTM_array = {}".format(UTM_array))
 
-    df = pd.DataFrame(columns=['MAP', 'UTM'])
-    df["MAP"] = MAP_array
-    df["UTM"] = UTM_array
-    df.to_csv("kcity.csv", index=False)
+    print(MAP_x)
+    print(MAP_y)
+    print(UTM_x)
+    print(UTM_y)
+    df = pd.DataFrame(columns=['MAP_x','MAP_y', 'UTM_x', 'UTM_y'])
+    df["MAP_x"] = MAP_x
+    df["MAP_y"] = MAP_y
+    df["UTM_x"] = UTM_x
+    df["UTM_y"] = UTM_y
+
+    df.to_csv("k-city_12.csv", index=False)
