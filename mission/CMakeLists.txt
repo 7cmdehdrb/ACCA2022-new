@@ -14,6 +14,8 @@ std_msgs
 add_message_files(
    FILES
    obTF.msg
+   BoundingBox.msg
+   BoundingBoxes.msg
 )
 generate_messages(
     DEPENDENCIES

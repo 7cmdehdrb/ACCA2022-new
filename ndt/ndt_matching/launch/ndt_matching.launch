@@ -2,8 +2,8 @@
     <param name="/use_sim_time" value="true" />    
     <!-- tf -->
     <node pkg="tf" type="static_transform_publisher" name="velodyne_link" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_link velodyne 100" />
-    <node pkg="tf" type="static_transform_publisher" name="imu_link" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_link imu 100" />
-    <node pkg="tf" type="static_transform_publisher" name="gps_link" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_link gps 100" />
+    <!-- <node pkg="tf" type="static_transform_publisher" name="imu_link" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_link imu 100" />
+    <node pkg="tf" type="static_transform_publisher" name="gps_link" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_link gps 100" /> -->
 
 
     <arg name="tf_x" default="0.0"/>
@@ -22,7 +22,7 @@
     <!-- <arg name="path_pcd" default='$(find map_matching_localization)/data/kcity_remap.pcd' /> -->
     <!-- <arg name="path_pcd" default='/home/acca/kcity_01_pcd/GlobalMap.pcd' /> -->
     <!-- /home/acca/0722/kcity_pcd/GlobalMap.pcd -->
-    <arg name="path_pcd" default='/home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/data/0710_kcity_02.pcd' />
+    <arg name="path_pcd" default='/home/enbang/pcd/school.pcd' />
     
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
         <rosparam subst_value="true">
