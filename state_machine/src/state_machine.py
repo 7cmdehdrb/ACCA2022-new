@@ -15,7 +15,6 @@ from std_msgs.msg import Float32, Int16
 from time import sleep
 from geometry_msgs.msg import PoseStamped
 from mission.msg import obTF
-from testpy import TEST
 # parking, static, delivery sign(check path response) not done 
 
 try:
@@ -86,8 +85,7 @@ class StateMachine(object):
         
         # Dynamic
         self.dynamic = Lidar()
-        self.dynamicSub = rospy.Subscriber('/ob_TF', obTF, callback=self.dynamicCallback)
-        self.dynamicSign = obTF()
+
         
         # Parking
         self.parking = Parking()
@@ -96,7 +94,7 @@ class StateMachine(object):
         # Static
         self.static = obstacle()
         
-        self.test = TEST()
+
         """
             Fields
         """
@@ -137,8 +135,8 @@ class StateMachine(object):
     #     self.sign_x = self.deliverySign.pose.position.x
     #     self.sign_y = self.deliverySign.pose.position.y
         
-    def dynamicCallback(self, msg):
-        self.dynamicSign = msg
+    # def dynamicCallback(self, msg):
+    #     self.dynamicSign = msg
 
     def parkingCallback(self, msg):
         self.parking_cmd = msg
