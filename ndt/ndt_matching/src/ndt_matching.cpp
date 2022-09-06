@@ -141,7 +141,7 @@ static ros::Publisher predict_pose_imu_odom_pub;
 static geometry_msgs::PoseStamped predict_pose_imu_odom_msg;
 
 static ros::Publisher ndt_pose_pub;
-static nav_msgs::Odometry ndt_pose_msg;
+static geometry_msgs::PoseStamped ndt_pose_msg;
 
 static ros::Publisher localizer_pose_pub;
 static geometry_msgs::PoseStamped localizer_pose_msg;
@@ -211,8 +211,7 @@ static bool _use_imu = false;
 static bool _use_odom = false;
 static bool _imu_upside_down = false;
 static bool _output_log_data = false;
-static bool _is_publish_tf = true;
-static std::string _output_tf_frame_id = "base_link";
+static std::string _output_tf_frame_id = "base_link_ndt";
 
 static std::string _imu_topic = "/imu_raw";
 
@@ -891,7 +890,7 @@ static void imu_callback(const sensor_msgs::Imu::Ptr& input)
 
   imu.header = input->header;
   imu.linear_acceleration.x = input->linear_acceleration.x;
-  imu.linear_acceleration.y = input->linear_acceleration.y;
+  // imu.linear_acceleration.y = input->linear_acceleration.y;
   // imu.linear_acceleration.z = input->linear_acceleration.z;
   imu.linear_acceleration.y = 0;
   imu.linear_acceleration.z = 0;
@@ -931,7 +930,8 @@ static void points_callback(const sensor_msgs::PointCloud2::ConstPtr& input)
     pcl::PointXYZ p;
     pcl::PointCloud<pcl::PointXYZ> filtered_scan;
 
-    ros::Time current_scan_time = input->header.stamp;
+    ros::Time current_scan_time = ros::Time().now();
+    // ros::Time current_scan_time = input->header.stamp;
     static ros::Time previous_scan_time = current_scan_time;
 
     pcl::fromROSMsg(*input, filtered_scan);
@@ -1288,59 +1288,25 @@ static void points_callback(const sensor_msgs::PointCloud2::ConstPtr& input)
       tf2::Transform transform(ndt_q, v);
       ndt_pose_msg.header.frame_id = "map";
       ndt_pose_msg.header.stamp = current_scan_time;
-      ndt_pose_msg.child_frame_id = "base_link";
-      ndt_pose_msg.pose.pose.position.x = (local_transform * transform).getOrigin().getX();
-      ndt_pose_msg.pose.pose.position.y = (local_transform * transform).getOrigin().getY();
-      ndt_pose_msg.pose.pose.position.z = (local_transform * transform).getOrigin().getZ();
-      ndt_pose_msg.pose.pose.orientation.x = (local_transform * transform).getRotation().x();
-      ndt_pose_msg.pose.pose.orientation.y = (local_transform * transform).getRotation().y();
-      ndt_pose_msg.pose.pose.orientation.z = (local_transform * transform).getRotation().z();
-      ndt_pose_msg.pose.pose.orientation.w = (local_transform * transform).getRotation().w();
-      boost::array<float, 36> cov;
-      for (int i = 0; i < cov.size(); i++)
-      {
-        if (i == 0 || i == 7){
-          if (ndt_stat_msg.score == 0.0){
-            cov[i] = 999.0;
-          }
-          else {
-            cov[i] = ndt_stat_msg.score * 30.0;
-          }
-        }
-        else {
-          cov[i] = 0.0;
-        }
-      }
-      ndt_pose_msg.pose.covariance = cov;
+      ndt_pose_msg.pose.position.x = (local_transform * transform).getOrigin().getX();
+      ndt_pose_msg.pose.position.y = (local_transform * transform).getOrigin().getY();
+      ndt_pose_msg.pose.position.z = (local_transform * transform).getOrigin().getZ();
+      ndt_pose_msg.pose.orientation.x = (local_transform * transform).getRotation().x();
+      ndt_pose_msg.pose.orientation.y = (local_transform * transform).getRotation().y();
+      ndt_pose_msg.pose.orientation.z = (local_transform * transform).getRotation().z();
+      ndt_pose_msg.pose.orientation.w = (local_transform * transform).getRotation().w();
     }
     else
     {
       ndt_pose_msg.header.frame_id = "map";
       ndt_pose_msg.header.stamp = current_scan_time;
-      ndt_pose_msg.child_frame_id = "base_link";
-      ndt_pose_msg.pose.pose.position.x = ndt_pose.x;
-      ndt_pose_msg.pose.pose.position.y = ndt_pose.y;
-      ndt_pose_msg.pose.pose.position.z = ndt_pose.z;
-      ndt_pose_msg.pose.pose.orientation.x = ndt_q.x();
-      ndt_pose_msg.pose.pose.orientation.y = ndt_q.y();
-      ndt_pose_msg.pose.pose.orientation.z = ndt_q.z();
-      ndt_pose_msg.pose.pose.orientation.w = ndt_q.w();
-      boost::array<float, 36> cov;
-      for (int i = 0; i < cov.size(); i++)
-      {
-        if (i == 0 || i == 7){
-          if (ndt_stat_msg.score == 0.0){
-            cov[i] = 999.0;
-          }
-          else {
-            cov[i] = ndt_stat_msg.score * 30.0;
-          }
-        }
-        else {
-          cov[i] = 0.0;
-        }
-      }
-      ndt_pose_msg.pose.covariance = cov; 
+      ndt_pose_msg.pose.position.x = ndt_pose.x;
+      ndt_pose_msg.pose.position.y = ndt_pose.y;
+      ndt_pose_msg.pose.position.z = ndt_pose.z;
+      ndt_pose_msg.pose.orientation.x = ndt_q.x();
+      ndt_pose_msg.pose.orientation.y = ndt_q.y();
+      ndt_pose_msg.pose.orientation.z = ndt_q.z();
+      ndt_pose_msg.pose.orientation.w = ndt_q.w();
     }
 
     current_q.setRPY(current_pose.roll, current_pose.pitch, current_pose.yaw);
@@ -1399,12 +1365,8 @@ static void points_callback(const sensor_msgs::PointCloud2::ConstPtr& input)
     }
     tf2::Stamped<tf2::Transform> tf(transform, current_scan_time, "map");
     geometry_msgs::TransformStamped tf_msg = tf2::toMsg(tf);
-    tf_msg.transform.translation.z = 0.0;
     tf_msg.child_frame_id = _output_tf_frame_id;
-
-    if (_is_publish_tf == true){
-      br.sendTransform(tf_msg);
-    }
+    br.sendTransform(tf_msg);
 
     matching_end = std::chrono::system_clock::now();
     exe_time = std::chrono::duration_cast<std::chrono::microseconds>(matching_end - matching_start).count() / 1000.0;
@@ -1588,15 +1550,82 @@ int main(int argc, char** argv)
   private_nh.getParam("use_odom", _use_odom);
   private_nh.getParam("imu_upside_down", _imu_upside_down);
   private_nh.getParam("imu_topic", _imu_topic);
-  private_nh.getParam("is_publish_tf", _is_publish_tf);
   private_nh.param<double>("gnss_reinit_fitness", _gnss_reinit_fitness, 500.0);
   private_nh.getParam("output_tf_frame_id", _output_tf_frame_id);
 
   std::string lidar_frame;
-  nh.param("localizer", lidar_frame, std::string("lidar"));
+  nh.param("localizer", lidar_frame, std::string("velodyne"));
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);
   geometry_msgs::TransformStamped tf_baselink2primarylidar;
+  bool received_tf = true;
+
+  // 1. Try getting base_link -> lidar TF from TF tree
+  try
+  {
+    tf_baselink2primarylidar =
+      tf_buffer.lookupTransform("base_link", lidar_frame, ros::Time().now(), ros::Duration(3.0));
+  }
+  catch (tf2::TransformException& ex)
+  {
+    ROS_WARN("Query base_link to primary lidar frame through TF tree failed: %s", ex.what());
+    received_tf = false;
+  }
+
+  // 2. Try getting base_link -> lidar TF from tf_baselink2primarylidar param
+  if (!received_tf)
+  {
+    std::vector<double> bl2pl_vec;
+    if (nh.getParam("tf_baselink2primarylidar", bl2pl_vec) && bl2pl_vec.size() == 6)
+    {
+      tf2::Vector3 tf_trans(bl2pl_vec[0], bl2pl_vec[1], bl2pl_vec[2]);
+      tf2::Quaternion tf_quat;
+      tf_quat.setRPY(bl2pl_vec[5], bl2pl_vec[4], bl2pl_vec[3]);
+      tf_baselink2primarylidar.transform.translation = tf2::toMsg(tf_trans);
+      tf_baselink2primarylidar.transform.rotation = tf2::toMsg(tf_quat);
+
+      received_tf = true;
+    }
+    else
+    {
+      ROS_WARN("Query base_link to primary lidar frame through tf_baselink2primarylidar param failed");
+    }
+  }
+
+  // 3. Try getting base_link -> lidar TF from tf_* params
+  if (!received_tf)
+  {
+    float tf_x, tf_y, tf_z, tf_roll, tf_pitch, tf_yaw;
+    if (nh.getParam("tf_x", tf_x) &&
+        nh.getParam("tf_y", tf_y) &&
+        nh.getParam("tf_z", tf_z) &&
+        nh.getParam("tf_roll", tf_roll) &&
+        nh.getParam("tf_pitch", tf_pitch) &&
+        nh.getParam("tf_yaw", tf_yaw))
+    {
+      tf2::Vector3 tf_trans(tf_x, tf_y, tf_z);
+      tf2::Quaternion tf_quat;
+      tf_quat.setRPY(tf_roll, tf_pitch, tf_yaw);
+      tf_baselink2primarylidar.transform.translation = tf2::toMsg(tf_trans);
+      tf_baselink2primarylidar.transform.rotation = tf2::toMsg(tf_quat);
+
+      received_tf = true;
+    }
+    else
+    {
+      ROS_WARN("Query base_link to primary lidar frame through tf_* params failed");
+    }
+  }
+
+  if (received_tf)
+  {
+    ROS_INFO("base_link to primary lidar transform queried successfully");
+  }
+  else
+  {
+    ROS_ERROR("Failed to query base_link to primary lidar transform");
+    return 1;
+  }
 
   tf_btol = tf2::transformToEigen(tf_baselink2primarylidar).matrix().cast<float>();
 
@@ -1614,6 +1643,7 @@ int main(int argc, char** argv)
   std::cout << "imu_topic: " << _imu_topic << std::endl;
   std::cout << "localizer: " << lidar_frame << std::endl;
   std::cout << "gnss_reinit_fitness: " << _gnss_reinit_fitness << std::endl;
+  std::cout << "tf_baselink2primarylidar: \n" << tf_btol << std::endl;
   std::cout << "-----------------------------------------------------------------" << std::endl;
 
 #ifndef CUDA_FOUND
@@ -1644,23 +1674,25 @@ int main(int argc, char** argv)
   initial_pose.yaw = 0.0;
 
   // Publishers
-  predict_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/ndt_matching/predict_pose", 10);
-  predict_pose_imu_pub = nh.advertise<geometry_msgs::PoseStamped>("/ndt_matching/predict_pose_imu", 10);
-  predict_pose_odom_pub = nh.advertise<geometry_msgs::PoseStamped>("/ndt_matching/predict_pose_odom", 10);
-  predict_pose_imu_odom_pub = nh.advertise<geometry_msgs::PoseStamped>("/ndt_matching/predict_pose_imu_odom", 10);
-  ndt_pose_pub = nh.advertise<nav_msgs::Odometry>("/ndt_matching/ndt_pose", 10);
-  localizer_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/ndt_matching/localizer_pose", 10);
-  estimate_twist_pub = nh.advertise<geometry_msgs::TwistStamped>("/ndt_matching/estimate_twist", 10);
-  estimated_vel_mps_pub = nh.advertise<std_msgs::Float32>("/ndt_matching/estimated_vel_mps", 10);
-  estimated_vel_kmph_pub = nh.advertise<std_msgs::Float32>("/ndt_matching/estimated_vel_kmph", 10);
-  estimated_vel_pub = nh.advertise<geometry_msgs::Vector3Stamped>("/ndt_matching/estimated_vel", 10);
-  time_ndt_matching_pub = nh.advertise<std_msgs::Float32>("/ndt_matching/time_ndt_matching", 10);
-  ndt_stat_pub = nh.advertise<autoware_msgs::NDTStat>("/ndt_matching/ndt_stat", 10);
-  ndt_reliability_pub = nh.advertise<std_msgs::Float32>("/ndt_matching/ndt_reliability", 10);
+  predict_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/predict_pose", 10);
+  predict_pose_imu_pub = nh.advertise<geometry_msgs::PoseStamped>("/predict_pose_imu", 10);
+  predict_pose_odom_pub = nh.advertise<geometry_msgs::PoseStamped>("/predict_pose_odom", 10);
+  predict_pose_imu_odom_pub = nh.advertise<geometry_msgs::PoseStamped>("/predict_pose_imu_odom", 10);
+  ndt_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/ndt_pose", 10);
+  // current_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/current_pose", 10);
+  localizer_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/localizer_pose", 10);
+  estimate_twist_pub = nh.advertise<geometry_msgs::TwistStamped>("/estimate_twist", 10);
+  estimated_vel_mps_pub = nh.advertise<std_msgs::Float32>("/estimated_vel_mps", 10);
+  estimated_vel_kmph_pub = nh.advertise<std_msgs::Float32>("/estimated_vel_kmph", 10);
+  estimated_vel_pub = nh.advertise<geometry_msgs::Vector3Stamped>("/estimated_vel", 10);
+  time_ndt_matching_pub = nh.advertise<std_msgs::Float32>("/time_ndt_matching", 10);
+  ndt_stat_pub = nh.advertise<autoware_msgs::NDTStat>("/ndt_stat", 10);
+  ndt_reliability_pub = nh.advertise<std_msgs::Float32>("/ndt_reliability", 10);
 
   // Subscribers
   ros::Subscriber param_sub = nh.subscribe("config/ndt", 10, param_callback);
   ros::Subscriber gnss_sub = nh.subscribe("gnss_pose", 10, gnss_callback);
+  //  ros::Subscriber map_sub = nh.subscribe("points_map", 1, map_callback);
   ros::Subscriber initialpose_sub = nh.subscribe("initialpose", 10, initialpose_callback);
   ros::Subscriber points_sub = nh.subscribe("filtered_points", _queue_size, points_callback);
   ros::Subscriber odom_sub = nh.subscribe("vehicle/odom", _queue_size * 10, odom_callback);

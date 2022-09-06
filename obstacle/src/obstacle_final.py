@@ -24,7 +24,7 @@ from cubic_spline_planner import calc_spline_course
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
-    from state import OdomState
+    from state import State
     from stanley import Stanley
 except Exception as ex:
     rospy.logfatal(ex)
@@ -34,17 +34,32 @@ class obstacle(object):
     
     def __init__(self):
         
-
+        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/left1.csv")
+        right_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/right1.csv")
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/center1.csv")
+        
         self.left = []
+        self.right = []
         self.path = []
+        self.path_cx = []
+        self.path_cy = []
+        self.path_cx_new = []
+        self.path_cy_new = []
+        self.path_cyaw = []
         self.obs_mapping = []
 
-        xs = [60, 70]
-        ys = [0, -30]
-        left_cx, left_cy, left_cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)    
+        for i, j in zip(left_data.cx, left_data.cy):
+            self.left.append([i, j])
+        for i, j in zip(right_data.cx, right_data.cy):
+            self.right.append([i, j])
 
-        for i in range(len(left_cx)):
-            self.left.append([left_cx[i], left_cy[i]])
+        for i, j, k in zip(path_data.cx, path_data.cy, path_data.cyaw):
+            self.path.append([i, j])
+            self.path_cx.append(i)
+            self.path_cy.append(j)
+            self.path_cx_new.append(i)
+            self.path_cy_new.append(j)
+            self.path_cyaw.append(k)
 
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)  
         self.path_response = rospy.Subscriber("/path_response", PathResponse, callback=self.path_callback)    
@@ -54,24 +69,21 @@ class obstacle(object):
         self.obs_pub_way = rospy.Publisher("waypoint_position", MarkerArray, queue_size=10)        
        
         self.ObsMsg = PoseArray()
-        self.PathMsg = PathResponse()
+        self.PathMsg = Path()
         self.msg = ControlMessage()
 
         # parameter
         self.detect_obs_angle = 0.8
-        self.detect_obs_range = 2.
+        self.detect_obs_range = 3.
         self.prox_dis = 1.        
-        self.r = 1.3
+        self.r = 1.6
         self.det_iter= 10
         
     def ObstacleCallback(self, msg):
         self.ObsMsg = msg
    
     def path_callback(self, msg):
-        self.PathMsg = msg
-
-        for i in range(len(self.PathMsg.cx)):
-            self.path.append([self.PathMsg.cx[i], self.PathMsg.cy[i]])
+        self.path = msg
         
     def GetDistance(self, point1, point2):
         distance = m.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
@@ -149,8 +161,8 @@ class obstacle(object):
             for obs in self.obstacle:
             
                 a, b = obs[0], obs[1]
-                target_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [a, b])
-                p = -1. / self.PathMsg.cyaw[target_idx]
+                target_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, [a, b])
+                p = -1. / self.path_cyaw[target_idx]
                 c = b - p * a
                 
                 t1 = (2*a + 2*p*b - 2*p*c + m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
@@ -187,16 +199,16 @@ class obstacle(object):
             
     def CreatPath(self, state):
         
-        state_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [state.x, state.y])
+        state_tar_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, [state.x, state.y])
 
         if len(self.waypoint_arr) != 0:
             max_tar_idx = -1
-            self.waypoint_arr.sort(key = lambda x : self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, x))
+            self.waypoint_arr.sort(key = lambda x : self.calc_target_index(self.path_cx_new, self.path_cy_new, x))
         
             if len(self.waypoint_arr) >= 2:
                     
-                min_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, self.waypoint_arr[0])
-                max_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, self.waypoint_arr[-1])
+                min_tar_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, self.waypoint_arr[0])
+                max_tar_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, self.waypoint_arr[-1])
                 xs = [self.path[min_tar_idx - 40][0]]
                 ys = [self.path[min_tar_idx - 40][1]]
         
@@ -209,25 +221,25 @@ class obstacle(object):
                     ys.append(self.path[max_tar_idx + 40][1])
                     
                 except IndexError:
-                    xs.append(self.path[len(self.PathMsg.cx) - 1][0])
-                    ys.append(self.path[len(self.PathMsg.cx) - 1][1])   
+                    xs.append(self.path[len(self.path_cx) - 1][0])
+                    ys.append(self.path[len(self.path_cx) - 1][1])   
 
                 if max_tar_idx + 40 >= state_tar_idx:
                     self.cx, self.cy, self.cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)    
                 else :
-                    self.cx, self.cy, self.cyaw = self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw
+                    self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw
                     
             else : # waypoint array len : 1
-                max_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, self.waypoint_arr[0])
+                max_tar_idx = self.calc_target_index(self.path_cx_new, self.path_cy_new, self.waypoint_arr[0])
                 xs = [self.path[max_tar_idx - 40][0], self.waypoint_arr[0][0], self.path[max_tar_idx + 40][0]]
                 ys = [self.path[max_tar_idx - 40][1], self.waypoint_arr[0][1], self.path[max_tar_idx + 40][1]]
         
                 if max_tar_idx >= state_tar_idx:
                     self.cx, self.cy, self.cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)
                 else :
-                    self.cx, self.cy, self.cyaw = self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw           
+                    self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw           
         else :
-            self.cx, self.cy, self.cyaw = self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw
+            self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw
         
                 
     def publishPath(self, cx, cy, cyaw):
@@ -312,7 +324,7 @@ if __name__ == "__main__":
     rospy.init_node("obstacle")
 
     obs = obstacle()
-    state = OdomState()
+    state = State()
     stanley = Stanley()
     
     cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
@@ -323,7 +335,7 @@ if __name__ == "__main__":
     r = rospy.Rate(10.)
     
     while not rospy.is_shutdown():
-        if obs.PathMsg.path_id == 'A3B1':
+        if obs.PathMsg.path_id == 'M1M2':
             obs.DetectObstacle(state)
             obs.CreateWaypoint()
             obs.CreatPath(state)

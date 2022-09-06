@@ -40,8 +40,12 @@ def saveCallback(msg):
         rospy.get_param("/create_parking_area/parking_file", "parking.csv")
 =======
         rospy.get_param("/create_parking_area/parking_file",
+<<<<<<< HEAD
                         "hor_parking5.csv")
 >>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
+=======
+                        "parking3.csv")
+>>>>>>> 4f4b00fec7804e0cbe62f89c9b8558367516c1c6
 
     with open(path, 'w') as csvfile:
         for parking in parking_areas:
@@ -70,12 +74,12 @@ if __name__ == "__main__":
 
     parking_areas = []
 
-    '''sub = rospy.Subscriber("/move_base_simple/goal",
+    sub = rospy.Subscriber("/move_base_simple/goal",
                            PoseStamped, callback=poseCallback)
     save = rospy.Subscriber("/save_parking", Empty, callback=saveCallback)
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
-'''
-    hz = 1
+
+    hz = 10
     freq = 1 / hz
 
     r = rospy.Rate(hz)
@@ -87,6 +91,5 @@ if __name__ == "__main__":
             print(parking_areas)
             msg.markers.append(parking.parseMarker(id=i, duration=int(freq)))
 
-        '''pub.publish(msg)
-'''
+        pub.publish(msg)
         r.sleep()

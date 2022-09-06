@@ -1,10 +1,15 @@
 <launch>
-    <arg name="odometry_enable" default="false" />
+    <arg name="odometry_enable" default="true" />
     <arg name="save_waypoint" default="false" />
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     <arg name="db_name" default="/school_test.db" />
     <arg name="path_name" default="school_test_path.csv" />
+=======
+    <arg name="db_name" default="/0903_test.db" />
+    <arg name="path_name" default="obstacle_parking.csv" />
+>>>>>>> 4f4b00fec7804e0cbe62f89c9b8558367516c1c6
     <arg name="waypoints_file" default="school_test_waypoint.csv" />
 =======
     <arg name="db_name" default="/kcity_02.db" />

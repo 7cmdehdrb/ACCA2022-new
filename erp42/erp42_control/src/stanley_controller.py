@@ -298,7 +298,7 @@ class StanleyController(object):
 if __name__ == "__main__":
     rospy.init_node("stanley_controller")
 
-    state = State(odometry_topic="/odometry/kalman")
+    state = OdomState(odometry_topic="/odometry/kalman")
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 

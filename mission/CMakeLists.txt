@@ -14,6 +14,7 @@ std_msgs
 add_message_files(
    FILES
    obTF.msg
+   Signmsg.msg
 )
 generate_messages(
     DEPENDENCIES

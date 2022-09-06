@@ -22,6 +22,7 @@
     </include>
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     
     <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="$(find map_matching_localization)/data/scans.pcd _frame_id:=/map 5" unless="$(arg odometry_enable)" />
 =======
@@ -29,6 +30,9 @@
 =======
     <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="/home/enbang/pcd/school.pcd _frame_id:=/map 5" unless="$(arg odometry_enable)" /> -->
 >>>>>>> e0fce322f9d4e8e5d7d34341f6284d8e0cc3f911
+=======
+    <!-- <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="/home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/data/school.pcd _frame_id:=/map 5" unless="$(arg odometry_enable)" /> --> -->
+>>>>>>> 4f4b00fec7804e0cbe62f89c9b8558367516c1c6
 
     <!-- <node type="pcd_to_pointcloud" name="pcd_to_pointcloud" pkg="pcl_ros" args="/home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/data/0710_kcity_02.pcd _frame_id:=/map 5" unless="$(arg odometry_enable)" /> --> -->
 >>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe

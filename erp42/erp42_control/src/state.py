@@ -41,9 +41,12 @@ class State(object):
         if 1 / dt > self.hz * 2.0:
 >>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
             return 0
+        quat = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
+                msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
+        _, _, yaw = euler_from_quaternion(quat)
 
-        self.x = msg.pose.pose.position.x
-        self.y = msg.pose.pose.position.y
+        self.x = msg.pose.pose.position.x - (1.040 / 2) * math.cos(yaw)
+        self.y = msg.pose.pose.position.y - (1.040 / 2) * math.sin(yaw)
 
         dx = msg.pose.pose.position.x - self.data.pose.pose.position.x
         dy = msg.pose.pose.position.y - self.data.pose.pose.position.y
@@ -52,9 +55,6 @@ class State(object):
 
         self.v = distance / dt
 
-        quat = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
-                msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
-        _, _, yaw = euler_from_quaternion(quat)
 
         self.omega = (yaw - self.yaw) / dt
         self.yaw = yaw

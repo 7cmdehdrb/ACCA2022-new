@@ -23,7 +23,7 @@ from cubic_spline_planner import calc_spline_course
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
-    from state import OdomState
+    from state import State
     from stanley import Stanley
 except Exception as ex:
     rospy.logfatal(ex)
@@ -41,7 +41,20 @@ class Parking(object):
     
     def __init__(self):
 
+
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/obstacle/data/center1.csv")
+        
         self.path = []
+        self.path_cx = []
+        self.path_cy = []
+        self.path_cyaw = []
+
+        for i, j, k in zip(path_data.cx, path_data.cy, path_data.cyaw):
+            self.path.append([i, j])
+            self.path_cx.append(i)
+            self.path_cy.append(j)
+            self.path_cyaw.append(k)
+
         # parameter
         self.area = [[1.0, 6.5], [3.0, 7.0], [5.0, 7.5], [7.0, 8.5], [9.0, 9.5], [11.0, 10.5]]
         self.p = -m.atan2(0.1, 8.)
@@ -59,9 +72,9 @@ class Parking(object):
         self.area_num = [0, 0, 0, 0, 0, 0]
 
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)
-        rospy.Subscriber("/path_response", PathResponse, callback=self.path_callback)    
+        self.path_response = rospy.Subscriber("/path_response", PathResponse, callback=self.path_callback)    
         self.obs_pub_parking = rospy.Publisher("parking_position", MarkerArray, queue_size=10)        
-        self.cmd_pub = rospy.Publisher("/cmd_msg/parking", ControlMessage, queue_size=10)
+        self.cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=10)
         self.path_pub = rospy.Publisher("Obs_path", Path, queue_size=10)
 
 
@@ -69,24 +82,20 @@ class Parking(object):
         self.PathMsg = PathResponse()
         self.msg = ControlMessage()
 
-
-
     def ObstacleCallback(self, msg):
         self.ObsMsg = msg
         
     def path_callback(self, msg):
-        self.PathMsg = msg
-        
-        for i in range(len(self.PathMsg.cx)):
-            self.path.append([self.PathMsg.cx[i], self.PathMsg.cy[i]])
-
+        self.path = msg
+  
+  
     def GetPoint(self, area):
         
-        per_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [area[0], area[1]])
+        per_idx = self.calc_target_index(self.path_cx, self.path_cy, [area[0], area[1]])
         
         point1 = [area[0], area[1]]
-        point2 = [self.PathMsg.cx[per_idx], self.PathMsg.cy[per_idx]]
-        point3 = [self.PathMsg.cx[per_idx - self.point3_inx], self.PathMsg.cy[per_idx - self.point3_inx]]
+        point2 = self.path[per_idx]
+        point3 = self.path[per_idx - self.point3_inx]
         
         p = self.p
         
@@ -100,9 +109,9 @@ class Parking(object):
         
         _, meetpoint, point3 = self.GetPoint(area)
         
-        current_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [state.x, state.y])
-        meet_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [meetpoint[0], meetpoint[1]])
-        point3_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [point3[0], point3[1]])
+        current_idx = self.calc_target_index(self.path_cx, self.path_cy, [state.x, state.y])
+        meet_idx = self.calc_target_index(self.path_cx, self.path_cy, [meetpoint[0], meetpoint[1]])
+        point3_idx = self.calc_target_index(self.path_cx, self.path_cy, [point3[0], point3[1]])
 
         
         if point3_idx - self.detect_start_idx < current_idx < point3_idx:
@@ -119,6 +128,7 @@ class Parking(object):
     
     def CarMapping(self, state, target, target_idx):
                 
+ 
         for i in self.ObsMsg.poses:
         
             velodyne_x = i.position.x
@@ -133,15 +143,13 @@ class Parking(object):
     
     
     def SelectArea(self, state):
-        self.msg = ControlMessage()
-
         target_idx = 0
         length = 0
+        msg = ControlMessage()
         while self.parking_state == 'detect area' and not rospy.is_shutdown():
-            print("detect!!!")
             self.publishArea(parking.area)
             # self.publishPath(parking.path_cx, parking.path_cy, parking.path_cyaw)
-            l = len(self.PathMsg.cx)
+            l = len(self.path_cx)
 
             if l != length:
                 length = l
@@ -149,14 +157,15 @@ class Parking(object):
 
             if target_idx == l:
                 continue
-            print(self.PathMsg.path_id)
-            di, target_idx = stanley.stanley_control(
-            state, self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw, target_idx)
             
-            self.msg.Speed = 5.
-            self.msg.Steer = -m.degrees(di)
-            self.msg.Gear = 2
-            self.cmd_pub.publish(self.msg)
+            di, target_idx = stanley.stanley_control(
+            state, self.path_cx, self.path_cy, self.path_cyaw, target_idx)
+            
+            msg.Speed = 5.
+            msg.Steer = -m.degrees(di)
+            msg.Gear = 2
+            self.cmd_pub.publish(msg)
+
             for i in range(6):
                 
                 inrange = 'none'
@@ -171,7 +180,7 @@ class Parking(object):
                 if inrange == 'complete detect range' and self.area_num[i] < self.obs_count:
                     self.target_area = i
                     self.parking_state = 'in'  
-                r.sleep()
+            print(self.area_num)
 
 
     def CreatPath(self, state):
@@ -209,6 +218,7 @@ class Parking(object):
             
 
     def parking(self, state, stanley):
+        
         local_target_idx = 0
         local_length = 0   
         
@@ -216,6 +226,7 @@ class Parking(object):
         length = 0
         
         self.CreatPath(state)
+        msg = ControlMessage()
         while self.parking_state == 'in' and not rospy.is_shutdown():
             self.publishArea(parking.area)
 
@@ -234,21 +245,19 @@ class Parking(object):
             di, local_target_idx = stanley.stanley_control(
             state, self.local_cx, self.local_cy, self.local_cyaw, target_idx)
 
-            self.msg.Speed = 3.
-            self.msg.Steer = -m.degrees(di)
-            self.msg.Gear = 2
-            self.cmd_pub.publish(self.msg)
-
+            msg.Speed = 3.
+            msg.Steer = -m.degrees(di)
+            msg.Gear = 2
+            
             state_idx = self.calc_target_index(self.local_cx, self.local_cy, [state.x, state.y])
-
-            r.sleep()
+            self.cmd_pub.publish(msg)
                         
             if abs(state_idx - len(self.local_cx)) < 3:
 
-                self.msg.Speed = 0.
-                self.msg.Steer = 0.
-                self.msg.brake = 70.
-                self.cmd_pub.publish(self.msg)
+                msg.Speed = 0.
+                msg.Steer = 0.
+                msg.brake = 70.
+                self.cmd_pub.publish(msg)
 
                 sleep(5)
                 
@@ -257,49 +266,40 @@ class Parking(object):
 
         while self.parking_state == 'out' and not rospy.is_shutdown():
             self.publishArea(parking.area)
-            print("out!!!")
-            self.msg.Speed = 5.
-            self.msg.Steer = 0.
-            self.msg.brake = 0.
-            self.msg.Gear = 0
-            self.cmd_pub.publish(self.msg)
 
+            msg.Speed = 5.
+            msg.Steer = 0.
+            msg.brake = 0.
+            msg.Gear = 0
+            self.cmd_pub.publish(msg)
             dis = self.GetDistance2(self.path, [state.x, state.y])
             
             if dis < 0.2:
-                self.msg.Speed = 0.
-                self.msg.Steer = 0.
-                self.msg.brake = 70.
-                self.msg.Gear = 2
-                self.cmd_pub.publish(self.msg)
-                sleep(2)
                 self.parking_state = 'complete'
-                print("break!!!!")
+
                 break            
-            r.sleep()
 
         while parking.parking_state == 'complete' and not rospy.is_shutdown():
+            sleep(1.)
+            break
+            # self.publishArea(parking.area)
 
-            self.publishArea(parking.area)
+            # l = len(self.path_cx)
 
-            l = len(self.PathMsg.cx)
+            # if l != length:
+            #     length = l
+            #     target_idx = 1
 
-            if l != length:
-                length = l
-                target_idx = 1
-
-            if target_idx == l:
-                continue
+            # if target_idx == l:
+            #     continue
             
-            di, target_idx = stanley.stanley_control(
-            state, self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw, target_idx)
+            # di, target_idx = stanley.stanley_control(
+            # state, self.path_cx, self.path_cy, self.path_cyaw, target_idx)
             
-            self.msg.Speed = 7.
-            self.msg.Steer = -m.degrees(di)
-            self.msg.brake = 0.
-
-            self.msg.Gear = 2
-            self.cmd_pub.publish(self.msg)
+            # msg.Speed = 7.
+            # msg.Steer = -m.degrees(di)
+            # msg.Gear = 2
+            # self.cmd_pub.publish(msg)
         
         
     def GetDistance(self, point1, point2):    
@@ -365,20 +365,32 @@ if __name__ == "__main__":
     rospy.init_node("parking")
 
     parking = Parking()
-    state = OdomState()
+    state = State()
     stanley = Stanley()
 
     parking_state = DiagonalParking.detect_area
-    r = rospy.Rate(30)
-
+    
+    r = rospy.Rate(5.)
+    
     while not rospy.is_shutdown():
-        if parking.PathMsg.path_id == 'E1A1':
+        print(parking.parking_state)
+        # if parking.PathMsg.path_id == 'M1M2':
+        if parking.parking_state == 'detect area':
+            parking.SelectArea(state)
+            print(parking.parking_state)
 
-            if parking.parking_state == 'detect area':
-                parking.SelectArea(state)
-            
-            else:
-                parking.parking(state, stanley)
+            # parking.publishArea(parking.area)
+        
         else:
-            pass
+            print(parking.parking_state)
+            # parking.publishArea(parking.area)
+            parking.parking(state, stanley)
 
+            parking_state = DiagonalParking.End
+
+                
+    # else :
+    #     pass
+        r.sleep()
+
+            

@@ -48,15 +48,6 @@ class ParkingArea(object):
 
         return marker
 
-    def interval(xs=4, scale_x=2.5, yaw=m.pi/6, the_number_of_parking_areas=6):
-        interval = scale_x/m.cos(yaw)
-        interval_list = []
-        j = 0
-        for i in range(the_number_of_parking_areas):
-            interval_list.append(xs + interval*j)
-            j += 1
-        print(interval_list)
-
     def parseArray(self):
         _, _, yaw = euler_from_quaternion(
             [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w])
@@ -81,6 +72,3 @@ class ParkingArea(object):
         return np.array([
             p1, p2, p3, p4, p5
         ])
-
-    interval()
-    print(m.pi/6)
