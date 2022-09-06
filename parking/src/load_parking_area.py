@@ -32,7 +32,12 @@ if __name__ == "__main__":
     rospy.init_node("load_parking_area")
 
     path = rospkg.RosPack().get_path("parking") + "/parking/" + \
+<<<<<<< HEAD
         rospy.get_param("/create_parking_area/parking_file", "parking.csv")
+=======
+        rospy.get_param("/create_parking_area/parking_file",
+                        "hor_parking5.csv")
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
 

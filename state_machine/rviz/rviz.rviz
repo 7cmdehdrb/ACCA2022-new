@@ -8,7 +8,10 @@ Panels:
         - /Status1
         - /TF1/Tree1
         - /Odometry1/Shape1
+<<<<<<< HEAD
         - /Odometry3
+=======
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
       Splitter Ratio: 0.5
     Tree Height: 796
   - Class: rviz/Selection
@@ -41,7 +44,11 @@ Visualization Manager:
       Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
+<<<<<<< HEAD
       Enabled: false
+=======
+      Enabled: true
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
       Line Style:
         Line Width: 0.029999999329447746
         Value: Lines
@@ -54,7 +61,11 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 100
       Reference Frame: <Fixed Frame>
+<<<<<<< HEAD
       Value: false
+=======
+      Value: true
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
@@ -152,6 +163,7 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
+<<<<<<< HEAD
         map:
           base_link:
             encoder:
@@ -162,6 +174,9 @@ Visualization Manager:
               {}
             velodyne:
               {}
+=======
+        {}
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
       Update Interval: 0
       Value: false
     - Angle Tolerance: 0.10000000149011612
@@ -197,7 +212,11 @@ Visualization Manager:
         Value: Arrow
       Topic: /odometry/gps
       Unreliable: false
+<<<<<<< HEAD
       Value: true
+=======
+      Value: false
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -273,18 +292,27 @@ Visualization Manager:
       Namespaces:
         A1: true
         A2: true
+<<<<<<< HEAD
+=======
+        A3: true
+        A4: true
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         B1: true
         B2: true
         B3: true
         B4: true
+<<<<<<< HEAD
         B5: true
         B6: true
         B7: true
         B8: true
+=======
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         C1: true
         C2: true
         C3: true
         C4: true
+<<<<<<< HEAD
         C5: true
         C6: true
         C7: true
@@ -343,6 +371,12 @@ Visualization Manager:
         K4: true
         K5: true
         K6: true
+=======
+        D1: true
+        D2: true
+        E1: true
+        E2: true
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -384,6 +418,37 @@ Visualization Manager:
       Topic: /create_global_path
       Unreliable: false
       Value: true
+<<<<<<< HEAD
+=======
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /cloud_pcd
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -412,25 +477,42 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
+<<<<<<< HEAD
       Distance: 145.20169067382812
+=======
+      Distance: 74.52763366699219
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
+<<<<<<< HEAD
         X: 31.264965057373047
         Y: -42.070579528808594
         Z: -52.794151306152344
+=======
+        X: 17.9893798828125
+        Y: -7.610753059387207
+        Z: -23.813419342041016
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
+<<<<<<< HEAD
       Pitch: 1.5397963523864746
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 3.1235759258270264
+=======
+      Pitch: 1.5697963237762451
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz)
+      Yaw: 3.528580665588379
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
     Saved: ~
 Window Geometry:
   Displays:

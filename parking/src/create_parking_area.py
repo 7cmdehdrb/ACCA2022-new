@@ -21,8 +21,13 @@ def poseCallback(msg):
 
     quat = msg.pose.orientation
 
+<<<<<<< HEAD
     w = 0.8
     h = 2.0
+=======
+    w = 1.7
+    h = 4.5
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
     parking_areas.append(ParkingArea(x=x, y=y, quat=quat, w=w, h=h))
 
@@ -31,7 +36,12 @@ def saveCallback(msg):
     global parking_areas
 
     path = rospkg.RosPack().get_path("parking") + "/parking/" + \
+<<<<<<< HEAD
         rospy.get_param("/create_parking_area/parking_file", "parking.csv")
+=======
+        rospy.get_param("/create_parking_area/parking_file",
+                        "hor_parking5.csv")
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
     with open(path, 'w') as csvfile:
         for parking in parking_areas:

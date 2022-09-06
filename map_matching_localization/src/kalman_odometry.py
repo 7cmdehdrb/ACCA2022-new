@@ -12,7 +12,10 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped, QuaternionStamped, Quaternion, Point
 from erp42_msgs.msg import SerialFeedBack
+<<<<<<< HEAD
 from hdl_localization.msg import ScanMatchingStatus
+=======
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 from erp42_control.msg import ControlMessage
 from gaussian import *
 from pyproj import *
@@ -33,6 +36,24 @@ def getEmpty(shape):
     return np.array([[0. for i in range(shape[0])] for j in range(shape[1])])
 
 
+<<<<<<< HEAD
+=======
+def normalize_angle(angle):
+    """
+    Normalize an angle to [-pi, pi].
+    :param angle: (float)
+    :return: (float) Angle in radian in [-pi, pi]
+    """
+    while angle > np.pi:
+        angle -= 2.0 * np.pi
+
+    while angle < -np.pi:
+        angle += 2.0 * np.pi
+
+    return angle
+
+
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 class Kalman(object):
     def __init__(self, *args, **kwargs):
         self.odom_tf = tf.TransformBroadcaster()
@@ -56,7 +77,11 @@ class Kalman(object):
             [0.5, 0., 0., 0.],
             [0., 0.5, 0., 0.],
             [0., 0., 0.01, 0.],
+<<<<<<< HEAD
             [0., 0., 0., 0.01]
+=======
+            [0., 0., 0., 0.1]
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         ])
 
         self.dt = 0.
@@ -83,9 +108,15 @@ class Kalman(object):
         R = cov_position + cov_erp + cov_imu
 
         u_k = np.array(
+<<<<<<< HEAD
             [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.degrees(cmd.data[1])) * dt])
         x_k = np.dot(A, self.x) + u_k
         P_k = np.dot(np.dot(A, self.P), A.T) + self.Q
+=======
+            [0., 0., 0., (kph2mps(cmd.data[0]) / 1.040) * m.tan(-m.radians(cmd.data[1])) * dt])
+        x_k = np.dot(A, self.x) + u_k
+        P_k = np.abs(np.dot(np.dot(A, self.P), A.T)) + self.Q
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
         H_position = np.array(
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
@@ -108,6 +139,10 @@ class Kalman(object):
         self.x = X
         self.P = P_k - \
             np.dot(np.dot((K_position + K_erp + K_imu), np.identity(n=4)), P_k)
+<<<<<<< HEAD
+=======
+        
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
         self.dt = dt
 
@@ -145,6 +180,10 @@ class Kalman(object):
             child="base_link",
             parent="odom"
         )
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         self.odom_pub.publish(msg)
 
 
@@ -181,8 +220,16 @@ class ERP42(Sensor):
             [0., 0., 0., 0., ]
         ])
 
+<<<<<<< HEAD
     def handleData(self, msg):
         speed = msg.speed * (1.0 if msg.Gear == 2 else -1.0)
+=======
+        self.gear = 2
+
+    def handleData(self, msg):
+        self.gear = msg.Gear
+        speed = msg.speed
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         cov = getEmpty((4, 4))
         cov[2][2] = 0.01
 
@@ -212,7 +259,14 @@ class Xsens(Sensor):
         if self.init_yaw is None:
             self.init_yaw = yaw
 
+<<<<<<< HEAD
         self.yaw = yaw - self.init_yaw
+=======
+        self.yaw = normalize_angle(
+            yaw - self.init_yaw + (np.pi if erp.gear == 2 else 0.0))
+
+        # print("%.4f\t%.4f\t%.4f" % (yaw, self.init_yaw, self.yaw))
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
         cov = getEmpty((4, 4))
         cov[-1][-1] = msg.orientation_covariance[-1]
@@ -232,9 +286,12 @@ class GPS(Sensor):
             [0., 0., 0., 0., ]
         ])
 
+<<<<<<< HEAD
         self.gps_odom_pub = rospy.Publisher(
             "odometry/gps", Odometry, queue_size=1)
 
+=======
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         self.x = 0.
         self.y = 0.
 
@@ -243,6 +300,7 @@ class GPS(Sensor):
 
         self.last_position = None
 
+<<<<<<< HEAD
     def publishOdometry(self, x, y):
         msg = Odometry()
 
@@ -265,6 +323,8 @@ class GPS(Sensor):
 
         self.gps_odom_pub.publish(msg)
 
+=======
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
     def calculateDistance(self, p1, p2):
         return m.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
 
@@ -298,15 +358,24 @@ class GPS(Sensor):
 
         self.cov = np.array([
             [msg.position_covariance[0] *
+<<<<<<< HEAD
                 m.sqrt(111319.490793) + 0.5, 0., 0., 0., ],
             [0., msg.position_covariance[0] *
                 m.sqrt(111319.490793) + 0.5, 0., 0., ],
+=======
+                m.sqrt(111319.490793) + 37.5, 0., 0., 0., ],
+            [0., msg.position_covariance[0] *
+                m.sqrt(111319.490793) + 37.5, 0., 0., ],
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
             [0., 0., 0., 0., ],
             [0., 0., 0., 0., ]
         ])
 
+<<<<<<< HEAD
         self.publishOdometry(self.x, self.y)
 
+=======
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         return np.array([self.x, self.y, 0., 0.], dtype=np.float64), self.cov
 
 
@@ -329,9 +398,19 @@ if __name__ == "__main__":
     imu = Xsens("/imu/data", Imu)
     cmd = Control("/cmd_msg", ControlMessage)
 
+<<<<<<< HEAD
     kf = Kalman()
 
     hz = 10
+=======
+    sensors = [
+        gps, erp, imu
+    ]
+
+    kf = Kalman()
+
+    hz = 30
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
     dt = 1. / hz
 
     current_time = rospy.Time.now()
@@ -343,6 +422,10 @@ if __name__ == "__main__":
         current_time = rospy.Time.now()
 
         try:
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
             x, P = kf.filter(gps, erp, imu,
                              dt=(current_time - last_time).to_sec())
 

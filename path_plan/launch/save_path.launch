@@ -1,7 +1,11 @@
 <launch>
     <arg name="odometry_enable" default="true" />
     <arg name="save_waypoint" default="false" />
+<<<<<<< HEAD
     <arg name="db_name" default="/kcity_0715.db" />
+=======
+    <arg name="db_name" default="/jin.db" />
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
     <arg name="odom_topic" default="odometry/kalman"/>
     <arg name="waypoints_file" default="kcity_bonsun.csv" />
 

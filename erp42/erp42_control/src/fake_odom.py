@@ -5,6 +5,7 @@ import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import math as m
 import numpy as np
+from geometry_msgs.msg import *
 from nav_msgs.msg import Odometry
 from erp42_control.msg import ControlMessage
 
@@ -34,6 +35,9 @@ class FakeOdom(object):
 
         self.__cmd_msg = ControlMessage()
         self.__odom = Odometry()
+        # quat = quaternion_from_euler(0, 0, m.pi)
+        # self.__odom.pose.pose.orientation = Quaternion(
+        #     quat[0], quat[1], quat[2], quat[3])
 
         self.__odom.header.frame_id = "map"
         self.__odom.child_frame_id = "base_link"
@@ -64,7 +68,8 @@ class FakeOdom(object):
         self.current_time = rospy.Time.now()
         dt = (self.current_time - self.last_time).to_sec()
 
-        vel = kph2mps(self.__cmd_msg.Speed)
+        vel = kph2mps(self.__cmd_msg.Speed) * \
+            (1.0 if self.__cmd_msg.Gear == 2 else -1.0)
         steer = m.radians(self.__cmd_msg.Steer)
 
         quat = self.__odom.pose.pose.orientation

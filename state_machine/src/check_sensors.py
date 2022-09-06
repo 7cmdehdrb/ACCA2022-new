@@ -8,11 +8,9 @@ import math as m
 from sensor_msgs.msg import *
 from nav_msgs.msg import *
 from geometry_msgs.msg import *
-from hdl_localization.msg import *
 from erp42_msgs.msg import *
 from map_matching_localization.msg import *
 from path_plan.msg import *
-from rtcm_msgs.msg import *
 from std_msgs.msg import *
 from rtcm_msgs.msg import *
 

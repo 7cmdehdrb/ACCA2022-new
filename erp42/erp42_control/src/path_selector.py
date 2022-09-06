@@ -9,10 +9,25 @@ from enum import Enum
 from path_plan.msg import PathRequest, PathResponse
 
 
+<<<<<<< HEAD
+=======
+class PathType(Enum):
+    STRAIGHT = 0
+    RIGHT = 1
+    LEFT = 2
+    NONE = 3
+    UTURN = 4
+
+
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 class Waypoint(object):
     def __init__(self, id, is_end):
         self.id = id
         self.is_end = is_end
+<<<<<<< HEAD
+=======
+        print(id, is_end)
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
 
 def findWaypoint(file_path, id):
@@ -24,8 +39,14 @@ def findWaypoint(file_path, id):
 
 
 class Node(object):
+<<<<<<< HEAD
     def __init__(self, data, start, end, next=None):
+=======
+    def __init__(self, data, start, end, next=None, desired_speed=0, path_type=PathType.NONE):
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
         self.data = data
+        self.desired_speed = desired_speed
+        self.path_type = path_type
         self.next = next
 
         self.start = start
@@ -50,6 +71,8 @@ class PathSelector(object):
     def goNext(self):
         if self.path.next is not None:
             self.path = self.path.next
+            rospy.loginfo("Change to next path!")
+            rospy.loginfo("%s - %s" % (self.path.start.id, self.path.end.id))
             return self.path
 
         return None
@@ -78,14 +101,24 @@ class PathSelector(object):
                 try:
                     start = row[0]
                     end = row[1]
+                    desired_speed = float(row[2])
+                    path_type = PathType(int(row[3]))
 
-                    print(start, end)
+                    # print(start, end)
 
+                    start_point = findWaypoint(waypoints_path, id=start)
+                    end_point = findWaypoint(waypoints_path, id=end)
+
+<<<<<<< HEAD
                     start_point = findWaypoint(waypoints_path, id=start)
                     end_point = findWaypoint(waypoints_path, id=end)
 
                     temp = Node(PathRequest(start, end, start+end),
                                 start=start_point, end=end_point)
+=======
+                    temp = Node(PathRequest(start, end, start+end),
+                                start=start_point, end=end_point, desired_speed=desired_speed, path_type=path_type)
+>>>>>>> 9d3c5abd012f89574b54c26b7bf764fa390c23fe
 
                     if node is None:
                         node = temp
@@ -99,3 +132,6 @@ class PathSelector(object):
                     rospy.logwarn(ex)
 
         return 0
+
+
+print(PathType.RIGHT == PathType(1))
