@@ -24,3 +24,5 @@ def path_callback(msg):
 if __name__ == "__main__":
     path_response = rospy.Subscriber(
             "/path_response", PathResponse, callback=path_callback)    
+    
+    

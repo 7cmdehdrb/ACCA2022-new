@@ -44,12 +44,11 @@ class Ublox(object):
 
         self.lat = 0.
         self.log = 0.
-        self.once = False
 
     def gpsCallback(self, msg):
         # msg = NavSatFix()
-        
-        self.once = True
+
+        self.once = False
         self.lat = msg.latitude
         self.log = msg.longitude
         self.cov = msg.position_covariance
