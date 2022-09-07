@@ -136,8 +136,8 @@ class StateMachine(object):
     # def dynamicCallback(self, msg):
     #     self.dynamicSign = msg
 
-    def parkingCallback(self, msg):
-        self.parking_cmd = msg
+    # def parkingCallback(self, msg):
+    #     self.parking_cmd = msg
 
     def switchPath(self):
         # When current path is almost end
@@ -358,6 +358,7 @@ class StateMachine(object):
                 desired_speed = self.selector.path.desired_speed
 
                 # not done
+            if rospy.wait_for_message("/path_response") == True:
                 self.delivery.panel_x, self.delivery.panel_y = self.delivery.calc_path_point(self.delivery.panel_x, self.delivery.panel_y, self.path)
 
             if dis < 0.1:
@@ -382,7 +383,7 @@ class StateMachine(object):
         msg.Speed = int(speed)
         msg.Steer = m.degrees(-di)
         msg.Gear = 2
-        msg.brake = brake
+        msg.brake = brake       
         
         return msg
     
@@ -404,13 +405,19 @@ class StateMachine(object):
 
         desired_speed = self.selector.path.desired_speed
         
-        if len(self.path.cx) - 150 < self.target_idx:
-            if self.selector.path.end.is_end is True:
-                self.mission_state = MissionState.TRAFFIC
-            else:
-                self.mission_state == MissionState.DRIVING
-                
-        return self.static.msg
+        if len(self.static.obstacle) != 0:
+            return self.static.msg
+            
+        else:
+            speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
+                                                    desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
+            msg = ControlMessage()
+            msg.Speed = int(speed)
+            msg.Steer = m.degrees(-di)
+            msg.Gear = 2
+            msg.brake = brake
+            
+        return msg            
     
     def dynamicControl(self):
         self.dynamic.main()
@@ -447,7 +454,8 @@ class StateMachine(object):
             return msg    
     
     def parkingControl(self):
-        parking_state = self.parking.parking_state
+        self.parking.main()
+
         try:
             di, target_idx = self.stanley.stanley_control(
                 self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
@@ -464,12 +472,9 @@ class StateMachine(object):
         
         desired_speed = self.selector.path.desired_speed   
 
-        if not parking_state == 'complete':
+        if not self.parking.parking_state == 'complete':
             rospy.loginfo("parking")
-            rospy.logwarn(parking_state)
-            rospy.logwarn(str(self.test.state))
-
-            return self.parking_cmd
+            return self.parking.msg
 
         else:
             rospy.loginfo("parking complete!")
