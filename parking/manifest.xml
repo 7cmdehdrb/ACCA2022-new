@@ -1,0 +1,12 @@
+<package>
+  <description brief="parking">
+
+     parking
+
+  </description>
+  <author>acca</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/parking</url>
+
+</package>

@@ -1,0 +1,6 @@
+<launch>
+    <node pkg='parking', type= 'load_parking_area', name = 'load_parking_area'>
+    <node pkg= 'adaptive_clustering', type= 'adaptive_clustering', name= 'adaptive_clustering'>
+    <node pkg='parking', type= "target_selector", name= "target_selector">
+    <node pkg='parking', type= "parking_local_path_planner", name= "parking_local_path_planner">
+</launch>
