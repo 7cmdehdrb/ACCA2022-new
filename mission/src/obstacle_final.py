@@ -309,49 +309,49 @@ class obstacle(object):
 
 
 
-def main():
-    
-    rospy.init_node("obstacle")
-
-    obs = obstacle()
-    state = OdomState()
-    stanley = Stanley()
-
-    cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
-    target_idx = 0
-    last_idx = 0
-    length = 0
-    
-    r = rospy.Rate(30.)
-    
-    while not rospy.is_shutdown():
-        if obs.PathMsg.path_id == 'A3B1':
-            obs.DetectObstacle(state)
-            obs.CreateWaypoint()
-            obs.CreatPath(state)
-            obs.publishPath(obs.cx, obs.cy, obs.cyaw)
-            
-            if len(obs.obstacle) != 0:
-                obs.publishPoint(obs.obstacle, ColorRGBA(1., 0., 0., 1.), Vector3(0.5, 0.5, 0.5))
-                obs.publishWaypoint(obs.waypoint_arr, ColorRGBA(1., 1., 0., 1.), Vector3(0.2, 0.2, 0.2))
-                
-            l = len(obs.cx)
-            if l != length:
-                length = l
-                target_idx = 1
-
-            if target_idx == l:
-                continue
-            
-            di, target_idx = stanley.stanley_control(
-                state, obs.cx, obs.cy, obs.cyaw, target_idx)
-
-            obs.msg.Speed = obs.speed
-            obs.msg.Steer = -m.degrees(di)
-            obs.msg.Gear = 2
-            
-            # cmd_pub.publish(obs.msg)
-        else:
-            pass
+    def main():
         
-        r.sleep()
+        rospy.init_node("obstacle")
+
+        obs = obstacle()
+        state = OdomState()
+        stanley = Stanley()
+
+        cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
+        target_idx = 0
+        last_idx = 0
+        length = 0
+        
+        r = rospy.Rate(30.)
+        
+        while not rospy.is_shutdown():
+            if obs.PathMsg.path_id == 'A3B1':
+                obs.DetectObstacle(state)
+                obs.CreateWaypoint()
+                obs.CreatPath(state)
+                obs.publishPath(obs.cx, obs.cy, obs.cyaw)
+                
+                if len(obs.obstacle) != 0:
+                    obs.publishPoint(obs.obstacle, ColorRGBA(1., 0., 0., 1.), Vector3(0.5, 0.5, 0.5))
+                    obs.publishWaypoint(obs.waypoint_arr, ColorRGBA(1., 1., 0., 1.), Vector3(0.2, 0.2, 0.2))
+                    
+                l = len(obs.cx)
+                if l != length:
+                    length = l
+                    target_idx = 1
+
+                if target_idx == l:
+                    continue
+                
+                di, target_idx = stanley.stanley_control(
+                    state, obs.cx, obs.cy, obs.cyaw, target_idx)
+
+                obs.msg.Speed = obs.speed
+                obs.msg.Steer = -m.degrees(di)
+                obs.msg.Gear = 2
+                
+                # cmd_pub.publish(obs.msg)
+            else:
+                pass
+            
+            r.sleep()

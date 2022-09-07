@@ -85,12 +85,10 @@ class StateMachine(object):
         
         # Dynamic
         self.dynamic = Lidar()
-
         
         # Parking
         self.parking = Parking()
-        self.parkingSub = rospy.Subscriber("/cmd_msg/parking", ControlMessage, callback=self.parkingCallback)
-        self.parking_cmd = ControlMessage()
+
         # Static
         self.static = obstacle()
         
@@ -389,6 +387,7 @@ class StateMachine(object):
         return msg
     
     def staticControl(self):
+        self.static.main()
         try:
             di, target_idx = self.stanley.stanley_control(
                 self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
@@ -397,7 +396,8 @@ class StateMachine(object):
             return ControlMessage(0, 0, 2, 3, 0, 0, 0)
         except Exception as ex:
             rospy.logfatal(ex)
-            return ControlMessage(0, 0, 2, 3, 0, 0, 0)    
+            return ControlMessage(0, 0, 2, 3, 0, 0, 0)
+            
         self.target_idx = target_idx
         
         di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
