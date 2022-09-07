@@ -57,6 +57,9 @@ class obstacle(object):
         self.PathMsg = PathResponse()
         self.msg = ControlMessage()
 
+        self.state = OdomState()
+        self.stanley = Stanley()
+        
         # parameter
         self.detect_obs_angle = 0.8
         self.detect_obs_range = 2.
@@ -98,7 +101,7 @@ class obstacle(object):
         return target_idx
         
         
-    def DetectObstacle(self, state):
+    def DetectObstacle(self):
 
         self.obstacle = []
         
@@ -107,8 +110,8 @@ class obstacle(object):
             velodyne_x = i.position.x
             velodtne_y = i.position.y
             angle = abs(m.atan2(velodtne_y, velodyne_x))
-            map_x = state.x + velodyne_x * m.cos(state.yaw) - velodtne_y * m.sin(state.yaw)
-            map_y = state.y + velodyne_x * m.sin(state.yaw) + velodtne_y * m.cos(state.yaw)
+            map_x = self.state.x + velodyne_x * m.cos(self.state.yaw) - velodtne_y * m.sin(self.state.yaw)
+            map_y = self.state.y + velodyne_x * m.sin(self.state.yaw) + velodtne_y * m.cos(self.state.yaw)
             dis_path = self.GetDistance2(self.path, [map_x, map_y])
                         
             if angle <= self.detect_obs_angle and dis_path <= self.detect_obs_range:
@@ -186,9 +189,9 @@ class obstacle(object):
             pass
             
             
-    def CreatPath(self, state):
+    def CreatPath(self):
         
-        state_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [state.x, state.y])
+        state_tar_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [self.state.x, self.state.y])
 
         if len(self.waypoint_arr) != 0:
             max_tar_idx = -1
@@ -309,49 +312,32 @@ class obstacle(object):
 
 
 
-def main():
-    
-    rospy.init_node("obstacle")
+    def main(self):
 
-    obs = obstacle()
-    state = OdomState()
-    stanley = Stanley()
-
-    cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
-    target_idx = 0
-    last_idx = 0
-    length = 0
-    
-    r = rospy.Rate(30.)
-    
-    while not rospy.is_shutdown():
-        if obs.PathMsg.path_id == 'A3B1':
-            obs.DetectObstacle(state)
-            obs.CreateWaypoint()
-            obs.CreatPath(state)
-            obs.publishPath(obs.cx, obs.cy, obs.cyaw)
+        target_idx = 0
+        last_idx = 0
+        length = 0
+        
+        self.DetectObstacle()
+        self.CreateWaypoint()
+        self.CreatPath()
+        self.publishPath(self.cx, self.cy, self.cyaw)
+        
+        if len(self.obstacle) != 0:
+            self.publishPoint(self.obstacle, ColorRGBA(1., 0., 0., 1.), Vector3(0.5, 0.5, 0.5))
+            self.publishWaypoint(self.waypoint_arr, ColorRGBA(1., 1., 0., 1.), Vector3(0.2, 0.2, 0.2))
             
-            if len(obs.obstacle) != 0:
-                obs.publishPoint(obs.obstacle, ColorRGBA(1., 0., 0., 1.), Vector3(0.5, 0.5, 0.5))
-                obs.publishWaypoint(obs.waypoint_arr, ColorRGBA(1., 1., 0., 1.), Vector3(0.2, 0.2, 0.2))
-                
-            l = len(obs.cx)
-            if l != length:
-                length = l
-                target_idx = 1
+        l = len(self.cx)
+        if l != length:
+            length = l
+            target_idx = 1
 
-            if target_idx == l:
-                continue
-            
-            di, target_idx = stanley.stanley_control(
-                state, obs.cx, obs.cy, obs.cyaw, target_idx)
-
-            obs.msg.Speed = obs.speed
-            obs.msg.Steer = -m.degrees(di)
-            obs.msg.Gear = 2
-            
-            # cmd_pub.publish(obs.msg)
-        else:
+        if target_idx == l:
             pass
         
-        r.sleep()
+        di, target_idx = self.stanley.stanley_control(
+            self.state, self.cx, self.cy, self.cyaw, target_idx)
+
+        self.msg.Speed = self.speed
+        self.msg.Steer = -m.degrees(di)
+        self.msg.Gear = 2
