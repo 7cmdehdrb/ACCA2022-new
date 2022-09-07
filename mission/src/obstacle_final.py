@@ -319,25 +319,30 @@ class obstacle(object):
         length = 0
         
         self.DetectObstacle()
-        self.CreateWaypoint()
-        self.CreatPath()
-        self.publishPath(self.cx, self.cy, self.cyaw)
+
         
         if len(self.obstacle) != 0:
+            
+            self.CreateWaypoint()
+            self.CreatPath()
+            self.publishPath(self.cx, self.cy, self.cyaw)
             self.publishPoint(self.obstacle, ColorRGBA(1., 0., 0., 1.), Vector3(0.5, 0.5, 0.5))
             self.publishWaypoint(self.waypoint_arr, ColorRGBA(1., 1., 0., 1.), Vector3(0.2, 0.2, 0.2))
             
-        l = len(self.cx)
-        if l != length:
-            length = l
-            target_idx = 1
+            l = len(self.cx)
+            if l != length:
+                length = l
+                target_idx = 1
 
-        if target_idx == l:
+            if target_idx == l:
+                pass
+            
+            di, target_idx = self.stanley.stanley_control(
+                self.state, self.cx, self.cy, self.cyaw, target_idx)
+
+            self.msg.Speed = self.speed
+            self.msg.Steer = -m.degrees(di)
+            self.msg.Gear = 2
+            
+        else:
             pass
-        
-        di, target_idx = self.stanley.stanley_control(
-            self.state, self.cx, self.cy, self.cyaw, target_idx)
-
-        self.msg.Speed = self.speed
-        self.msg.Steer = -m.degrees(di)
-        self.msg.Gear = 2
