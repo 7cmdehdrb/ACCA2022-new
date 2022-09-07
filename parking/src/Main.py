@@ -1,10 +1,7 @@
-<<<<<<< HEAD
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from audioop import reverse
-=======
->>>>>>> cac6ac29ee4a6b8f83a93cb894ae89dd446b8c41
 import os
 import sys
 from turtle import pos
@@ -125,11 +122,7 @@ class VerticalParkingBase(object):
         self.is_end = target_idx > len(self.path.cx) * 0.90
         print('target_idx : %f, is_end : %s' % (self.target_idx, self.is_end))
 
-<<<<<<< HEAD
         return ControlMessage(0, 0, self.gear, 5, di, 0, 0), self.is_end
-=======
-        return ControlMessage(0, 0, gear, 5, di, 0, 0), is_end
->>>>>>> cac6ac29ee4a6b8f83a93cb894ae89dd446b8c41
 
     def calc_angle(self, first_vec, second_vec):
 
@@ -280,7 +273,6 @@ class VerticalParkingBase(object):
                 self.startPoint = Point(self.state.x, self.state.y, 0.)
                 self.start_yaw = state.yaw
                 # for inside test
-<<<<<<< HEAD
                 # self.startPoint = Point(-5.75, 2.54, 0)
 
                 #####################################################################################
@@ -298,18 +290,6 @@ class VerticalParkingBase(object):
             if self.is_end == False:
                 cmd, self.is_end = self.makeControlMessage(self.path)
                 print('is_end : %s' % self.is_end)
-=======
-                # self.startPoint = Point(0, 7, 0)
-
-            WP2_x, WP2_y = self.scan_stop_point()
-            
-            self.point_Pub(WP2_x, WP2_y)
-            
-            self.path = self.createPath(
-                Point(WP2_x, WP2_y, 0.)) 
-
-            cmd, is_end = self.makeControlMessage(self.path, 2)
->>>>>>> cac6ac29ee4a6b8f83a93cb894ae89dd446b8c41
 
             if is_end is True:
                 self.parking_state = ParkingState.Deceleration1
@@ -323,7 +303,6 @@ class VerticalParkingBase(object):
                 self.current_loc_pub(self.state.x, self.state.y)
             else:
                 self.parking_state = ParkingState.Reset
-<<<<<<< HEAD
                 self.parking_state_msg.data += 1
                 print('마지막 위치 : %f,  %f' % (self.state.x, self.state.y))
 
@@ -345,16 +324,6 @@ class VerticalParkingBase(object):
                     print('error in reset state -> makeControlMessage')
                 '------------------------------------------------------------------------------'
                 print('path_len', len(self.path.cx))
-=======
-                parking_sequence_pub.publish(self.parking_state)
-
-        elif self.parking_state.Reset:            
-            self.gear = 0
-            self.path = self.createPath(self.startPoint)
-            
-            if is_end != True:
-                cmd, is_end = self.makeControlMessage(self.path, 1)
->>>>>>> cac6ac29ee4a6b8f83a93cb894ae89dd446b8c41
             else:
                 self.parking_state = ParkingState.Deceleration2
                 self.parking_state_msg.data += 1

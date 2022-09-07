@@ -63,6 +63,7 @@ class obstacle(object):
         self.prox_dis = 1.        
         self.r = 1.3
         self.det_iter= 10
+        self.speed = 5.
         
     def ObstacleCallback(self, msg):
         self.ObsMsg = msg
@@ -306,21 +307,22 @@ class obstacle(object):
 
         self.obs_pub_way.publish(msg)
 
-        
-if __name__ == "__main__":
+
+
+def main():
     
     rospy.init_node("obstacle")
 
     obs = obstacle()
     state = OdomState()
     stanley = Stanley()
-    
+
     cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
     target_idx = 0
     last_idx = 0
     length = 0
     
-    r = rospy.Rate(10.)
+    r = rospy.Rate(30.)
     
     while not rospy.is_shutdown():
         if obs.PathMsg.path_id == 'A3B1':
@@ -344,10 +346,11 @@ if __name__ == "__main__":
             di, target_idx = stanley.stanley_control(
                 state, obs.cx, obs.cy, obs.cyaw, target_idx)
 
-            obs.msg.Speed = 5.
+            obs.msg.Speed = obs.speed
             obs.msg.Steer = -m.degrees(di)
             obs.msg.Gear = 2
-            cmd_pub.publish(obs.msg)
+            
+            # cmd_pub.publish(obs.msg)
         else:
             pass
         
