@@ -4,6 +4,8 @@ import os
 from posixpath import join
 import sys
 from time import sleep
+
+from chardet import detect
 import rospy
 import rospkg
 import pandas as pd
@@ -55,10 +57,10 @@ class obstacle(object):
         # left line
         left_xs = [60, 70]
         left_ys = [0, -30]
-        left_cx, left_cy, left_cyaw, _, _ = calc_spline_course(left_xs[:], left_ys[:], ds=0.1)    
+        self.left_cx, self.left_cy, left_cyaw, _, _ = calc_spline_course(left_xs[:], left_ys[:], ds=0.1)    
 
-        for i in range(len(left_cx)):
-            self.left.append([left_cx[i], left_cy[i]])
+        for i in range(len(self.left_cx)):
+            self.left.append([self.left_cx[i], self.left_cy[i]])
 
 
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)  
@@ -74,14 +76,20 @@ class obstacle(object):
 
         self.state = OdomState()
         self.stanley = Stanley()
-        
+    
+
+        self.target_idx = 0
+        self.length = 0
+
+        self.nd_targit_idx = 0
+        self.nd_length = 0
+
         # parameter
         self.detect_obs_angle = 0.8
         self.detect_obs_range = 2.
         self.prox_dis = 1.        
         self.r = 1.3
         self.det_iter= 10
-        self.speed = 5.
         
     def ObstacleCallback(self, msg):
         self.ObsMsg = msg
@@ -164,46 +172,52 @@ class obstacle(object):
     def CreateWaypoint(self):
         
         self.waypoint_arr = []
-    
-        for obs in self.obstacle:
+
+        if len(self.obstacle) != 0:
+
+            for obs in self.obstacle:
+            
+                a, b = obs[0], obs[1]
+                target_idx = self.calc_target_index(self.path_cx, self.path_cy, [a, b])
+                left_target_idx = self.calc_target_index(self.left_cx, self.left_cy, [a, b])
+
+                p = -1. / self.path_cyaw[target_idx]
+                c = b - p * a
+                
+                t1 = (2*a + 2*p*b - 2*p*c + m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
+                t2 = (2*a + 2*p*b - 2*p*c - m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
+
+                waypoint1 = [t1, p * t1 + c]
+                waypoint2 = [t2, p * t2 + c]
+                
+                dis_obs_left = self.GetDistance([a, b], [self.left[target_idx][0], self.left[target_idx][1]])
+                dis_left_path = self.GetDistance([self.left[left_target_idx][0], self.left[left_target_idx][1]], [self.path[target_idx][0], self.path[target_idx][1]])
+
+                dis_way1_left = self.GetDistance([waypoint1[0], waypoint1[1]], [self.left[left_target_idx][0], self.left[left_target_idx][1]])
+                # dis_way1_right = self.GetDistance([waypoint1[0], waypoint1[1]], [self.right[target_idx][0], self.right[target_idx][1]])
+                dis_way2_left = self.GetDistance([waypoint2[0], waypoint2[1]], [self.left[left_target_idx][0], self.left[left_target_idx][1]])
+                # dis_way2_right = self.GetDistance([waypoint2[0], waypoint2[1]], [self.right[target_idx][0], self.right[target_idx][1]])   
         
-            a, b = obs[0], obs[1]
-            target_idx = self.calc_target_index(self.path_cx, self.path_cy, [a, b])
-            p = -1. / self.path_cyaw[target_idx]
-            c = b - p * a
-            
-            t1 = (2*a + 2*p*b - 2*p*c + m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
-            t2 = (2*a + 2*p*b - 2*p*c - m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
-
-            waypoint1 = [t1, p * t1 + c]
-            waypoint2 = [t2, p * t2 + c]
-            
-            dis_obs_left = self.GetDistance([a, b], [self.left[target_idx][0], self.left[target_idx][1]])
-            dis_left_path = self.GetDistance([self.left[target_idx][0], self.left[target_idx][1]], [self.path[target_idx][0], self.path[target_idx][1]])
-
-            dis_way1_left = self.GetDistance([waypoint1[0], waypoint1[1]], [self.left[target_idx][0], self.left[target_idx][1]])
-            # dis_way1_right = self.GetDistance([waypoint1[0], waypoint1[1]], [self.right[target_idx][0], self.right[target_idx][1]])
-            dis_way2_left = self.GetDistance([waypoint2[0], waypoint2[1]], [self.left[target_idx][0], self.left[target_idx][1]])
-            # dis_way2_right = self.GetDistance([waypoint2[0], waypoint2[1]], [self.right[target_idx][0], self.right[target_idx][1]])   
-    
-            if dis_left_path - dis_obs_left < 0 : # obstacle position : right
-                if dis_way2_left > dis_way1_left: # waypoint1 position : left 
-                    waypoint = waypoint1
-                else : 
-                    waypoint = waypoint2
-                    
-            else : # obstacle position : left
-                if dis_way2_left > dis_way1_left: # waypoint position : right 
-                    waypoint = waypoint2    
-                else :
-                    waypoint = waypoint1
-    
-            self.waypoint_arr.append(waypoint)
+                if dis_left_path - dis_obs_left < 0 : # obstacle position : right
+                    if dis_way2_left > dis_way1_left: # waypoint1 position : left 
+                        waypoint = waypoint1
+                    else : 
+                        waypoint = waypoint2
+                        
+                else : # obstacle position : left
+                    if dis_way2_left > dis_way1_left: # waypoint position : right 
+                        waypoint = waypoint2    
+                    else :
+                        waypoint = waypoint1
+        
+                self.waypoint_arr.append(waypoint)
 
             
             
     def CreatPath(self):
-        
+
+        self.obs_state = False
+
         state_tar_idx = self.calc_target_index(self.path_cx, self.path_cy, [self.state.x, self.state.y])
 
         if len(self.waypoint_arr) != 0:
@@ -230,9 +244,12 @@ class obstacle(object):
                     ys.append(self.path[len(self.path_cy) - 1][1])   
 
                 if max_tar_idx + 40 >= state_tar_idx:
-                    self.cx, self.cy, self.cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)    
+                    self.cx, self.cy, self.cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1) 
+                    self.obs_state = True  
                 else :
                     self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw
+                    self.obs_state = False   
+
                     
             else : # waypoint array len : 1
                 max_tar_idx = self.calc_target_index(self.path_cx, self.path_cy, self.waypoint_arr[0])
@@ -241,10 +258,13 @@ class obstacle(object):
         
                 if max_tar_idx >= state_tar_idx:
                     self.cx, self.cy, self.cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)
+                    self.obs_state = True
                 else :
-                    self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw           
+                    self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw
+                    self.obs_state = False        
         else :
             self.cx, self.cy, self.cyaw = self.path_cx, self.path_cy, self.path_cyaw
+            self.obs_state = False
         
                 
     def publishPath(self, cx, cy, cyaw):
@@ -326,34 +346,29 @@ class obstacle(object):
     def main(self):
 
         self.DetectObstacle()
+        self.CreateWaypoint()
+        self.CreatPath()
 
-        if len(self.obstacle) != 0:
-            
-            target_idx = 0
-            last_idx = 0
-            length = 0
+        self.publishPath(self.cx, self.cy, self.cyaw)
+        self.publishObstacle(self.obstacle, ColorRGBA(1., 0., 0., 1.), Vector3(0.5, 0.5, 0.5))
+        self.publishWaypoint(self.waypoint_arr, ColorRGBA(1., 1., 0., 1.), Vector3(0.2, 0.2, 0.2))
+        
+        l = len(self.cx)
+        if l != self.length:
+            self.length = l
+            self.target_idx = 1
 
-            self.CreateWaypoint()
-            self.CreatPath()
-
-            self.publishPath(self.cx, self.cy, self.cyaw)
-            self.publishObstacle(self.obstacle, ColorRGBA(1., 0., 0., 1.), Vector3(0.5, 0.5, 0.5))
-            self.publishWaypoint(self.waypoint_arr, ColorRGBA(1., 1., 0., 1.), Vector3(0.2, 0.2, 0.2))
-                
-            l = len(self.cx)
-            if l != length:
-                length = l
-                target_idx = 1
-
-            if target_idx == l:
-                pass
-            
-            di, target_idx = self.stanley.stanley_control(
-                self.state, self.cx, self.cy, self.cyaw, target_idx)
-
-            self.msg.Speed = self.speed
-            self.msg.Steer = -m.degrees(di)
-            self.msg.Gear = 2
-            
-        else:
+        if self.target_idx == l:
             pass
+        
+
+        di, self.target_idx = self.stanley.stanley_control(
+            self.state, self.cx, self.cy, self.cyaw, self.target_idx)
+
+        self.msg.Steer = -m.degrees(di)
+        self.msg.Gear = 2
+        
+        if self.obs_state == True:
+            self.msg.Speed = 5.
+        else:
+            self.msg.Speed = 7.

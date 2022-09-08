@@ -334,7 +334,6 @@ class obstacle(object):
 
         if len(self.obstacle) != 0:
             target_idx = 0
-            last_idx = 0
             length = 0
         
             self.CreateWaypoint()
