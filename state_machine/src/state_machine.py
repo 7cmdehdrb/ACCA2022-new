@@ -350,7 +350,7 @@ class StateMachine(object):
             # have to change path start point (before delivery mission path)
             if self.selector.path.start.id == 'A' or self.selector.path.start.id == 'B':
                 self.selector.goNext()
-                self.selector.makequest()
+                self.selector.makeRequest()
 
                 di, target_idx = self.stanley.stanley_control(
                     self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
@@ -371,7 +371,7 @@ class StateMachine(object):
                 rospy.loginfo("arrive at delivery sign")
 
                 self.selector.goNext()
-                self.selector.makequest()
+                self.selector.makeRequest()
 
                 self.delivery.delivery = False
 

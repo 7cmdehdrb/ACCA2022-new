@@ -20,10 +20,12 @@ class PathType(Enum):
 class MissionState(Enum):
     DRIVING = 0
     TRAFFIC = 1
-    DELIVERY = 2
-    STATIC = 3
-    DYNAMIC = 4
-    PARKING = 5
+    DELIVERY_A = 2
+    DELIVERY_B = 3
+    STATIC = 4
+    DYNAMIC = 5
+    PARKING = 6
+    RIGHT = 7
     END = 9
 
 

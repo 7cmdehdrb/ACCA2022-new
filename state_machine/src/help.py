@@ -48,6 +48,8 @@ speed_control_enable = rospy.get_param(
 
 def wait_for_stop(duration):
     global current_time, last_time, r, cmd_pub
+    
+    msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
 
     last_time = rospy.Time.now()
     while not rospy.is_shutdown():
@@ -58,7 +60,8 @@ def wait_for_stop(duration):
         if dt > duration:
             last_time = current_time
             return 0
-
+        
+        
         cmd_pub.publish(msg)
         r.sleep()
 
@@ -100,6 +103,10 @@ class StateMachine(object):
         # Static
         self.static = obstacle()
 
+        # right
+        self.right_1 = False
+        self.right_2 = False
+
         """
             Fields
         """
@@ -130,7 +137,7 @@ class StateMachine(object):
 
     def switchPath(self):
         # When current path is almost end
-        if len(self.path.cx) - 20 < self.target_idx:
+        if len(self.path.cx) - 15 < self.target_idx:
 
             rospy.logwarn("Try to change path...!")
 
@@ -171,8 +178,7 @@ class StateMachine(object):
             speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
                                                   desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
-            return ControlMessage(
-                0, 0, 2, int(speed), m.degrees(-di), brake, 0
+            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), brake, 0
             )
 
         except IndexError as ie:
@@ -185,11 +191,11 @@ class StateMachine(object):
     def trafficControl(self):
         desired_speed = self.selector.path.desired_speed
 
-        if len(self.path.cx) * 0.8 < self.target_idx:
+        if len(self.path.cx) - 50 < self.target_idx:
             # Almost in front of traffic sign
             desired_speed *= 0.5
 
-        elif len(self.path.cx) - 20 < self.target_idx:
+        elif len(self.path.cx) - 25 < self.target_idx:
             # Stop if required
 
             try:
@@ -200,10 +206,6 @@ class StateMachine(object):
                 elif self.selector.path.path_type == PathType.LEFT or self.selector.path.path_type == PathType.UTURN:
                     if self.traffic.msg.left == 0:
                         raise Exception()
-
-                elif self.selector.path.path_type == PathType.RIGHT:
-                    # ?
-                    pass
 
                 else:
                     rospy.logfatal("Invalid Path Type!")
@@ -218,12 +220,21 @@ class StateMachine(object):
 
     def deliveryControl(self):
         desired_speed = self.selector.path.desired_speed
+        
+        if self.mission_state == MissionState.DELIVERY_A:
+            self.delivery.delivery_A()
+            panel = self.delivery.panel_A
+            
+        elif self.mission_state == MissionState.DELIVERY_B:
+            self.delivery.delivery_B()
+            panel = self.delivery.panel_B
 
         # between delivery sign and erp distance
-        dis = np.hypot([self.state.x - self.delivery.panel_x],
-                       [self.state.y - self.delivery.panel_y])
+        
+        dis = np.hypot([self.state.x - panel.x],
+                       [self.state.y - panel.y])
 
-        if dis < 10.0:
+        if dis < .0:
             # Move to panel
             if self.delivery.is_delivery_path is True:
                 desired_speed *= 0.8
@@ -232,10 +243,11 @@ class StateMachine(object):
                 if self.target_idx >= self.delivery.target_idx:
                     wait_for_stop(5)
 
+                    self.delivery.is_delivery_path = False
                     self.request_time = rospy.Time.now()
                     self.selector.goNext()
                     self.selector.makeRequest()
-                    self.mission_state = MissionState.DRIVING
+                    self.mission_state = self.selector.path.mission_type
 
             else:
                 self.request_time = rospy.Time.now()
@@ -245,7 +257,7 @@ class StateMachine(object):
                 dists = []
                 for i in range(len(self.path.cx)):
                     dist = np.hypot(
-                        self.path.cx[i] - self.delivery.panel_x, self.path.cy[i] - self.delivery.panel_y)
+                        self.path.cx[i] - panel.x, self.path.cy[i] - panel.y)
                     dists.append(dist)
 
                 dists = np.array(dists)
@@ -266,7 +278,7 @@ class StateMachine(object):
 
         self.static.main()
 
-        if len(self.static.obstacle) != 0:
+        if self.static.obs_state == True:
             return self.static.msg
 
         return msg
@@ -285,42 +297,34 @@ class StateMachine(object):
 
     def parkingControl(self):
         # WTF
-        self.parking.main()
-
-        try:
-            di, target_idx = self.stanley.stanley_control(
-                self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
-        except IndexError as ie:
-            rospy.logwarn(ie)
-            return ControlMessage(0, 0, 2, 3, 0, 0, 0)
-        except Exception as ex:
-            rospy.logfatal(ex)
-            return ControlMessage(0, 0, 2, 3, 0, 0, 0)
-        self.target_idx = target_idx
-
-        di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
-
         desired_speed = self.selector.path.desired_speed
+
+        self.parking.main()
 
         if not self.parking.parking_state == 'complete':
             rospy.loginfo("parking")
             return self.parking.msg
 
         else:
-            rospy.loginfo("parking complete!")
-            speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                                  desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
-            msg = ControlMessage()
-            msg.Speed = int(speed)
-            msg.Steer = m.degrees(-di)
-            msg.Gear = 2
-            msg.brake = brake
-
             if self.selector.path.end.is_end is True:
                 self.mission_state = MissionState.TRAFFIC
             else:
                 self.mission_state == MissionState.DRIVING
-            return msg
+
+            return self.mainControl(desired_speed=desired_speed)
+        
+    def rightControl(self):
+        desired_speed = self.selector.path.desired_speed
+        
+        if self.right_1 == False and self.target_idx < 10:
+            wait_for_stop(3)
+            self.right_1 = True
+            
+        elif self.right_2 == False and len(self.path.cx) - 25 < self.target_idx:
+            wait_for_stop(3)
+            self.right_2 = True
+        
+        return self.mainControl(desired_speed=desired_speed)     
 
     def endControl(self):
         if len(self.path.cx) * 0.9 < self.target_idx:
@@ -344,7 +348,7 @@ class StateMachine(object):
         elif self.mission_state == MissionState.TRAFFIC:
             msg = self.trafficControl()
 
-        elif self.mission_state == MissionState.DELIVERY:
+        elif self.mission_state == MissionState.DELIVERY_A or self.mission_state == MissionState.DELIVERY_B:
             msg = self.deliveryControl()
 
         elif self.mission_state == MissionState.STATIC:
@@ -355,6 +359,9 @@ class StateMachine(object):
 
         elif self.mission_state == MissionState.PARKING:
             msg = self.parkingControl()
+        
+        elif self.mission_state == MissionState.RIGHT:
+            msg = self.rightControl()
 
         elif self.mission_state == MissionState.END:
             msg = self.endControl()
