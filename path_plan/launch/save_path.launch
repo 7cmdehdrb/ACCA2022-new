@@ -1,0 +1,29 @@
+<launch>
+    <arg name="odometry_enable" default="true" />
+    <arg name="save_waypoint" default="false" />
+    <arg name="db_name" default="/0903_test.db" />
+    <arg name="odom_topic" default="odometry/kalman"/>
+    <arg name="waypoints_file" default="school_test_waypoint.csv" />
+
+    <!-- <include file="$(find map_matching_localization)/launch/localization.launch" if="$(arg odometry_enable)" /> -->
+
+    <!-- waypoints -->
+    <include file="$(find path_plan)/launch/waypoints.launch">
+        <arg name="save_waypoint" default="$(arg save_waypoint)" />
+        <arg name="odometry_enable" default="$(arg odometry_enable)" />
+        <arg name="waypoints_file" default="$(arg waypoints_file)" />
+    </include>
+
+    <!-- save path -->
+    <node pkg="path_plan" type="SavePath.py" name="SavePath" output="screen">
+        <!-- db_name must have '/' -->
+        <param name="db_name" type="string" value="$(arg db_name)" />
+    </node>
+
+    <!-- odometry or movebase/goal -->
+    <node pkg="path_plan" type="create_path.py" name="create_global_path" output="screen" unless="$(arg odometry_enable)"/>
+    <node pkg="path_plan" type="odometry_path.py" name="odometry_path" output="screen" if="$(arg odometry_enable)">
+        <param name="odom_topic" type="string" value="$(arg odom_topic)" />
+    </node>
+    
+</launch>
