@@ -15,7 +15,7 @@ from std_msgs.msg import Float32, Int16
 from time import sleep
 from geometry_msgs.msg import PoseStamped
 from mission.msg import obTF
-# parking, static, delivery sign(check path response) not done 
+# parking, static, delivery sign(check path response) not done
 
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
@@ -35,7 +35,7 @@ try:
     from obstacle_final import obstacle
     from dynamic_ob import Lidar
     from deliveryAB import Delivery
-    
+
 except Exception as ex:
     rospy.logfatal(ex)
     rospy.logfatal("Import Error : State Machine")
@@ -87,16 +87,15 @@ class StateMachine(object):
 
         # Delivery
         self.delivery = Delivery()
-        
+
         # Dynamic
         self.dynamic = Lidar()
-        
+
         # Parking
         self.parking = Parking()
 
         # Static
         self.static = obstacle()
-        
 
         """
             Fields
@@ -134,10 +133,10 @@ class StateMachine(object):
 
     # def deliveryCallback(self, msg):
     #     self.deliverySign = msg
-        
+
     #     self.sign_x = self.deliverySign.pose.position.x
     #     self.sign_y = self.deliverySign.pose.position.y
-        
+
     # def dynamicCallback(self, msg):
     #     self.dynamicSign = msg
 
@@ -160,31 +159,31 @@ class StateMachine(object):
                     self.request_time = rospy.Time.now()
                     self.selector.goNext()
                     self.selector.makeRequest()
-                    
-                    rospy.logwarn(self.path.path_id) #test
+
+                    rospy.logwarn(self.path.path_id)  # test
                     # next path is end
                     if self.selector.path.next is None:
                         self.mission_state = MissionState.END
                         rospy.loginfo("Missin State : End")
-                    
+
                     # currnet path is not end
                     elif self.selector.path.end.is_end is True:
-                        
+
                         # after test change 'self.path.path_id'
                         if self.selector.path.data.path_id == "delivery_A" or self.selector.path.data.path_id == "delivery_B":
                             self.mission_state = MissionState.DELIVERY
                             self.delivery.delivery = True
 
                             rospy.loginfo("Missin State : Delivery")
-                        
+
                         elif self.selector.path.data.path_id == "A1A3":
                             self.mission_state = MissionState.STATIC
                             rospy.loginfo("Missin State : Static")
-                        
+
                         elif self.selector.path.data.path_id == "D1E1":
                             self.mission_state = MissionState.PARKING
                             rospy.loginfo("Missin State : Parking")
-                        
+
                         elif self.selector.path.data.path_id == "dynamic":
                             self.mission_state = MissionState.DYNAMIC
                             rospy.loginfo("Missin State : Dynamic")
@@ -194,27 +193,26 @@ class StateMachine(object):
                             self.mission_state = MissionState.TRAFFIC
                             rospy.loginfo("Missin State : Traffic")
 
-
                     else:
                         if self.selector.path.data.path_id == "D1E1":
                             self.mission_state = MissionState.PARKING
                             rospy.loginfo("Missin State : Parking")
-                        
+
                         elif self.selector.path.data.path_id == "A1A3":
                             self.mission_state = MissionState.STATIC
                             rospy.loginfo("Missin State : Static")
-                        
+
                         elif self.selector.path.data.path_id == "dynamic":
                             self.mission_state = MissionState.DYNAMIC
                             rospy.loginfo("Missin State : Dynamic")
-                        
-                        else:                            
+
+                        else:
                             # Ignore traffic sign
                             self.mission_state = MissionState.DRIVING
                             rospy.loginfo("Missin State : Driving")
-        
+
                 self.target_idx = 0
-    
+
     def drivingControl(self):
         try:
             di, target_idx = self.stanley.stanley_control(
@@ -312,7 +310,6 @@ class StateMachine(object):
                 print(self.selector.path.next.path_type)
                 return ControlMessage(0, 0, 2, 0, 0, 0, 0)
 
-        
         else:
             # Far away from traffic sign
             speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
@@ -325,7 +322,7 @@ class StateMachine(object):
             msg.brake = brake
 
             return msg
-        
+
     def deliveryControl(self):
         try:
             di, target_idx = self.stanley.stanley_control(
@@ -338,26 +335,28 @@ class StateMachine(object):
             return ControlMessage(0, 0, 2, 3, 0, 0, 0)
 
         self.target_idx = target_idx
-    
+
         di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
         desired_speed = self.selector.path.desired_speed
-        
-        # between delivery sign and erp distance 
-        dis = np.hypot([self.state.x - self.delivery.panel_x], [self.state.y - self.delivery.panel_y])
-        
-        if dis < 10 : # have to change tolerance
+
+        # between delivery sign and erp distance
+        dis = np.hypot([self.state.x - self.delivery.panel_x],
+                       [self.state.y - self.delivery.panel_y])
+
+        if dis < 10:  # have to change tolerance
             rospy.loginfo("traking local path")
-            # switch path 
-            if self.selector.path.start.id == 'A' or self.selector.path.start.id == 'B':  #have to change path start point (before delivery mission path)   
+            # switch path
+            # have to change path start point (before delivery mission path)
+            if self.selector.path.start.id == 'A' or self.selector.path.start.id == 'B':
                 self.selector.goNext()
                 self.selector.makequest()
-                
+
                 di, target_idx = self.stanley.stanley_control(
                     self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
 
                 self.target_idx = target_idx
-            
+
                 di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
                 desired_speed = self.selector.path.desired_speed
@@ -370,29 +369,29 @@ class StateMachine(object):
             if dis < 0.1:
                 # delivery mission end
                 rospy.loginfo("arrive at delivery sign")
-                
+
                 self.selector.goNext()
                 self.selector.makequest()
-                
-                self.delivery.delivery = False 
-                
+
+                self.delivery.delivery = False
+
                 if self.selector.path.end.is_end is True:
                     self.mission_state = MissionState.TRAFFIC
                 else:
                     self.mission_state == MissionState.DRIVING
-                    
+
                 return ControlMessage(0, 0, 2, 0, 0, 150, 0)
-        
+
         speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                                desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
+                                              desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
         msg = ControlMessage()
         msg.Speed = int(speed)
         msg.Steer = m.degrees(-di)
         msg.Gear = 2
-        msg.brake = brake       
-        
+        msg.brake = brake
+
         return msg
-    
+
     def staticControl(self):
         self.static.main()
         try:
@@ -404,27 +403,27 @@ class StateMachine(object):
         except Exception as ex:
             rospy.logfatal(ex)
             return ControlMessage(0, 0, 2, 3, 0, 0, 0)
-            
+
         self.target_idx = target_idx
-        
+
         di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
         desired_speed = self.selector.path.desired_speed
-        
+
         if len(self.static.obstacle) != 0:
             return self.static.msg
-            
+
         else:
             speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                                    desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
+                                                  desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
             msg = ControlMessage()
             msg.Speed = int(speed)
             msg.Steer = m.degrees(-di)
             msg.Gear = 2
             msg.brake = brake
-            
-        return msg            
-    
+
+        return msg
+
     def dynamicControl(self):
         self.dynamic.main()
         try:
@@ -435,18 +434,18 @@ class StateMachine(object):
             return ControlMessage(0, 0, 2, 3, 0, 0, 0)
         except Exception as ex:
             rospy.logfatal(ex)
-            return ControlMessage(0, 0, 2, 3, 0, 0, 0)            
-        
+            return ControlMessage(0, 0, 2, 3, 0, 0, 0)
+
         self.target_idx = target_idx
-        
+
         di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
         desired_speed = self.selector.path.desired_speed
-        
+
         if self.dynamic.partTF.front_left == 1 or self.dynamic.partTF.front_right == 1:
             rospy.loginfo("obstacle exist : STOP!")
             return ControlMessage(0, 0, 2, 0, 0, 150, 0)
-        
+
         else:
             rospy.loginfo("obstacle dose not exist : GO!")
             speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
@@ -456,9 +455,9 @@ class StateMachine(object):
             msg.Steer = m.degrees(-di)
             msg.Gear = 2
             msg.brake = brake
-            
-            return msg    
-    
+
+            return msg
+
     def parkingControl(self):
         self.parking.main()
 
@@ -470,13 +469,12 @@ class StateMachine(object):
             return ControlMessage(0, 0, 2, 3, 0, 0, 0)
         except Exception as ex:
             rospy.logfatal(ex)
-            return ControlMessage(0, 0, 2, 3, 0, 0, 0)    
+            return ControlMessage(0, 0, 2, 3, 0, 0, 0)
         self.target_idx = target_idx
-        
+
         di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
-        
-        desired_speed = self.selector.path.desired_speed   
+        desired_speed = self.selector.path.desired_speed
 
         if not self.parking.parking_state == 'complete':
             rospy.loginfo("parking")
@@ -496,8 +494,8 @@ class StateMachine(object):
                 self.mission_state = MissionState.TRAFFIC
             else:
                 self.mission_state == MissionState.DRIVING
-            return msg    
-        
+            return msg
+
     def endControl(self):
         if len(self.path.cx) * 0.9 < self.target_idx:
             return ControlMessage(0, 0, 2, 0, 0, 0, 0)
@@ -530,7 +528,7 @@ class StateMachine(object):
             msg = self.dynamicControl()
 
         elif self.mission_state == MissionState.PARKING:
-            msg= self.parkingControl()
+            msg = self.parkingControl()
 
         elif self.mission_state == MissionState.END:
             msg = self.endControl()
