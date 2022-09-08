@@ -46,6 +46,23 @@ speed_control_enable = rospy.get_param(
     "/state_machine/speed_control_enable", True)
 
 
+def wait_for_stop(duration):
+    global current_time, last_time, r, cmd_pub
+
+    last_time = rospy.Time.now()
+    while not rospy.is_shutdown():
+        current_time = rospy.Time.now()
+
+        dt = (current_time - last_time).to_sec()
+
+        if dt > duration:
+            last_time = current_time
+            return 0
+
+        cmd_pub.publish(msg)
+        r.sleep()
+
+
 class StateMachine(object):
     def __init__(self, state):
         """
@@ -200,71 +217,46 @@ class StateMachine(object):
         return msg
 
     def deliveryControl(self):
-        try:
-            di, target_idx = self.stanley.stanley_control(
-                self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
-        except IndexError as ie:
-            rospy.logwarn(ie)
-            return ControlMessage(0, 0, 2, 3, 0, 0, 0)
-        except Exception as ex:
-            rospy.logfatal(ex)
-            return ControlMessage(0, 0, 2, 3, 0, 0, 0)
-
-        self.target_idx = target_idx
-
-        di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
-
         desired_speed = self.selector.path.desired_speed
 
         # between delivery sign and erp distance
         dis = np.hypot([self.state.x - self.delivery.panel_x],
                        [self.state.y - self.delivery.panel_y])
 
-        if dis < 10:  # have to change tolerance
-            rospy.loginfo("traking local path")
-            # switch path
-            # have to change path start point (before delivery mission path)
-            if self.selector.path.start.id == 'A' or self.selector.path.start.id == 'B':
+        if dis < 10.0:
+            # Move to panel
+            if self.delivery.is_delivery_path is True:
+                desired_speed *= 0.8
+                msg = self.mainControl(desired_speed=desired_speed)
+
+                if self.target_idx >= self.delivery.target_idx:
+                    wait_for_stop(5)
+
+                    self.request_time = rospy.Time.now()
+                    self.selector.goNext()
+                    self.selector.makeRequest()
+                    self.mission_state = MissionState.DRIVING
+
+            else:
+                self.request_time = rospy.Time.now()
                 self.selector.goNext()
-                self.selector.makequest()
+                self.selector.makeRequest()
 
-                di, target_idx = self.stanley.stanley_control(
-                    self.state, self.path.cx, self.path.cy, self.path.cyaw, self.target_idx)
+                dists = []
+                for i in range(len(self.path.cx)):
+                    dist = np.hypot(
+                        self.path.cx[i] - self.delivery.panel_x, self.path.cy[i] - self.delivery.panel_y)
+                    dists.append(dist)
 
-                self.target_idx = target_idx
+                dists = np.array(dists)
+                self.delivery.target_idx = np.argmin(dists)
+                self.delivery.is_delivery_path = True
 
-                di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
+                msg = self.mainControl(desired_speed=desired_speed)
 
-                desired_speed = self.selector.path.desired_speed
-
-                # not done
-            if rospy.wait_for_message("/path_response") == True:
-                self.delivery.panel_x, self.delivery.panel_y = self.delivery.calc_path_point(
-                    self.delivery.panel_x, self.delivery.panel_y, self.path)
-
-            if dis < 0.1:
-                # delivery mission end
-                rospy.loginfo("arrive at delivery sign")
-
-                self.selector.goNext()
-                self.selector.makequest()
-
-                self.delivery.delivery = False
-
-                if self.selector.path.end.is_end is True:
-                    self.mission_state = MissionState.TRAFFIC
-                else:
-                    self.mission_state == MissionState.DRIVING
-
-                return ControlMessage(0, 0, 2, 0, 0, 150, 0)
-
-        speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                              desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
-        msg = ControlMessage()
-        msg.Speed = int(speed)
-        msg.Steer = m.degrees(-di)
-        msg.Gear = 2
-        msg.brake = brake
+        else:
+            # Keep tracking main path
+            msg = self.mainControl(desired_speed=desired_speed)
 
         return msg
 
@@ -382,6 +374,9 @@ if __name__ == "__main__":
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
+
+    last_time = rospy.Time.now()
+    current_time = rospy.Time.now()
 
     controller = StateMachine(state=state)
 
