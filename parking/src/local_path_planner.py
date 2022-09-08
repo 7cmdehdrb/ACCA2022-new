@@ -27,8 +27,6 @@ try:
 except Exception as ex:
     rospy.logfatal(ex)
 
-the_number_of_parkinarea = 6
-
 
 class Local_path_planner():
     def __init__(self):
@@ -109,7 +107,7 @@ class Local_path_planner():
             obstacleList.append(o_1)
             obstacleList.append(o_2)
 
-        for i in range(the_number_of_parkinarea):
+        for i in range(self.the_number_of_parkinarea):
 
             if i != self.target_area_Idx:
                 xc = self.center_points[i][0]  # 중심점의 x좌표
@@ -137,6 +135,7 @@ class Local_path_planner():
         _, _, self.start_yaw = euler_from_quaternion(
             [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
         rospy.loginfo('start point is received')
+        start_pose_sub.unregister()
 
     def markerCallback(self, msg):
 
@@ -154,9 +153,11 @@ class Local_path_planner():
 
             self.points_of_parking_areas.append(
                 self.parking_area.parseArray().tolist())
+
             center_point = [point.x, point.y]  # 주차 라인 중앙 점 좌표
             self.center_points.append(
                 center_point)  # 주차 라인 중앙 점 좌표 list
+            self.the_number_of_parkinarea = len(self.center_points)
         _, _, self.yaw = euler_from_quaternion(
             [orientation.x, orientation.y, orientation.z, orientation.w])
         rospy.loginfo("Subscribe MarkerArray")
@@ -165,6 +166,7 @@ class Local_path_planner():
 
     def parking_zone_callback(self, msg):
         self.target_area_Idx = msg.data
+        rospy.loginfo('target index was accepted')
         #  print(target_area_Idx)
 
 
@@ -195,8 +197,7 @@ if __name__ == "__main__":
 
     sleep(1.)
 
-    while local_path_planner.target_area_Idx == 0:
-        print('yet')
+    rospy.wait_for_message('/target_zone', Int8)
 
     '''obstacleList = []'''  # [x,y,size(radius)]
     target_idx = local_path_planner.target_area_Idx - 1
@@ -237,7 +238,7 @@ if __name__ == "__main__":
 
     rrt_star_reeds_shepp = RRTStarReedsShepp(start, goal,
                                              obstacleList,
-                                             [0.0, 20.0], max_iter=100)
+                                             [0.0, 70.0], max_iter=100)
     path = rrt_star_reeds_shepp.planning(animation=False)
     xs = [0]
     while len(xs) < 5:
