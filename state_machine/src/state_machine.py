@@ -23,7 +23,12 @@ try:
     from stanley import Stanley
     from state import State, OdomState
     from path_selector import PathSelector, PathType
-    
+
+except Exception as ex:
+    rospy.logfatal(ex)
+    rospy.logfatal("Import Error : State Machine")    
+
+try:    
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
     from parking_final import Parking
     from sign_search import SignSearch
@@ -358,7 +363,8 @@ class StateMachine(object):
                 desired_speed = self.selector.path.desired_speed
 
                 # not done
-            if rospy.wait_for_message("/path_response") == True:
+            delivery_path = rospy.wait_for_message("/path_response")
+            if delivery_path.start == 'delivery_path' :
                 self.delivery.panel_x, self.delivery.panel_y = self.delivery.calc_path_point(self.delivery.panel_x, self.delivery.panel_y, self.path)
 
             if dis < 0.1:
