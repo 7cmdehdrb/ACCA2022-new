@@ -11,10 +11,10 @@ class Traffic():
     def __init__(self):
         self.sign =[0 for i in range(9)]
         self.final_index = None
-        self.stop_0 = ["1301","1302","1401","1402","1404"]
+        self.stop_0 = ["1301","1302","07","1402","1404"]
         self.left_1 = ["1303","1305","1403"]
         self.straight_2 = ["1300","1400","1406"]
-        self.both_3 = ["1405"]
+        self.both_3 = ["11"]
         rospy.Subscriber("darknet_ros/bounding_boxes", BoundingBoxes,self.callback)
 
     def callback(self, msg):

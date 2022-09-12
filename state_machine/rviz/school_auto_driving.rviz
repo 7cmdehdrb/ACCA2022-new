@@ -9,8 +9,6 @@ Panels:
         - /PointCloud21
         - /Odometry1/Shape1
         - /Odometry2/Shape1
-        - /Path2
-        - /Path3
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -159,6 +157,29 @@ Visualization Manager:
       Topic: /global_path
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /Obs_path
+      Unreliable: false
+      Value: true
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -176,7 +197,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -192,7 +213,7 @@ Visualization Manager:
         Value: Arrow
       Topic: /odometry/gps
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -210,7 +231,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -226,7 +247,7 @@ Visualization Manager:
         Value: Arrow
       Topic: /odom
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -243,7 +264,7 @@ Visualization Manager:
           Color: 204; 51; 204
           Scale: 1
           Value: true
-        Value: true
+        Value: false
       Enabled: true
       Keep: 100
       Name: Odometry
@@ -261,29 +282,6 @@ Visualization Manager:
       Topic: /odometry/kalman
       Unreliable: false
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic: /Obs_path
-      Unreliable: false
-      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /parking_position
@@ -295,52 +293,6 @@ Visualization Manager:
         3: true
         4: true
         5: true
-      Queue Size: 100
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic: /Obs_path
-      Unreliable: false
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /waypoints
-      Name: MarkerArray
-      Namespaces:
-        A1: true
-        A2: true
-        A3: true
-        A4: true
-        B1: true
-        B2: true
-        B3: true
-        B4: true
-        C1: true
-        C2: true
-        C3: true
-        C4: true
-        D1: true
-        D2: true
-        E1: true
-        E2: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -371,25 +323,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 158.55845642089844
+      Distance: 124.19202423095703
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 8.080841064453125
-        Y: -31.473108291625977
-        Z: -15.484864234924316
+        X: 4.195533752441406
+        Y: 15.606705665588379
+        Z: -67.24319458007812
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.484796404838562
+      Pitch: 1.3497965335845947
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.3504045009613037
+      Yaw: 3.470397472381592
     Saved: ~
 Window Geometry:
   Displays:

@@ -17,6 +17,18 @@ class PathType(Enum):
     UTURN = 4
 
 
+class MissionState(Enum):
+    DRIVING = 0
+    TRAFFIC = 1
+    DELIVERY_A = 2
+    DELIVERY_B = 3
+    STATIC = 4
+    DYNAMIC = 5
+    PARKING = 6
+    RIGHT = 7
+    END = 9
+
+
 class Waypoint(object):
     def __init__(self, id, is_end):
         self.id = id
@@ -33,10 +45,11 @@ def findWaypoint(file_path, id):
 
 
 class Node(object):
-    def __init__(self, data, start, end, next=None, desired_speed=0, path_type=PathType.NONE):
+    def __init__(self, data, start, end, next=None, desired_speed=0, path_type=PathType.NONE, mission_type=MissionState.DRIVING):
         self.data = data
         self.desired_speed = desired_speed
         self.path_type = path_type
+        self.mission_type = mission_type
         self.next = next
 
         self.start = start
@@ -93,14 +106,13 @@ class PathSelector(object):
                     end = row[1]
                     desired_speed = float(row[2])
                     path_type = PathType(int(row[3]))
-
-                    # print(start, end)
+                    mission_type = MissionState(int(row[4]))
 
                     start_point = findWaypoint(waypoints_path, id=start)
                     end_point = findWaypoint(waypoints_path, id=end)
 
                     temp = Node(PathRequest(start, end, start+end),
-                                start=start_point, end=end_point, desired_speed=desired_speed, path_type=path_type)
+                                start=start_point, end=end_point, desired_speed=desired_speed, path_type=path_type, mission_type=mission_type)
 
                     if node is None:
                         node = temp

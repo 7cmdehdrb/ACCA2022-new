@@ -39,6 +39,7 @@ class ParkingState(Enum):
     brake = 2
     area_out = 3
     complete = 4
+    done = 5
 
 
 class AreaState(Enum):
@@ -49,25 +50,34 @@ class AreaState(Enum):
 
 
 class Parking(object):
-    def __init__(self, state, file_path="/home/acca/catkin_ws/src/ACCA2022-new/mission/data/center.csv"):
-        path_data = pd.read_csv(file_path)
+    def __init__(self, state, file_path="/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys_parking_path.csv"):
 
+
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys_parking_path.csv")
+        area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys_parking_path.csv")
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()
         self.path_cyaw = path_data.cyaw.tolist()
-
+        self.path = []
+        for i in range(len(self.path_cx)):
+            self.path.append([self.path_cx[i], self.path_cy[i]])
 
         # parameter
-        self.area = [[1.0, 6.5], [3.0, 7.0], [5.0, 7.5], [7.0, 8.5], [9.0, 9.5], [11.0, 10.5]] #school
-        self.p = -m.atan2(0.1, 8.) # school
+        # self.area = [[1.0, 6.5], [3.0, 7.0], [5.0, 7.5], [7.0, 8.5], [9.0, 9.5], [11.0, 10.5]] #school
+        # self.p = -m.atan2(0.1, 8.) # school
+
+        # kcity_ys
+        self.area = [[-1.53212738037, 62.5431060791], [-1.70216059685, 65.2123184204], [-2.1162173748, 67.7498397827], [-2.45182991028, 70.2586746216], [-2.93549180031, 73.3530197144], [-3.09991717339, 75.8722000122]]
+        self.p = 0.323048083806 + 1.57
+
         
         
         self.create_path_length = 2 # meter
         self.point3_inx = 30
         self.detect_start_idx = 20 # point3 - parameter
-        self.obs_range = 1.
+        self.obs_range = 1.5
         self.target_area = 10
-        self.obs_count = 20
+        self.obs_count = 3
         self.width = 2.
         self.length_p = 3.
            
@@ -102,20 +112,27 @@ class Parking(object):
     def wait_for_stop(self, duration):
         last_time = rospy.Time.now()
         current_time = rospy.Time.now()
-
+        self.msg.Speed = 0
+        self.msg.Steer = 0
+        self.msg.Gear = 2
+        self.msg.brake = 150
         r = rospy.Rate(30)
         while not rospy.is_shutdown():
+            rospy.logfatal("!!!!!!!!!!!!!!!!!!")
             current_time = rospy.Time.now()
 
             dt = (current_time - last_time).to_sec()
 
             if dt > duration:
+                rospy.logwarn("!!!!!!!!!!!!!!!!!!")
+
                 last_time = current_time
                 return 0
 
-            self.msg = ControlMessage(
-                0, 0, 2, 0, 0, 120, 0
-            )
+            self.msg.Speed = 0
+            self.msg.Steer = 0
+            self.msg.Gear = 1
+            self.msg.brake = 150
 
             r.sleep()
 
@@ -178,9 +195,10 @@ class Parking(object):
         di, self.detect_target_idx = self.stanley.stanley_control(
         self.state, self.path_cx, self.path_cy, self.path_cyaw, self.detect_target_idx)
         
-        self.msg.Speed = int(7)
+        self.msg.Speed = int(5)
         self.msg.Steer = int(-m.degrees(di))
         self.msg.Gear = 2
+        self.msg.brake = 0
 
 
         for i in range(6):
@@ -189,18 +207,18 @@ class Parking(object):
             if inrange == AreaState.detect:
                 self.CarMapping(self.area[i], i)
                 
-            if inrange == AreaState.end and self.area_num[i] > self.obs_count:
+            if inrange == AreaState.end and self.area_num[i] < self.obs_count:
                 self.target_area = i
                 self.parking_state = ParkingState.area_in
                 self.CreatPath()
-
+        print(self.area_num)
 
     def CreatPath(self):
 
         point1, meetpoint, point3 = self.GetPoint(self.area[self.target_area])
         
         a, b = point1[0], point1[1]
-        p = -1 / self.p
+        p = self.p
         c = b - p * a
         
         xs = [self.state.x]
@@ -218,9 +236,10 @@ class Parking(object):
             t1 = self.calc_target_index(self.path_cx, self.path_cy, waypoint1)
             t2 = self.calc_target_index(self.path_cx, self.path_cy, waypoint2)
 
-            dis1 = np.hypot(self.path_cx[t1] - waypoint1[0], self.path_cy[t1] - waypoint1[1])
-            dis2 = np.hypot(self.path_cx[t2] - waypoint2[0], self.path_cy[t2] - waypoint2[1])
-            
+            dis1 = self.GetDistance2(self.path, waypoint1)
+            dis2 = self.GetDistance2(self.path, waypoint2)
+
+
             if dis1 > dis2:
                 xs.insert(1, waypoint2[0])
                 ys.insert(1, waypoint2[1])
@@ -235,6 +254,7 @@ class Parking(object):
 
     def parking(self):  
         self.publishArea(self.area)
+        print(self.parking_state)
 
         if self.parking_state == ParkingState.area_in:
             print("in!!!")
@@ -252,7 +272,7 @@ class Parking(object):
                 self.state, self.local_cx, self.local_cy, self.local_cyaw, self.local_target_idx
             )
 
-            self.msg.Speed = 5
+            self.msg.Speed = 3
             self.msg.Steer = int(-m.degrees(di))
             self.msg.Gear = 2
 
@@ -262,9 +282,13 @@ class Parking(object):
 
 
         elif self.parking_state == ParkingState.brake:
-                self.wait_for_stop(5)
-                self.parking_state = ParkingState.area_out
-            
+            self.msg.Speed = 0
+            self.msg.Steer = 0
+            self.msg.Gear = 2
+            self.msg.brake = 150
+            self.wait_for_stop(5)
+            self.parking_state = ParkingState.area_out
+        
 
         elif self.parking_state == ParkingState.area_out:
 
@@ -273,11 +297,15 @@ class Parking(object):
             self.msg.brake = 0
             self.msg.Gear = 0
 
-            target_idx = self.stanley.calc_target_index(self.state, self.path_cx, self.path_cy)
-            dist = np.hypot(self.path_cx[target_idx] - self.state.x, self.path_cy[target_idx] - self.state.y)
+            # target_idx = self.stanley.calc_target_index(self.state, self.path_cx, self.path_cy)
+            dist = self.GetDistance2(self.path, [self.state.x, self.state.y])
             
             if dist < 0.2:
-                self.wait_for_stop(duration=2)
+                self.msg.Speed = 0
+                self.msg.Steer = 0
+                self.msg.Gear = 2
+                self.msg.brake = 150
+                # self.wait_for_stop(duration=2)
                 self.parking_state = ParkingState.complete
     
         
@@ -286,6 +314,14 @@ class Parking(object):
         distance = m.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
         return distance
 
+    def GetDistance2(self, path, point):           
+        dis_r_array = []  
+        for i in range(len(path)):
+            dis = m.sqrt((point[0] - path[i][0]) ** 2 + (point[1] - path[i][1]) ** 2)
+            dis_r_array.append(dis)     
+        min_dis = min(dis_r_array)
+        return min_dis
+     
     def calc_target_index(self, cx, cy, point):
         fx = point[0]
         fy = point[1]

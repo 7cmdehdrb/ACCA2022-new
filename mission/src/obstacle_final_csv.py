@@ -26,15 +26,14 @@ from cubic_spline_planner import calc_spline_course
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
-    from state import OdomState
     from stanley import Stanley
 except Exception as ex:
     rospy.logfatal(ex)
 
 
-class obstacle(object):
+class Obstacle(object):
     
-    def __init__(self):
+    def __init__(self, state):
         
 
         self.left = []
@@ -42,7 +41,10 @@ class obstacle(object):
         self.path = []
 
         # read path data : csv
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/center.csv")
+        # path_ = "/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_static_path.csv" #kcity_ys
+        path_ = "/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_school.csv" #school
+
+        path_data = pd.read_csv(path_)
         self.path = []
         self.path_cx = []
         self.path_cy = []
@@ -74,7 +76,7 @@ class obstacle(object):
         self.PathMsg = PathResponse()
         self.msg = ControlMessage()
 
-        self.state = OdomState()
+        self.state = state
         self.stanley = Stanley()
     
 
@@ -86,7 +88,7 @@ class obstacle(object):
 
         # parameter
         self.detect_obs_angle = 0.8
-        self.detect_obs_range = 2.
+        self.detect_obs_range = 1.
         self.prox_dis = 1.        
         self.r = 1.3
         self.det_iter= 10

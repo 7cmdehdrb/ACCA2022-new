@@ -15,7 +15,7 @@ from path_plan.msg import PathResponse
 from collections import deque
 
 
-class Delivery(object):
+class Delivery():
     def __init__(self):
         self.ax = deque(maxlen=200)
         self.ay = deque(maxlen=200)
