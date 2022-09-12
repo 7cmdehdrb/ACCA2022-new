@@ -18,7 +18,7 @@ from geometry_msgs.msg import PoseStamped
 from mission.msg import obTF
 
 try:
-    sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
+    sys.path.append('/home/enbang/catkin_ws/src/ACCA2022-new/erp42/erp42_control' + "/src")
     from speed_supporter import SpeedSupporter
     from stanley import Stanley
     from state import State, OdomState
@@ -29,7 +29,7 @@ except Exception as ex:
     rospy.logfatal("Import Error : State Machine - erp42_control")
 
 try:
-    sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
+    sys.path.append('/home/enbang/catkin_ws/src/ACCA2022-new/mission' + "/src")
     from parking_final import Parking
     from sign_search import SignSearch
     from obstacle_final import obstacle

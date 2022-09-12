@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 import rospy
-from mission.msg import BoundingBox, BoundingBoxes
+from darknet_ros_msgs.msg import BoundingBox, BoundingBoxes
 import Queue
 from lidar_camera_calibration.msg import Signmsg
 
