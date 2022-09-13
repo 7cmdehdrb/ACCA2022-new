@@ -5,24 +5,9 @@ import sys
 import rospkg
 import numpy as np
 from geometry_msgs.msg import PoseArray,Pose
-from lidar_camera_calibration.msg import obTF
-import ros_numpy
+from mission.msg  import obTF
 import math
 
-try:
-    sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
-    from speed_supporter import SpeedSupporter
-    from stanley import Stanley
-    from state import State, OdomState
-    from path_selector import PathSelector, PathType
-    
-    sys.path.append(rospkg.RosPack().get_path("state_machine") + "/src")
-    from state_machine import StateMachine, MissionState
-
-
-except Exception as ex:
-    rospy.logfatal(ex)
-    rospy.logfatal("Import Error : State Machine")
 
 """
 Subscribe 'scan_filtered' and
@@ -31,7 +16,7 @@ Publish 'ob_TF'
 
 
 class Lidar(object):
-    def __init__(self, publisher):
+    def __init__(self):
         super(Lidar, self).__init__()
         self.p_arr = np.empty((0,3), float)
         self.threshold_range = rospy.get_param("threshold_range", 5.0)
@@ -40,7 +25,7 @@ class Lidar(object):
         self.fin = []
         rospy.Subscriber("/adaptive_clustering/poses", PoseArray, self.lidarCallback)
 
-        self.part_pub = publisher
+        self.part_pub = rospy.Publisher("ob_TF", obTF, queue_size=1)
 
     def lidarCallback(self, msg):
         p_arr = np.empty((0,3), float)
@@ -99,16 +84,16 @@ class Lidar(object):
 
         self.fin = [a, b, c, d]
 
-    def pubResults(self, publisher):
-        partTF = obTF()
+    def pubResults(self):
+        self.partTF = obTF()
 
         try:
-            partTF.side_left = self.fin[0]
-            partTF.front_left = self.fin[1]
-            partTF.front_right = self.fin[2]
-            partTF.side_right = self.fin[3]
+            self.partTF.side_left = self.fin[0]
+            self.partTF.front_left = self.fin[1]
+            self.partTF.front_right = self.fin[2]
+            self.partTF.side_right = self.fin[3]
 
-            publisher.publish(partTF)
+            self.part_pub.publish(self.partTF)
 
         except Exception as ex:
             print(ex)
@@ -118,27 +103,20 @@ class Lidar(object):
         self.xylistMake()
         if len(self.part_index) == 5:
             self.thresholding()
-            self.pubResults(publisher=self.part_pub)
+            self.pubResults()
             # print(self.fin)
             del self.part_index[0]
 
 
 if __name__ == "__main__":
     rospy.init_node("dynamic_ob")
-
-    pub = rospy.Publisher("ob_TF", obTF, queue_size=1)
-
-    lidar = Lidar(publisher=pub)
-
-    state = OdomState(odometry_topic="/odometry/kalman")
     
-    controller = StateMachine(state = state)
-    
+    lidar = Lidar()
+
     r = rospy.Rate(30.0)
     while not rospy.is_shutdown():
-        if controller.mission_state == MissionState.DYNAMIC:
-            lidar.main()
-            r.sleep()
+        lidar.main()
+        r.sleep()
         
 # code from : https://github.com/7cmdehdrb/ACCA/blob/master/cone_tracker/src/check_obstacles.py
 # after : check https://github.com/7cmdehdrb/ACCA/blob/master/cone_tracker/src/estopTF.py
