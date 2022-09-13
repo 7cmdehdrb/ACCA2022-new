@@ -17,7 +17,6 @@ from cubic_spline_planner import calc_spline_course
 from parking_area import ParkingArea
 from rrt_star_reeds_shepp import *
 from std_msgs.msg import Int8
-# from parking.msg import surround_obstacle
 from path_plan.msg import PathResponse
 
 try:
@@ -166,7 +165,11 @@ class Local_path_planner():
 
     def parking_zone_callback(self, msg):
         self.target_area_Idx = msg.data
-        #  print(target_area_Idx)
+        print(self.target_area_Idx)
+
+    def WP3_callback(self, msg):
+        self.WP3_x = msg.x
+        self.WP3_y = msg.y
 
 
 if __name__ == "__main__":
@@ -194,6 +197,8 @@ if __name__ == "__main__":
         "/path", PathResponse, queue_size=1
     )
 
+    WP3_sub = rospy.Subscriber(
+        '/parking_WP3',  Point, callback=local_path_planner.WP3_callback)
     sleep(1.)
 
     rospy.wait_for_message('/target_zone', Int8)
@@ -212,8 +217,11 @@ if __name__ == "__main__":
                 # [x, y]
                 obstacleList.append((j[0], j[1], 0.5))'''
 
-    start = [local_path_planner.start_x,
-             local_path_planner.start_y, local_path_planner.start_yaw]
+    local_path_former_part_x, local_path_former_part_y, local_path_former_part_yaw, _, _ = calc_spline_course(
+        [local_path_planner.start_x, local_path_planner.WP3_x], [local_path_planner.start_y, local_path_planner.WP3_y])
+
+    start = [local_path_planner.WP3_x,
+             local_path_planner.WP3_y, local_path_former_part_yaw[-1]]
     goal = [local_path_planner.parking_areas[target_idx].position.x,
             local_path_planner.parking_areas[target_idx].position.y, local_path_planner.yaw]
 
@@ -237,7 +245,7 @@ if __name__ == "__main__":
 
     rrt_star_reeds_shepp = RRTStarReedsShepp(start, goal,
                                              obstacleList,
-                                             [0.0, 70.0], max_iter=100)
+                                             [0.0, 30.0], max_iter=100)
     path = rrt_star_reeds_shepp.planning(animation=False)
     xs = [0]
     while len(xs) < 5:
@@ -248,9 +256,9 @@ if __name__ == "__main__":
         except:
             pass
 
-    local_path_planner.path.cx = xs
-    local_path_planner.path.cy = ys
-    local_path_planner.path.cyaw = yaws
+    local_path_planner.path.cx = local_path_former_part_x + xs
+    local_path_planner.path.cy = local_path_former_part_y + ys
+    local_path_planner.path.cyaw = local_path_former_part_yaw + yaws
 
     hz = 1.
     freq = 1 / hz
