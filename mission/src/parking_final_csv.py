@@ -4,7 +4,7 @@ import sys
 import rospy
 import rospkg
 import numpy as np
-import math as m  
+import math as m
 import pandas as pd
 import genpy
 from enum import Enum
@@ -17,10 +17,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 from erp42_control.msg import ControlMessage
 
 try:
-    # erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
-    sys.path.append('/home/enbang/catkin_ws/src/ACCA2022-new/erp42/erp42_control' + "/src")
-
-    # sys.path.append(erp42_control_pkg_path)
+    erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
+    sys.path.append(erp42_control_pkg_path)
     from stanley import Stanley
 except Exception as ex:
     rospy.logfatal(ex)
@@ -28,7 +26,7 @@ except Exception as ex:
 
 try:
     path_plan_pkg_path = rospkg.RosPack().get_path("path_plan") + "/src"
-    sys.path.append(path_plan_pkg_path)
+    sys.path.append(erp42_control_pkg_path)
     from cubic_spline_planner import calc_spline_course
 except Exception as ex:
     rospy.logfatal(ex)
@@ -41,7 +39,6 @@ class ParkingState(Enum):
     brake = 2
     area_out = 3
     complete = 4
-    done = 5
 
 
 class AreaState(Enum):
@@ -52,37 +49,44 @@ class AreaState(Enum):
 
 
 class Parking(object):
-    def __init__(self, state, file_path="/home/enbang/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv"):
+    def __init__(self, state):
 
+        # school
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/parking_path.csv")
+        area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/parking_area.csv")
 
-        path_data = pd.read_csv("/home/enbang/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
-        area_data = pd.read_csv("/home/enbang/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
+        # kcity
+        # path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
+        # area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking.csv")
+
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()
         self.path_cyaw = path_data.cyaw.tolist()
         self.path = []
+        self.area = []
+
         for i in range(len(self.path_cx)):
             self.path.append([self.path_cx[i], self.path_cy[i]])
 
-        # parameter
-        # self.area = [[1.0, 6.5], [3.0, 7.0], [5.0, 7.5], [7.0, 8.5], [9.0, 9.5], [11.0, 10.5]] #school
-        # self.p = -m.atan2(0.1, 8.) # school
+        path_area_x = area_data.x.tolist()
+        path_area_y = area_data.y.tolist()
+        path_area_yaw = area_data.yaw.tolist()
 
-        # kcity_ys
-        self.area = [[-1.53212738037, 62.5431060791], [-1.70216059685, 65.2123184204], [-2.1162173748, 67.7498397827], [-2.45182991028, 70.2586746216], [-2.93549180031, 73.3530197144], [-3.09991717339, 75.8722000122]]
-        self.p = 0.323048083806 + 1.57
+        for j in range(len(path_area_x)):
+            self.area.append([path_area_x[j], path_area_y[j]])
 
+        self.p = path_area_yaw[0] + 1.57
         
-        
+
         self.create_path_length = 2 # meter
         self.point3_inx = 30
         self.detect_start_idx = 20 # point3 - parameter
         self.obs_range = 1.5
-        self.target_area = 10
         self.obs_count = 3
         self.width = 2.
         self.length_p = 3.
-           
+        self.path_depth = 5
+
         self.parking_state = ParkingState.detect
         self.start_signal = False
         self.area_num = [0, 0, 0, 0, 0, 0]
@@ -119,8 +123,9 @@ class Parking(object):
         self.msg.Gear = 2
         self.msg.brake = 150
         r = rospy.Rate(30)
+        
         while not rospy.is_shutdown():
-            rospy.logfatal("!!!!!!!!!!!!!!!!!!")
+            # rospy.logfatal("!!!!!!!!!!!!!!!!!!")
             current_time = rospy.Time.now()
 
             dt = (current_time - last_time).to_sec()
@@ -242,13 +247,28 @@ class Parking(object):
             dis2 = self.GetDistance2(self.path, waypoint2)
 
 
-            if dis1 > dis2:
-                xs.insert(1, waypoint2[0])
-                ys.insert(1, waypoint2[1])
-                
-            else :
-                xs.insert(1, waypoint1[0])
-                ys.insert(1, waypoint1[1])
+            if i <= self.path_depth:
+                if dis1 > dis2:
+                    xs.insert(1, waypoint2[0])
+                    ys.insert(1, waypoint2[1])
+                    xs.insert(-1, waypoint1[0])
+                    ys.insert(-1, waypoint1[1])
+
+                else :
+                    xs.insert(1, waypoint1[0])
+                    ys.insert(1, waypoint1[1])
+                    xs.insert(-1, waypoint2[0])
+                    ys.insert(-1, waypoint2[1])
+
+            else:
+
+                if dis1 > dis2:
+                    xs.insert(1, waypoint2[0])
+                    ys.insert(1, waypoint2[1])
+                    
+                else :
+                    xs.insert(1, waypoint1[0])
+                    ys.insert(1, waypoint1[1])
                 
         self.local_cx, self.local_cy, self.local_cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)
             
@@ -279,7 +299,7 @@ class Parking(object):
             self.msg.Gear = 2
 
 
-            if abs(self.local_target_idx - len(self.local_cx)) < 3:
+            if self.local_target_idx >= (len(self.local_cx) - 3):
                 self.parking_state = ParkingState.brake
 
 
@@ -288,7 +308,7 @@ class Parking(object):
             self.msg.Steer = 0
             self.msg.Gear = 2
             self.msg.brake = 150
-            self.wait_for_stop(5)
+            # self.wait_for_stop(5)
             self.parking_state = ParkingState.area_out
         
 
@@ -309,8 +329,8 @@ class Parking(object):
                 self.msg.brake = 150
                 # self.wait_for_stop(duration=2)
                 self.parking_state = ParkingState.complete
-    
-        
+
+
         
     def GetDistance(self, point1, point2):    
         distance = m.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)

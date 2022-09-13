@@ -25,8 +25,6 @@ class Delivery():
         # check id_number
         self.panel = [[4, 7], [5, 8], [6, 9]]  # [[A1,B1],[A2,B2],[A3,B3]]
         self.panel_id = [0, 0, 0]
-        self.deli_A = False
-        self.deli_B = False
         self.tf_sub = tf.TransformListener()
         self.markers = MarkerArray()
         self.target_idx = float("inf")
@@ -66,7 +64,8 @@ class Delivery():
 
         self.panel_A.x = np.mean(self.ax)
         self.panel_A.y = np.mean(self.ay)
-          
+        
+        
     def delivery_B(self):
         for marker in self.markers:
             if (marker.id)//10000 == self.panel[self.panel_id.index(max(self.panel_id))][1]:
