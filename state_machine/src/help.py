@@ -29,6 +29,13 @@ except Exception as ex:
     rospy.logfatal("Import Error : State Machine - erp42_control")
 
 try:
+    sys.path.append(rospkg.RosPack().get_path("parking]") + "/src")
+    from horizontal_parking import HorizontalParking
+except Exception as ex:
+    rospy.logfatal(ex)
+    rospy.logfatal("Import Error : State Machine - parking")
+
+try:
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
     from parking_final import Parking
     from sign_search import SignSearch
@@ -96,6 +103,8 @@ class StateMachine(object):
 
         # Parking
         self.parking = Parking()
+        self.horizontal_parking = HorizontalParking(
+            state=self.state, cmd_pub=cmd_pub)
 
         # Static
         self.static = obstacle()
@@ -283,6 +292,10 @@ class StateMachine(object):
 
         return msg
 
+    def horizontalParkingContorl(self):
+        self.horizontal_parking.loop()
+        return self.horizontal_parking.cmd_msg
+
     def parkingControl(self):
         # WTF
         self.parking.main()
@@ -354,7 +367,8 @@ class StateMachine(object):
             msg = self.dynamicControl()
 
         elif self.mission_state == MissionState.PARKING:
-            msg = self.parkingControl()
+            # msg = self.parkingControl()
+            msg = self.horizontalParkingContorl()
 
         elif self.mission_state == MissionState.END:
             msg = self.endControl()
