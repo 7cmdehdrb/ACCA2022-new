@@ -303,7 +303,7 @@ class StateMachine(object):
 
         self.parking.main()
 
-        if not self.parking.parking_state == ParkingState.complete and not self.parking.parking_state == ParkingState.brake:
+        if not self.parking.parking_state == ParkingState.complete and not self.parking.parking_state == ParkingState.brake and not self.parking.parking_state == ParkingState.done:
             rospy.loginfo("parking")
             return self.parking.msg
 
@@ -314,12 +314,15 @@ class StateMachine(object):
         elif self.parking.parking_state == ParkingState.complete:
             wait_for_stop(2)
             self.parking.parking_state = ParkingState.done
-            # if self.selector.path.end.is_end is True:
-            #     self.mission_state = MissionState.TRAFFIC
-            # else:
-            #     self.mission_state == MissionState.DRIVING
             return self.mainControl(desired_speed=desired_speed)
-        else:
+
+        elif self.parking.parking_state == ParkingState.done:
+            
+            if self.selector.path.end.is_end is True:
+                self.mission_state = MissionState.TRAFFIC
+            else:
+                self.mission_state == MissionState.DRIVING
+            
             return self.mainControl(desired_speed=desired_speed)
                     
     def rightControl(self):

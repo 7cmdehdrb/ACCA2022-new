@@ -57,8 +57,8 @@ class Obstacle(object):
 
 
         # left line
-        left_xs = [60, 70]
-        left_ys = [0, -30]
+        left_xs, left_ys  = [60, 70], [0, -30] #school
+
         self.left_cx, self.left_cy, left_cyaw, _, _ = calc_spline_course(left_xs[:], left_ys[:], ds=0.1)    
 
         for i in range(len(self.left_cx)):
@@ -83,15 +83,12 @@ class Obstacle(object):
         self.target_idx = 0
         self.length = 0
 
-        self.nd_targit_idx = 0
-        self.nd_length = 0
-
         # parameter
         self.detect_obs_angle = 0.8
         self.detect_obs_range = 1.
         self.prox_dis = 1.        
         self.r = 1.3
-        self.det_iter= 10
+        self.det_iter= 5
         
     def ObstacleCallback(self, msg):
         self.ObsMsg = msg

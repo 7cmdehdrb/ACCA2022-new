@@ -6,12 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-<<<<<<< HEAD
         - /Odometry2
-=======
-        - /Odometry1/Shape1
-        - /TF1/Tree1
->>>>>>> 49c6ee39461ef4be9f8b288f801210a05507a7a2
       Splitter Ratio: 0.5
     Tree Height: 796
   - Class: rviz/Selection
