@@ -4,9 +4,14 @@ import rospy
 import sys
 import rospkg
 import numpy as np
-from geometry_msgs.msg import PoseArray,Pose
-from mission.msg  import obTF
-import math
+import pandas as pd
+import math as m
+import genpy
+from sensor_msgs.msg import LaserScan
+from visualization_msgs.msg import MarkerArray, Marker
+from geometry_msgs.msg import Point, Quaternion, Vector3, PoseStamped, PoseArray
+from std_msgs.msg import ColorRGBA
+from mission.msg import obTF
 
 
 """
@@ -16,109 +21,114 @@ Publish 'ob_TF'
 
 
 class Lidar(object):
-    def __init__(self):
+    def __init__(self, state):
         super(Lidar, self).__init__()
-        self.p_arr = np.empty((0,3), float)
-        self.threshold_range = rospy.get_param("threshold_range", 5.0)
-        self.part_fin = []
-        self.part_index = []
-        self.fin = []
-        self.partTF = obTF()
-        rospy.Subscriber("/adaptive_clustering/poses", PoseArray, self.lidarCallback)
 
-        self.part_pub = rospy.Publisher("ob_TF", obTF, queue_size=1)
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/dynamic_path.csv")
 
-    def lidarCallback(self, msg):
-        p_arr = np.empty((0,3), float)
-        for pose in msg.poses:
-            d = math.sqrt((pose.position.x)**2+(pose.position.y)**2)
-            if (d <= self.threshold_range) and (pose.position.x >= 0.1) and (pose.position.z >= -1.2):
-                p_arr = np.append(p_arr, np.array([[pose.position.x,pose.position.y,pose.position.z]]), axis=0)
-        self.p_arr = p_arr
-
-    def partYN(self):
-        self.part_fin=[0,0,0,0]
-        DEG = 15
-        RAD = math.radians(DEG)
-        for i in range(len(self.p_arr)):
-            temp_rad = math.atan(self.p_arr[i][1]/self.p_arr[i][0])
+        self.path_cx = path_data.cx.tolist()
+        self.path_cy = path_data.cy.tolist()
+        self.path_cyaw = path_data.cyaw.tolist()
+        self.path = []
+        for i in range(len(self.path_cx)):
+            self.path.append([self.path_cx[i], self.path_cy[i]])
             
-            if temp_rad >= RAD :
-                self.part_fin[0] = 1
-            elif temp_rad >= 0 and temp_rad < RAD :
-                self.part_fin[1] = 1
-            elif temp_rad <0 and temp_rad >= (-1)*RAD :
-                self.part_fin[2] = 1
-            elif temp_rad < (-1)*RAD :
-                self.part_fin[3] = 1
+        self.state = state
+        
+        self.thr_dis = 4.
+        self.thr_path_dis = 1.5
+        
+        rospy.Subscriber("/scan_filtered", LaserScan, self.laserCallback)
+        
+        self.obs_pub = rospy.Publisher("/obs_pub", MarkerArray, queue_size=10)        
+        self.part_pub = rospy.Publisher("ob_TF", obTF, queue_size=5)
 
-    def xylistMake(self):
-        if len(self.part_index) < 5:
-            self.part_index.append(self.part_fin)
 
-        else:
-            print("error")
+    def laserCallback(self, msg):
+        self.ranges = msg.ranges
 
-    def thresholding(self):
-        self.fin = []
-        A = 0
-        B = 0
-        C = 0
-        D = 0
-        a = 0
-        b = 0
-        c = 0
-        d = 0
-        for i in range(len(self.part_index)):
-            A = A + self.part_index[i][0]
-            B = B + self.part_index[i][1]
-            C = C + self.part_index[i][2]
-            D = D + self.part_index[i][3]
-        if A > 2:
-            a = 1
-        if B > 2:
-            b = 1
-        if C > 2:
-            c = 1
-        if D > 2:
-            d = 1
 
-        self.fin = [a, b, c, d]
+    def GetDistance(self, path, point):           
+        dis_r_array = []  
+        for i in range(len(path)):
+            dis = m.sqrt((point[0] - path[i][0]) ** 2 + (point[1] - path[i][1]) ** 2)
+            dis_r_array.append(dis)     
+        min_dis = min(dis_r_array)
+        return min_dis
+    
+    
+    def publishPoint(self, point):
+        msg = MarkerArray()
+        for i in range(len(point)):
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = rospy.Time.now()
+            marker.ns = str(i)
+            marker.id = 1
+            marker.type = 3
+            marker.action = 0
+            marker.pose.position = Point(point[i][0], point[i][1], 0.)
+            marker.pose.orientation = Quaternion(0., 0., 0., 1)
+            marker.scale = Vector3(0.1, 0.1, 0.1)
+            marker.color = ColorRGBA((i+1)/41., 0., 0., 1.)
+            marker.lifetime = genpy.Duration(secs=0.2)
+            msg.markers.append(marker)
+        self.obs_pub.publish(msg)
+        
+        
+    def detect_range(self):
+        
+        self.mapping = []
+        self.obstacle = []
+        
+        if len(self.ranges) == 0:
+            return 0
 
-    def pubResults(self):
+        for i in range(1, 41):
+            
+            theta = (-10 + (i / 2)) * np.pi * 180
+            lidar_x = self.ranges[158+i] * m.cos(theta)
+            lidar_y = self.ranges[158+i] * m.sin(theta)
+            map_x = self.state.x + lidar_x * m.cos(self.state.yaw) - lidar_y * m.sin(self.state.yaw)
+            map_y = self.state.y + lidar_x * m.sin(self.state.yaw) + lidar_y * m.cos(self.state.yaw)
+            
+            dis_path = self.GetDistance(self.path, [map_x, map_y])
+            
+            self.obstacle.append([self.ranges[158+i], dis_path])
+            self.mapping.append([map_x, map_y])
+            
+            
+    def Result(self):
+        
+        obs_num = 0
         self.partTF = obTF()
 
-        try:
-            self.partTF.side_left = self.fin[0]
-            self.partTF.front_left = self.fin[1]
-            self.partTF.front_right = self.fin[2]
-            self.partTF.side_right = self.fin[3]
+        self.partTF.front_right = 0
+        self.partTF.front_left = 0
+        self.partTF.side_right = 0
+        self.partTF.side_left = 0
+        
+        for i in self.obstacle:
+            
+            if i[0] < self.thr_dis and i[1] < self.thr_path_dis and i[0] != 0.0:
+                obs_num += 1
+        print(obs_num)
 
-            self.part_pub.publish(self.partTF)
-
-        except Exception as ex:
-            print(ex)
+        if obs_num >= 2:
+            self.partTF.front_right = 1
+            self.partTF.front_left = 1
+            self.partTF.side_right = 0
+            self.partTF.side_left = 0
+            rospy.logfatal("stop!!!!!")
+            
+        else:
+            self.partTF.front_right = 0
+            self.partTF.front_left = 0
+            self.partTF.side_right = 0
+            self.partTF.side_left = 0
+            rospy.logwarn("keep going!!!!!")
 
     def main(self):
-        self.partYN()
-        self.xylistMake()
-        if len(self.part_index) == 5:
-            self.thresholding()
-            self.pubResults()
-            # print(self.fin)
-            del self.part_index[0]
-
-
-if __name__ == "__main__":
-    rospy.init_node("dynamic_ob")
-    
-    lidar = Lidar()
-
-    r = rospy.Rate(30.0)
-    while not rospy.is_shutdown():
-        lidar.main()
-        r.sleep()
-        
-# code from : https://github.com/7cmdehdrb/ACCA/blob/master/cone_tracker/src/check_obstacles.py
-# after : check https://github.com/7cmdehdrb/ACCA/blob/master/cone_tracker/src/estopTF.py
-# after2 : check https://github.com/7cmdehdrb/ACCA/blob/master/path_planner/msg/obTF.msg
+        self.detect_range()
+        self.Result()
+        self.publishPoint(self.mapping)

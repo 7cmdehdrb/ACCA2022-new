@@ -96,7 +96,7 @@ class StateMachine(object):
         self.delivery = Delivery()
 
         # Dynamic
-        self.dynamic = Lidar()
+        self.dynamic = Lidar(state=self.state)
 
         # Parking
         self.parking = Parking(state=self.state)
