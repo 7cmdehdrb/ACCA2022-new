@@ -93,10 +93,10 @@ class Local_path_planner():
             yc = self.center_points[i][1]  # 중심점의 y좌표
 
             x1 = xc + self.scale_x / 2 * m.cos(self.yaw)
-            y1 = yc + self.scale_y / 2 * m.sin(self.yaw)
+            y1 = yc + self.scale_x / 2 * m.sin(self.yaw)
 
             x2 = xc - self.scale_x / 2 * m.cos(self.yaw)
-            y2 = yc - self.scale_y / 2 * m.sin(self.yaw)
+            y2 = yc - self.scale_x / 2 * m.sin(self.yaw)
 
             o_c = [xc, yc, self.scale_x/2]
             o_1 = [x1, y1, self.scale_x/2]
@@ -246,6 +246,9 @@ if __name__ == "__main__":
     rrt_star_reeds_shepp = RRTStarReedsShepp(start, goal,
                                              obstacleList,
                                              [0.0, 30.0], max_iter=100)
+    print(start)
+    print(goal)
+    print(obstacleList)
     path = rrt_star_reeds_shepp.planning(animation=False)
     xs = [0]
     while len(xs) < 5:

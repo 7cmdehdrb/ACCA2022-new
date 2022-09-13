@@ -104,15 +104,16 @@ class TargetSelector():
         #print(self.parking_state < 2)
 
     def checkIsInParking(self):
-        for obstacle in self.obstacles:
-            if i+1 in self.obstacle_zone:
-                continue
-            for i, point in enumerate(self.center_points):
+        for i, point in enumerate(self.center_points):
+            for obstacle in self.obstacles:
+                if i+1 in self.obstacle_zone:
+                    continue
                 dist = np.hypot(
                     point[0] - obstacle[0], point[1] - obstacle[1])
 
-                if dist == 0.0:
-                    return True
+                if dist < self.scale_x:
+                    self.obstacle_zone.append(i+1)
+                    break
 
                 area_VEC = np.array([
                     m.cos(point[2] - m.radians(90.0)
@@ -134,6 +135,7 @@ class TargetSelector():
 
                     if i+1 not in self.obstacle_zone:
                         self.obstacle_zone.append(i+1)
+                    break
 
         for ob_zone in self.obstacle_zone:
             try:
