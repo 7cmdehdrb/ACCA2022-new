@@ -28,31 +28,22 @@ def loadCSV(path):
     return res
 
 
-<<<<<<< HEAD
-def sequence_callback(msg):
-    global sequence
-    sequence = msg.data
-
-
-=======
->>>>>>> cac6ac29ee4a6b8f83a93cb894ae89dd446b8c41
 if __name__ == "__main__":
     rospy.init_node("load_parking_area")
 
     path = rospkg.RosPack().get_path("parking") + "/parking/" + \
         rospy.get_param("/create_parking_area/parking_file",
-                        "parking3.csv")
+                        "hor_parking.csv")
 
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
 
     parking_areas = loadCSV(path)
 
-    hz = 1.
+    hz = 0.2
     freq = 1 / hz
 
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
-        print('it is running')
         msg = MarkerArray()
 
         for i, parking in enumerate(parking_areas):

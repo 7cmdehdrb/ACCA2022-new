@@ -11,7 +11,7 @@ from erp42_msgs.msg import SerialFeedBack
 
 
 class State(object):
-    def __init__(self, odometry_topic="/ndt_matching/ndt_pose", hz=30):
+    def __init__(self, odometry_topic="/ndt_matching/ndt_pose", hz=30, test=True):
 
         # Subscriber
         self.odom_sub = rospy.Subscriber(
@@ -20,6 +20,8 @@ class State(object):
         # Custum Field
         self.hz = hz
         self.data = Odometry()
+        self.test = test
+        print(self.test)
 
         self.x = 0.  # m
         self.y = 0.  # m
@@ -41,8 +43,10 @@ class State(object):
                 msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
         _, _, yaw = euler_from_quaternion(quat)
 
-        self.x = msg.pose.pose.position.x - (1.040 / 2) * math.cos(yaw)
-        self.y = msg.pose.pose.position.y - (1.040 / 2) * math.sin(yaw)
+        self.x = msg.pose.pose.position.x - \
+            (0.0 if self.test is True else (1.040 / 2) * math.cos(yaw))
+        self.y = msg.pose.pose.position.y - \
+            (0.0 if self.test is True else (1.040 / 2) * math.sin(yaw))
 
         dx = msg.pose.pose.position.x - self.data.pose.pose.position.x
         dy = msg.pose.pose.position.y - self.data.pose.pose.position.y
@@ -50,7 +54,6 @@ class State(object):
         distance = math.sqrt(dx ** 2 + dy ** 2)
 
         self.v = distance / dt
-
 
         self.omega = (yaw - self.yaw) / dt
         self.yaw = yaw

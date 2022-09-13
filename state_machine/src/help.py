@@ -32,6 +32,14 @@ except Exception as ex:
     rospy.logfatal("Import Error : State Machine - erp42_control")
 
 try:
+    sys.path.append(rospkg.RosPack().get_path("parking]") + "/src")
+    from horizontal_parking import HorizontalParking
+    
+except Exception as ex:
+    rospy.logfatal(ex)
+    rospy.logfatal("Import Error : State Machine - parking")
+
+try:
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
 
     from parking_final_csv import Parking, ParkingState
@@ -98,7 +106,9 @@ class StateMachine(object):
         self.dynamic = Lidar()
 
         # Parking
-        self.parking = Parking(state=self.state)
+        self.parking = Parking()
+        self.horizontal_parking = HorizontalParking(
+            state=self.state, cmd_pub=cmd_pub)
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -296,6 +306,10 @@ class StateMachine(object):
 
         return msg
 
+    def horizontalParkingContorl(self):
+        self.horizontal_parking.loop()
+        return self.horizontal_parking.cmd_msg
+
     def parkingControl(self):
         # WTF
         desired_speed = self.selector.path.desired_speed
@@ -366,8 +380,9 @@ class StateMachine(object):
             msg = self.dynamicControl()
 
         elif self.mission_state == MissionState.PARKING:
-            msg = self.parkingControl()
-        
+            # msg = self.parkingControl()
+            msg = self.horizontalParkingContorl()
+
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()
 

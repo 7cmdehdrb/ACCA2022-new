@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     fake_odom = FakeOdom()
 
-    r = rospy.Rate(10.)
+    r = rospy.Rate(30.)
     while not rospy.is_shutdown():
         fake_odom.loop()
         r.sleep()
