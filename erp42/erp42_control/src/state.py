@@ -51,7 +51,6 @@ class State(object):
 
         self.v = distance / dt
 
-
         self.omega = (yaw - self.yaw) / dt
         self.yaw = yaw
 

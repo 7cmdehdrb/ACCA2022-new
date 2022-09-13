@@ -1,32 +1,25 @@
 #!/usr/bin/env python
 
 
-from calendar import c
+import sys
 import rospy
 import rospkg
 import numpy as np
 import math as m
 import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from parking_area import ParkingArea
+from cubic_spline_planner import calc_spline_course
+from reeds_shepp_path_planning import reeds_shepp_path_planning
+from enum import Enum
+from time import sleep
+# MSGS
 from std_msgs.msg import Empty, Header, ColorRGBA
 from geometry_msgs.msg import *
 from nav_msgs.msg import Path
 from visualization_msgs.msg import Marker, MarkerArray
 from path_plan.msg import PathResponse
 from erp42_control.msg import ControlMessage
-from parking_area import ParkingArea
-from cubic_spline_planner import calc_spline_course
-from reeds_shepp_path_planning import reeds_shepp_path_planning
-from enum import Enum
-from time import sleep
-
-try:
-    erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
-    sys.path.append(erp42_control_pkg_path)
-    from state import State, OdomState
-    from stanley import Stanley
-except Exception as ex:
-    rospy.logfatal(ex)
 
 
 class HorizontalParking(Enum):
@@ -139,10 +132,10 @@ def createPath(circle1, circle2, selected_parking_area, state):
 
     # Set end point : +n m(relative with car height) of end point of parking lot
     fs = 2.8
-    end_x = selected_parking_area.position.x + ((selected_parking_area.scale.x / 2.0) * \
-        m.cos(yaw + m.pi)) - ((1.040 / 2.0) * m.cos(yaw + m.pi) * fs)
-    end_y = selected_parking_area.position.y + ((selected_parking_area.scale.x / 2.0) * \
-        m.sin(yaw + m.pi)) - ((1.040 / 2.0) * m.sin(yaw + m.pi) * fs)
+    end_x = selected_parking_area.position.x + ((selected_parking_area.scale.x / 2.0) *
+                                                m.cos(yaw + m.pi)) - ((1.040 / 2.0) * m.cos(yaw + m.pi) * fs)
+    end_y = selected_parking_area.position.y + ((selected_parking_area.scale.x / 2.0) *
+                                                m.sin(yaw + m.pi)) - ((1.040 / 2.0) * m.sin(yaw + m.pi) * fs)
 
     end_x2 = selected_parking_area.position.x + (selected_parking_area.scale.x / 2.0) * \
         m.cos(yaw) - (1.040 / 2.0) * m.cos(yaw) * fs
@@ -222,8 +215,8 @@ def createPath(circle1, circle2, selected_parking_area, state):
     )
 
     cx = straight_path.cx + reverse_path.cx + home_path.cx + final_path.cx
-    cy = straight_path.cy + reverse_path.cy  + home_path.cy + final_path.cy
-    cyaw = straight_path.cyaw + reverse_path.cyaw  + home_path.cyaw + final_path.cyaw
+    cy = straight_path.cy + reverse_path.cy + home_path.cy + final_path.cy
+    cyaw = straight_path.cyaw + reverse_path.cyaw + home_path.cyaw + final_path.cyaw
 
     cx = reverse_path.cx
     cy = reverse_path.cy
@@ -331,6 +324,15 @@ def getTwoCircle(idx):
 
 if __name__ == "__main__":
     rospy.init_node("horizontal_parking")
+
+    try:
+        erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
+        sys.path.append(erp42_control_pkg_path)
+        from state import State, OdomState
+        from stanley import Stanley
+    except Exception as ex:
+        print("Import Error : Horizontal Parking")
+        rospy.logfatal(ex)
 
     state = State("/ndt_matching/ndt_pose")
     parking_areas = []
