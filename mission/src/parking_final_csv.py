@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
-import os
 import sys
-from time import sleep
 import rospy
 import rospkg
-import pandas as pd
 import numpy as np
-import math as m
+import math as m  
+import pandas as pd
 import genpy
+from enum import Enum
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import Point, Quaternion, Vector3, PoseStamped, PoseArray
 from path_plan.msg import PathRequest, PathResponse
@@ -16,81 +15,136 @@ from nav_msgs.msg import Path, Odometry
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 from erp42_control.msg import ControlMessage
-from enum import Enum
-from cubic_spline_planner import calc_spline_course
 
 try:
-    erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
-    sys.path.append(erp42_control_pkg_path)
-    from state import OdomState
+    # erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
+    sys.path.append('/home/enbang/catkin_ws/src/ACCA2022-new/erp42/erp42_control' + "/src")
+
+    # sys.path.append(erp42_control_pkg_path)
     from stanley import Stanley
 except Exception as ex:
     rospy.logfatal(ex)
 
 
+try:
+    path_plan_pkg_path = rospkg.RosPack().get_path("path_plan") + "/src"
+    sys.path.append(path_plan_pkg_path)
+    from cubic_spline_planner import calc_spline_course
+except Exception as ex:
+    rospy.logfatal(ex)
 
-class DiagonalParking(Enum):
-    detect_area = 0
-    in_area = 1
-    out_area = 2
-    End = 3
+
+
+class ParkingState(Enum):
+    detect = 0
+    area_in = 1
+    brake = 2
+    area_out = 3
+    complete = 4
+    done = 5
+
+
+class AreaState(Enum):
+    wait = 0
+    detect = 1
+    end = 2
+
 
 
 class Parking(object):
-    
-    def __init__(self):
+    def __init__(self, state, file_path="/home/enbang/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv"):
 
+
+        path_data = pd.read_csv("/home/enbang/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
+        area_data = pd.read_csv("/home/enbang/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
+        self.path_cx = path_data.cx.tolist()
+        self.path_cy = path_data.cy.tolist()
+        self.path_cyaw = path_data.cyaw.tolist()
         self.path = []
-        
+        for i in range(len(self.path_cx)):
+            self.path.append([self.path_cx[i], self.path_cy[i]])
+
         # parameter
-        self.area = [[1.0, 6.5], [3.0, 7.0], [5.0, 7.5], [7.0, 8.5], [9.0, 9.5], [11.0, 10.5]] #school
-        self.p = -m.atan2(0.1, 8.) # school
+        # self.area = [[1.0, 6.5], [3.0, 7.0], [5.0, 7.5], [7.0, 8.5], [9.0, 9.5], [11.0, 10.5]] #school
+        # self.p = -m.atan2(0.1, 8.) # school
+
+        # kcity_ys
+        self.area = [[-1.53212738037, 62.5431060791], [-1.70216059685, 65.2123184204], [-2.1162173748, 67.7498397827], [-2.45182991028, 70.2586746216], [-2.93549180031, 73.3530197144], [-3.09991717339, 75.8722000122]]
+        self.p = 0.323048083806 + 1.57
+
         
         
         self.create_path_length = 2 # meter
         self.point3_inx = 30
         self.detect_start_idx = 20 # point3 - parameter
-        self.obs_range = 1.
+        self.obs_range = 1.5
         self.target_area = 10
-        self.obs_count = 20
+        self.obs_count = 3
         self.width = 2.
-        self.length = 3.
+        self.length_p = 3.
            
-        self.parking_state = 'detect area'
+        self.parking_state = ParkingState.detect
         self.start_signal = False
         self.area_num = [0, 0, 0, 0, 0, 0]
 
-        self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)
-        rospy.Subscriber("/path_response", PathResponse, callback=self.path_callback)    
+        rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)
         self.obs_pub_parking = rospy.Publisher("parking_position", MarkerArray, queue_size=10)        
-        self.cmd_pub = rospy.Publisher("/cmd_msg/parking", ControlMessage, queue_size=10)
         self.path_pub = rospy.Publisher("Obs_path", Path, queue_size=10)
 
 
-        self.ObsMsg = PoseArray()
-        self.PathMsg = PathResponse()
-        self.msg = ControlMessage()
-        self.r = rospy.Rate(30)
+        self.target_idx = 0
+        self.length = 0
 
-        self.state = OdomState()
+        self.local_target_idx = 0
+        self.local_length = 0  
+
+        self.detect_target_idx = 0
+        self.detect_length = 0
+
+        self.ObsMsg = PoseArray()
+
+        self.msg = ControlMessage()
+
+        self.state = state
         self.stanley = Stanley()
 
     def ObstacleCallback(self, msg):
         self.ObsMsg = msg
-        
-    def path_callback(self, msg):
-        self.PathMsg = msg
-        
-        for i in range(len(self.PathMsg.cx)):
-            self.path.append([self.PathMsg.cx[i], self.PathMsg.cy[i]])
+
+    def wait_for_stop(self, duration):
+        last_time = rospy.Time.now()
+        current_time = rospy.Time.now()
+        self.msg.Speed = 0
+        self.msg.Steer = 0
+        self.msg.Gear = 2
+        self.msg.brake = 150
+        r = rospy.Rate(30)
+        while not rospy.is_shutdown():
+            rospy.logfatal("!!!!!!!!!!!!!!!!!!")
+            current_time = rospy.Time.now()
+
+            dt = (current_time - last_time).to_sec()
+
+            if dt > duration:
+                rospy.logwarn("!!!!!!!!!!!!!!!!!!")
+
+                last_time = current_time
+                return 0
+
+            self.msg.Speed = 0
+            self.msg.Steer = 0
+            self.msg.Gear = 1
+            self.msg.brake = 150
+
+            r.sleep()
 
     def GetPoint(self, area):
         
-        per_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [area[0], area[1]])
+        per_idx = self.calc_target_index(self.path_cx, self.path_cy, [area[0], area[1]])
         
         point1 = [area[0], area[1]]
-        point2 = [self.PathMsg.cx[per_idx], self.PathMsg.cy[per_idx]]
-        point3 = [self.PathMsg.cx[per_idx - self.point3_inx], self.PathMsg.cy[per_idx - self.point3_inx]]
+        point2 = [self.path_cx[per_idx], self.path_cy[per_idx]]
+        point3 = [self.path_cx[per_idx - self.point3_inx], self.path_cy[per_idx - self.point3_inx]]
         
         p = self.p
         
@@ -101,22 +155,21 @@ class Parking(object):
     
 
     def InDetectRange(self, area):
+        _, _, point3 = self.GetPoint(area)
         
-        _, meetpoint, point3 = self.GetPoint(area)
-        
-        current_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [self.state.x, self.state.y])
-        meet_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [meetpoint[0], meetpoint[1]])
-        point3_idx = self.calc_target_index(self.PathMsg.cx, self.PathMsg.cy, [point3[0], point3[1]])
+        current_idx = self.calc_target_index(self.path_cx, self.path_cy, [self.state.x, self.state.y])
+        # meet_idx = self.calc_target_index(self.path_cx, self.path_cy, [meetpoint[0], meetpoint[1]])
+        point3_idx = self.calc_target_index(self.path_cx, self.path_cy, [point3[0], point3[1]])
 
         
-        if point3_idx - self.detect_start_idx < current_idx < point3_idx:
-            in_detect_range = 'detect range'
+        if point3_idx - self.detect_start_idx < current_idx and current_idx < point3_idx:
+            in_detect_range = AreaState.detect
             
         elif current_idx >= point3_idx:
-            in_detect_range = 'complete detect range'
+            in_detect_range = AreaState.end
             
         else:
-            in_detect_range = 'wait detect range'
+            in_detect_range = AreaState.wait
             
         return in_detect_range
     
@@ -136,56 +189,38 @@ class Parking(object):
                 self.area_num[target_idx] += 1
     
     
-    def SelectArea(self):
-        
-        self.msg = ControlMessage()
-
-        target_idx = 0
-        length = 0
-
+    def selectArea(self):
         print("detect!!!")
-        
+
         self.publishArea(self.area)
-        # self.publishPath(parking.path_cx, parking.path_cy, parking.path_cyaw)
-        l = len(self.PathMsg.cx)
-
-        if l != length:
-            length = l
-            target_idx = 1
-
-        if target_idx == l:
-            pass
+                
+        di, self.detect_target_idx = self.stanley.stanley_control(
+        self.state, self.path_cx, self.path_cy, self.path_cyaw, self.detect_target_idx)
         
-        print(self.PathMsg.path_id)
-        
-        di, target_idx = self.stanley.stanley_control(
-        self.state, self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw, target_idx)
-        
-        self.msg.Speed = 5.
-        self.msg.Steer = -m.degrees(di)
+        self.msg.Speed = int(5)
+        self.msg.Steer = int(-m.degrees(di))
         self.msg.Gear = 2
-        # self.cmd_pub.publish(self.msg)
+        self.msg.brake = 0
+
+
         for i in range(6):
-            
-            inrange = 'none'
             inrange = self.InDetectRange(self.area[i])
             
-            if inrange == 'detect range':
+            if inrange == AreaState.detect:
                 self.CarMapping(self.area[i], i)
                 
-            else :
-                pass
-
-            if inrange == 'complete detect range' and self.area_num[i] < self.obs_count:
+            if inrange == AreaState.end and self.area_num[i] < self.obs_count:
                 self.target_area = i
-                self.parking_state = 'in'  
+                self.parking_state = ParkingState.area_in
+                self.CreatPath()
+        print(self.area_num)
 
     def CreatPath(self):
 
         point1, meetpoint, point3 = self.GetPoint(self.area[self.target_area])
         
         a, b = point1[0], point1[1]
-        p = -1 / self.p
+        p = self.p
         c = b - p * a
         
         xs = [self.state.x]
@@ -200,9 +235,13 @@ class Parking(object):
             waypoint1 = [t1, p * t1 + c]
             waypoint2 = [t2, p * t2 + c]
             
+            t1 = self.calc_target_index(self.path_cx, self.path_cy, waypoint1)
+            t2 = self.calc_target_index(self.path_cx, self.path_cy, waypoint2)
+
             dis1 = self.GetDistance2(self.path, waypoint1)
             dis2 = self.GetDistance2(self.path, waypoint2)
-            
+
+
             if dis1 > dis2:
                 xs.insert(1, waypoint2[0])
                 ys.insert(1, waypoint2[1])
@@ -214,104 +253,69 @@ class Parking(object):
         self.local_cx, self.local_cy, self.local_cyaw, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)
             
 
-    def parking(self):
-        local_target_idx = 0
-        local_length = 0   
-        
-        target_idx = 0
-        length = 0
-        
-        self.CreatPath()
-        
-        if self.parking_state == 'in':
-            self.publishArea(self.area)
 
+    def parking(self):  
+        self.publishArea(self.area)
+        print(self.parking_state)
+
+        if self.parking_state == ParkingState.area_in:
             print("in!!!")
+
             self.publishPath(self.local_cx, self.local_cy, self.local_cyaw)
             
             l = len(self.local_cx)
 
-            if l != local_length:
-                local_length = l
-                local_target_idx = 1
+            if l != self.local_length:
+                self.local_length = l
+                self.local_target_idx = 1
 
-            if local_target_idx == l:
-                pass
             
-            di, local_target_idx = self.stanley.stanley_control(
-            self.state, self.local_cx, self.local_cy, self.local_cyaw, target_idx)
+            di, self.local_target_idx = self.stanley.stanley_control(
+                self.state, self.local_cx, self.local_cy, self.local_cyaw, self.local_target_idx
+            )
 
-            self.msg.Speed = 3.
-            self.msg.Steer = -m.degrees(di)
+            self.msg.Speed = 3
+            self.msg.Steer = int(-m.degrees(di))
             self.msg.Gear = 2
-            # self.cmd_pub.publish(self.msg)
 
-            state_idx = self.calc_target_index(self.local_cx, self.local_cy, [self.state.x, self.state.y])
 
-                        
-            if abs(state_idx - len(self.local_cx)) < 3:
+            if abs(self.local_target_idx - len(self.local_cx)) < 3:
+                self.parking_state = ParkingState.brake
 
-                self.msg.Speed = 0.
-                self.msg.Steer = 0.
-                self.msg.brake = 70.
-                # self.cmd_pub.publish(self.msg)
 
-                sleep(5)
-                
-                self.parking_state = 'out'
-            
-        elif self.parking_state == 'out':
-            self.publishArea(self.area)
-            print("out!!!")
-            self.msg.Speed = 5.
-            self.msg.Steer = 0.
-            self.msg.brake = 0.
+        elif self.parking_state == ParkingState.brake:
+            self.msg.Speed = 0
+            self.msg.Steer = 0
+            self.msg.Gear = 2
+            self.msg.brake = 150
+            self.wait_for_stop(5)
+            self.parking_state = ParkingState.area_out
+        
+
+        elif self.parking_state == ParkingState.area_out:
+
+            self.msg.Speed = 5
+            self.msg.Steer = 0
+            self.msg.brake = 0
             self.msg.Gear = 0
-            # self.cmd_pub.publish(self.msg)
 
-            dis = self.GetDistance2(self.path, [self.state.x, self.state.y])
+            # target_idx = self.stanley.calc_target_index(self.state, self.path_cx, self.path_cy)
+            dist = self.GetDistance2(self.path, [self.state.x, self.state.y])
             
-            if dis < 0.2:
-                self.msg.Speed = 0.
-                self.msg.Steer = 0.
-                self.msg.brake = 70.
+            if dist < 0.2:
+                self.msg.Speed = 0
+                self.msg.Steer = 0
                 self.msg.Gear = 2
-                # self.cmd_pub.publish(self.msg)
-                sleep(2)
-                self.parking_state = 'complete'
-                print("break!!!!")
+                self.msg.brake = 150
+                # self.wait_for_stop(duration=2)
+                self.parking_state = ParkingState.complete
     
-            self.r.sleep()
-            
-        elif self.parking_state == 'complete':
-
-            self.publishArea(self.area)
-
-            l = len(self.PathMsg.cx)
-
-            if l != length:
-                length = l
-                target_idx = 1
-
-            if target_idx == l:
-                pass
-            
-            di, target_idx = self.stanley.stanley_control(
-            self.state, self.PathMsg.cx, self.PathMsg.cy, self.PathMsg.cyaw, target_idx)
-            
-            self.msg.Speed = 7.
-            self.msg.Steer = -m.degrees(di)
-            self.msg.brake = 0.
-
-            self.msg.Gear = 2
-            # self.cmd_pub.publish(self.msg)
-            self.r.sleep()
+        
         
     def GetDistance(self, point1, point2):    
         distance = m.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
         return distance
-    
-    
+
     def GetDistance2(self, path, point):           
         dis_r_array = []  
         for i in range(len(path)):
@@ -319,7 +323,6 @@ class Parking(object):
             dis_r_array.append(dis)     
         min_dis = min(dis_r_array)
         return min_dis
-     
      
     def calc_target_index(self, cx, cy, point):
         fx = point[0]
@@ -359,17 +362,16 @@ class Parking(object):
             marker.action = 0
             marker.pose.position = Point(parking_area[i][0], parking_area[i][1], 0.)
             marker.pose.orientation = Quaternion(0., 0., self.p, 1)
-            marker.scale = Vector3(self.width, self.length, 0.1)
+            marker.scale = Vector3(self.width, self.length_p, 0.1)
             marker.color = ColorRGBA(1., 0., 0., 0.7)
             marker.lifetime = genpy.Duration(secs=0.2)
             msg.markers.append(marker)
         self.obs_pub_parking.publish(msg)
   
-  
     
     def main(self):
-        
-        if self.parking_state == 'detect area':
-            self.SelectArea()
+        if self.parking_state == ParkingState.detect:
+            self.selectArea()
         else:
             self.parking()
+

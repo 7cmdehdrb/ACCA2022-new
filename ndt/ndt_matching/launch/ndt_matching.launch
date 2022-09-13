@@ -13,9 +13,9 @@
     <arg name="period_in_ms" default="5"/>
     
     <!--================================================= points_map_loader =================================================-->
-    <arg name="scene_num" default="noupdate" />
+    <!-- <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
-    <arg name="path_pcd" default='$/home/enbang/pcdschool.pcd' />
+    <arg name="path_pcd" default='$/home/enbang/pcd/school.pcd'/>
     
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
         <rosparam subst_value="true">
@@ -23,7 +23,7 @@
             arealist_path: $(arg path_area_list)
             pcd_paths: [ $(arg path_pcd) ]
         </rosparam>
-    </node>
+    </node> -->
     
     <!--================================================= voxel_grid_filter =================================================-->
     <arg name="sync" default="false" />

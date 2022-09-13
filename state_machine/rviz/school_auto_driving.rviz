@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /PointCloud21
         - /Odometry1/Shape1
         - /Odometry2/Shape1
       Splitter Ratio: 0.5
@@ -77,7 +78,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.05000000074505806
       Style: Flat Squares
-      Topic: /globalmap
+      Topic: /points_map
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -117,76 +118,20 @@ Visualization Manager:
       Namespaces:
         A1: true
         A2: true
+        A3: true
+        A4: true
         B1: true
         B2: true
         B3: true
         B4: true
-        B5: true
-        B6: true
-        B7: true
-        B8: true
         C1: true
         C2: true
         C3: true
         C4: true
-        C5: true
-        C6: true
-        C7: true
-        C8: true
         D1: true
         D2: true
-        D3: true
-        D4: true
-        D5: true
-        D6: true
-        D7: true
-        D8: true
         E1: true
         E2: true
-        E3: true
-        E4: true
-        E5: true
-        E6: true
-        F1: true
-        F2: true
-        F3: true
-        F4: true
-        F5: true
-        F6: true
-        G1: true
-        G2: true
-        G3: true
-        G4: true
-        G5: true
-        G6: true
-        G7: true
-        G8: true
-        H1: true
-        H2: true
-        H3: true
-        H4: true
-        H5: true
-        H6: true
-        H7: true
-        H8: true
-        I1: true
-        I2: true
-        I3: true
-        I4: true
-        I5: true
-        I6: true
-        J1: true
-        J2: true
-        J3: true
-        J4: true
-        J5: true
-        J6: true
-        K1: true
-        K2: true
-        K3: true
-        K4: true
-        K5: true
-        K6: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -212,6 +157,29 @@ Visualization Manager:
       Topic: /global_path
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /Obs_path
+      Unreliable: false
+      Value: true
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -229,7 +197,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -245,7 +213,7 @@ Visualization Manager:
         Value: Arrow
       Topic: /odometry/gps
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -263,7 +231,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -279,7 +247,7 @@ Visualization Manager:
         Value: Arrow
       Topic: /odom
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -296,7 +264,7 @@ Visualization Manager:
           Color: 204; 51; 204
           Scale: 1
           Value: true
-        Value: true
+        Value: false
       Enabled: true
       Keep: 100
       Name: Odometry
@@ -313,6 +281,19 @@ Visualization Manager:
         Value: Arrow
       Topic: /odometry/kalman
       Unreliable: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /parking_position
+      Name: MarkerArray
+      Namespaces:
+        0: true
+        1: true
+        2: true
+        3: true
+        4: true
+        5: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -342,25 +323,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 18.8231258392334
+      Distance: 124.19202423095703
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 130.18930053710938
-        Y: -80.75696563720703
-        Z: 1.4388279914855957
+        X: 4.195533752441406
+        Y: 15.606705665588379
+        Z: -67.24319458007812
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5497963428497314
+      Pitch: 1.3497965335845947
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.26040133833885193
+      Yaw: 3.470397472381592
     Saved: ~
 Window Geometry:
   Displays:

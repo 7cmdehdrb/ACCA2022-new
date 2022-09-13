@@ -16,9 +16,12 @@ from lidar_camera_calibration.msg import Signmsg
 from std_msgs.msg import Float32, Int16
 from geometry_msgs.msg import PoseStamped
 from mission.msg import obTF
-
+from obstacle_final_csv import Obstacle
+from delivery import Delivery
+from dynamic_ob import Lidar
 try:
-    sys.path.append('/home/enbang/catkin_ws/src/ACCA2022-new/erp42/erp42_control' + "/src")
+    sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
+
     from speed_supporter import SpeedSupporter
     from stanley import Stanley
     from state import State, OdomState
@@ -29,12 +32,10 @@ except Exception as ex:
     rospy.logfatal("Import Error : State Machine - erp42_control")
 
 try:
-    sys.path.append('/home/enbang/catkin_ws/src/ACCA2022-new/mission' + "/src")
-    from parking_final import Parking
-    from sign_search import SignSearch
-    from obstacle_final import obstacle
-    from dynamic_ob import Lidar
-    from deliveryAB import Delivery
+    sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
+
+    from parking_final_csv import Parking, ParkingState
+    from traffic import Traffic
 
 except Exception as ex:
     rospy.logfatal(ex)
@@ -51,17 +52,16 @@ def wait_for_stop(duration):
     
     msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
 
+    dt = 0
     last_time = rospy.Time.now()
-    while not rospy.is_shutdown():
+    while dt < duration:
         current_time = rospy.Time.now()
 
         dt = (current_time - last_time).to_sec()
 
         if dt > duration:
             last_time = current_time
-            return 0
-        
-        
+
         cmd_pub.publish(msg)
         r.sleep()
 
@@ -89,7 +89,7 @@ class StateMachine(object):
         self.path = PathResponse()
 
         # Traffic Sign
-        self.traffic = SignSearch()
+        self.traffic = Traffic()
 
         # Delivery
         self.delivery = Delivery()
@@ -98,10 +98,10 @@ class StateMachine(object):
         self.dynamic = Lidar()
 
         # Parking
-        self.parking = Parking()
+        self.parking = Parking(state=self.state)
 
         # Static
-        self.static = obstacle()
+        self.static = Obstacle(state=self.state)
 
         # right
         self.right_1 = False
@@ -178,7 +178,7 @@ class StateMachine(object):
             speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
                                                   desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
-            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), brake, 0
+            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), 0, 0
             )
 
         except IndexError as ie:
@@ -191,15 +191,16 @@ class StateMachine(object):
     def trafficControl(self):
         desired_speed = self.selector.path.desired_speed
 
-        if len(self.path.cx) - 50 < self.target_idx:
+        if len(self.path.cx) - 60 < self.target_idx:
             # Almost in front of traffic sign
             desired_speed *= 0.5
+            # rospy.logfatal(str(self.traffic.msg.straight))
 
         elif len(self.path.cx) - 25 < self.target_idx:
             # Stop if required
-
             try:
                 if self.selector.path.path_type == PathType.STRAIGHT:
+                    self.traffic.msg.straight = 0
                     if self.traffic.msg.straight == 0:
                         raise Exception()
 
@@ -213,7 +214,7 @@ class StateMachine(object):
 
             except Exception:
                 # Stop
-                return ControlMessage(0, 0, 2, 0, 0, 120, 0)
+                return ControlMessage(0, 0, 2, 0, 0, 150, 0)
 
         msg = self.mainControl(desired_speed=desired_speed)
         return msg
@@ -301,18 +302,25 @@ class StateMachine(object):
 
         self.parking.main()
 
-        if not self.parking.parking_state == 'complete':
+        if not self.parking.parking_state == ParkingState.complete and not self.parking.parking_state == ParkingState.brake:
             rospy.loginfo("parking")
             return self.parking.msg
 
-        else:
-            if self.selector.path.end.is_end is True:
-                self.mission_state = MissionState.TRAFFIC
-            else:
-                self.mission_state == MissionState.DRIVING
-
+        elif self.parking.parking_state == ParkingState.brake:
+            wait_for_stop(5)
             return self.mainControl(desired_speed=desired_speed)
-        
+
+        elif self.parking.parking_state == ParkingState.complete:
+            wait_for_stop(2)
+            self.parking.parking_state = ParkingState.done
+            # if self.selector.path.end.is_end is True:
+            #     self.mission_state = MissionState.TRAFFIC
+            # else:
+            #     self.mission_state == MissionState.DRIVING
+            return self.mainControl(desired_speed=desired_speed)
+        else:
+            return self.mainControl(desired_speed=desired_speed)
+                    
     def rightControl(self):
         desired_speed = self.selector.path.desired_speed
         

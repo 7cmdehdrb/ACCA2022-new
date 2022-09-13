@@ -15,7 +15,9 @@ add_message_files(
    FILES
    obTF.msg
    Signmsg.msg
-)
+   BoundingBoxes.msg
+   BoundingBox.msg
+   )
 generate_messages(
     DEPENDENCIES
     std_msgs
