@@ -44,7 +44,6 @@ if __name__ == "__main__":
 
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
-        print('it is running')
         msg = MarkerArray()
 
         for i, parking in enumerate(parking_areas):

@@ -33,14 +33,24 @@ class HorizontalParkingState(Enum):
     Reverse = 1
     Home = 2
     Final = 3
-    End = 4
-    Wait = 5
+    Out = 4
+    End = 5
+    Break = 6
+
+    def __int__(self):
+        return self.value
 
 
 class HorizontalParking(object):
     def __init__(self, state, cmd_pub):
         self.state = state
+
         self.stanley = Stanley()
+        self.target_idx = 0
+
+        # For test
+        self.stanley.setCGain(1.0)
+        self.stanley.setHdrRatio(1.0)
 
         self.horizontal_parking_state = HorizontalParkingState.Straight
 
@@ -56,12 +66,19 @@ class HorizontalParking(object):
         )
 
         self.cmd_pub = cmd_pub
+        self.cmd_msg = ControlMessage()
+
+        rospy.wait_for_message("/parking_areas", MarkerArray)
 
         # TO DO : Put function for decide parking lot
         idx = 0
         circle1, circle2, selected_parking_area = self.getTwoCircle(idx)
-        self.straight_path, self.reverse_path, self.home_path, self.final_path, self.path = self.createPath(
+        self.straight_path, self.reverse_path, self.home_path, self.final_path, self.out_path, self.path = self.createPath(
             circle1, circle2, selected_parking_area)
+
+        self.current_path = self.straight_path
+
+        self.path_pub.publish(self.path)
 
     # Subscribe Parking Area Data
     def markerCallback(self, msg):
@@ -92,9 +109,8 @@ class HorizontalParking(object):
                 last_time = current_time
                 return 0
 
-            self.cmd_pub.publish(
-                ControlMessage(0, 0, 2, 0, 0, 120, 0)
-            )
+            self.cmd_msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
+            self.cmd_pub.publish(self.cmd_msg)
 
             r.sleep()
 
@@ -158,16 +174,16 @@ class HorizontalParking(object):
                               (1.0 if yaw_end > yaw_start else -1.0))
 
         # Set end point : +n m(relative with car height) of end point of parking lot
-        fs = float(rospy.get_param("/horizontal_parking/fs", 2.8))
+        fs = float(rospy.get_param("/horizontal_parking/fs", 1.5))
         end_x = selected_parking_area.position.x + ((selected_parking_area.scale.x / 2.0) *
-                                                    m.cos(yaw + m.pi)) - ((1.040 / 2.0) * m.cos(yaw + m.pi) * fs)
+                                                    m.cos(yaw + m.pi)) - ((1.5 / 2.0) * m.cos(yaw + m.pi) * fs)
         end_y = selected_parking_area.position.y + ((selected_parking_area.scale.x / 2.0) *
-                                                    m.sin(yaw + m.pi)) - ((1.040 / 2.0) * m.sin(yaw + m.pi) * fs)
+                                                    m.sin(yaw + m.pi)) - ((1.5 / 2.0) * m.sin(yaw + m.pi) * fs)
 
         end_x2 = selected_parking_area.position.x + (selected_parking_area.scale.x / 2.0) * \
-            m.cos(yaw) - (1.040 / 2.0) * m.cos(yaw) * fs
+            m.cos(yaw) - (1.5 / 2.0) * m.cos(yaw) * fs
         end_y2 = selected_parking_area.position.y + (selected_parking_area.scale.x / 2.0) * \
-            m.sin(yaw) - (1.040 / 2.0) * m.sin(yaw) * fs
+            m.sin(yaw) - (1.5 / 2.0) * m.sin(yaw) * fs
 
         xs2 = [circle1.pose.position.x +
                circle1.scale.x / 2.0 * m.cos(y) for y in yaw_range]
@@ -177,6 +193,7 @@ class HorizontalParking(object):
         _, _, gyaw = euler_from_quaternion(
             [circle1.pose.orientation.x, circle1.pose.orientation.y, circle1.pose.orientation.z, circle1.pose.orientation.w])
 
+        # Path : current state to horizontal position of lot
         scx, scy, scyaw, _, _ = reeds_shepp_path_planning(
             sx=self.state.x,
             sy=self.state.y,
@@ -185,69 +202,50 @@ class HorizontalParking(object):
             gy=start_y,
             gyaw=gyaw,
             maxc=0.1,
-            step_size=0.05
+            step_size=0.1
         )
 
+        # Path : Extra path for spath
         scx2, scy2, scyaw2, _, _ = calc_spline_course(
-            [start_x, start_x2], [start_y, start_y2], ds=0.01)
+            [start_x, start_x2], [start_y, start_y2], ds=0.1)
 
         xs = [start_x2] + [start_x] + xs1 + xs2 + [end_x]
         ys = [start_y2] + [start_y] + ys1 + ys2 + [end_y]
 
-        gcx, gcy, gcyaw, _, _ = calc_spline_course(xs, ys, 0.01)
+        # Path : Reverse Path
 
+        gcx, gcy, gcyaw, _, _ = calc_spline_course(xs, ys, 0.1)
+        ocx, ocy, ocyaw, _, _ = calc_spline_course(
+            list(reversed(xs)), list(reversed(ys)), 0.1)
+
+        # Path : Homing Path
         hcx, hcy, hcyaw, _, _ = calc_spline_course(
-            [end_x, end_x2], [end_y, end_y2], 0.01)
+            [end_x, end_x2], [end_y, end_y2], 0.1)
 
+        # Path : Reverse Path for Final Position
         fcx, fcy, fcyaw, _, _ = calc_spline_course(
-            [end_x2, selected_parking_area.position.x],
-            [end_y2, selected_parking_area.position.y],
-            0.01
+            [end_x2, end_x],
+            [end_y2, end_y],
+            0.1
         )
 
         straight_path = PathResponse(
-            None,
-            None,
-            None,
-            scx + scx2,
-            scy + scy2,
-            scyaw + scyaw2
-        )
+            None, None, None, scx + scx2, scy + scy2, scyaw + scyaw2)
+        reverse_path = PathResponse(None, None, None, gcx, gcy, gcyaw)
+        home_path = PathResponse(None, None, None, hcx, hcy, hcyaw)
+        final_path = PathResponse(None, None, None, fcx, fcy, fcyaw)
+        out_path = PathResponse(None, None, None, ocx, ocy, ocyaw)
 
-        reverse_path = PathResponse(
-            None,
-            None,
-            None,
-            gcx,
-            gcy,
-            gcyaw
-        )
+        # cx = straight_path.cx + reverse_path.cx + \
+        #     home_path.cx + final_path.cx + out_path.cx
+        # cy = straight_path.cy + reverse_path.cy + \
+        #     home_path.cy + final_path.cy + out_path.cy
+        # cyaw = straight_path.cyaw + reverse_path.cyaw + \
+        #     home_path.cyaw + final_path.cyaw + out_path.cyaw
 
-        home_path = PathResponse(
-            None,
-            None,
-            None,
-            hcx,
-            hcy,
-            hcyaw
-        )
-
-        final_path = PathResponse(
-            None,
-            None,
-            None,
-            fcx,
-            fcy,
-            fcyaw
-        )
-
-        cx = straight_path.cx + reverse_path.cx + home_path.cx + final_path.cx
-        cy = straight_path.cy + reverse_path.cy + home_path.cy + final_path.cy
-        cyaw = straight_path.cyaw + reverse_path.cyaw + home_path.cyaw + final_path.cyaw
-
-        cx = reverse_path.cx
-        cy = reverse_path.cy
-        cyaw = reverse_path.cyaw
+        cx = out_path.cx
+        cy = out_path.cy
+        cyaw = out_path.cyaw
 
         path = Path()
         path.header = Header(None, rospy.Time.now(), "map")
@@ -262,7 +260,7 @@ class HorizontalParking(object):
 
             path.poses.append(p)
 
-        return straight_path, reverse_path, home_path, final_path, path
+        return straight_path, reverse_path, home_path, final_path, out_path, path
 
     # Make Two Circle from parking_area[idx]
     def getTwoCircle(self, idx):
@@ -271,7 +269,7 @@ class HorizontalParking(object):
         h = selected_parking_area.scale.x   # 4.5m
         w = selected_parking_area.scale.y   # 1.7m
         reverse_threshold = np.clip(float(rospy.get_param(
-            "/horizontal_parking/reverse_threshold", 0.0)), 0.0, 0.25)
+            "/horizontal_parking/reverse_threshold", 0.20)), 0.0, 0.25)
 
         # ===== circle 1 =====
         circle1 = Marker()
@@ -348,4 +346,95 @@ class HorizontalParking(object):
         return circle1, circle2, selected_parking_area
 
     def loop(self):
-        pass
+        msg = ControlMessage()
+        reverse = False
+
+        if self.horizontal_parking_state == HorizontalParkingState.Straight:
+            msg.Speed = int(5)
+            msg.Gear = int(2)
+            self.current_path = self.straight_path
+
+        elif self.horizontal_parking_state == HorizontalParkingState.Reverse:
+            msg.Speed = int(3)
+            msg.Gear = int(0)
+            self.current_path = self.reverse_path
+
+            reverse = True
+
+        elif self.horizontal_parking_state == HorizontalParkingState.Home:
+            msg.Speed = int(3)
+            msg.Gear = int(2)
+            self.current_path = self.home_path
+
+        elif self.horizontal_parking_state == HorizontalParkingState.Final:
+            msg.Speed = int(3)
+            msg.Gear = int(0)
+            self.current_path = self.final_path
+
+            reverse = True
+
+        elif self.horizontal_parking_state == HorizontalParkingState.Out:
+            msg.Speed = int(3)
+            msg.Gear = int(2)
+
+            self.current_path = self.out_path
+
+        elif self.horizontal_parking_state == HorizontalParkingState.End:
+            self.wait_for_stop(3)
+
+        elif self.horizontal_parking_state == HorizontalParkingState.Break:
+            return 0
+
+        else:
+            rospy.logfatal("Invalid Horizontal Parking State")
+
+        di, self.target_idx = self.stanley.stanley_control(
+            state=self.state,
+            cx=self.current_path.cx,
+            cy=self.current_path.cy,
+            cyaw=self.current_path.cyaw,
+            last_target_idx=self.target_idx,
+            reverse=reverse
+        )
+
+        di = np.clip(di, -m.radians(30), m.radians(30))
+        msg.Steer = m.degrees(di * (-1.0 if reverse is False else 1.0))
+
+        car_vec = np.array([
+            m.cos(self.state.yaw + m.pi if reverse is True else 0.0), m.sin(
+                self.state.yaw + m.pi if reverse is True else 0.0)
+        ])
+        position_vec = np.array(
+            [self.current_path.cx[-1] - self.state.x,
+                self.current_path.cy[-1] - self.state.y]
+        )
+
+        theta = m.acos(np.dot(car_vec, position_vec) /
+                       (np.hypot(car_vec[0], car_vec[1]) * np.hypot(position_vec[0], position_vec[1])))
+
+        if self.target_idx >= len(self.current_path.cx) - 5 and abs(theta) >= m.pi / 2.0:
+            self.horizontal_parking_state = HorizontalParkingState(
+                int(self.horizontal_parking_state) + 1)
+            self.target_idx = 0
+            self.wait_for_stop(2)
+
+        print("State : %d\tTarget idx : %d\tLength : %d" %
+              (int(self.horizontal_parking_state), self.target_idx, len(self.current_path.cx)))
+
+        self.cmd_msg = msg
+
+
+if __name__ == "__main__":
+    rospy.init_node("test")
+
+    state = State("/odometry/kalman", test=True)
+    cmd_pub = rospy.Publisher(
+        "/cmd_msg", ControlMessage, queue_size=1)
+
+    hp = HorizontalParking(state=state, cmd_pub=cmd_pub)
+
+    r = rospy.Rate(30)
+    while not rospy.is_shutdown():
+        hp.loop()
+        cmd_pub.publish(hp.cmd_msg)
+        r.sleep()
