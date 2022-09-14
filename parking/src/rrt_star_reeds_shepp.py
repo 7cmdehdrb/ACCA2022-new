@@ -64,6 +64,7 @@ class RRTStarReedsShepp(RRTStar):
         self.max_iter = max_iter
         self.obstacle_list = obstacle_list
         self.connect_circle_dist = connect_circle_dist
+        self.Yes_or_No = False
 
         self.curvature = 1.0
         self.goal_yaw_th = np.deg2rad(1.0)
@@ -111,9 +112,11 @@ class RRTStarReedsShepp(RRTStar):
 
         last_index = self.search_best_goal_node()
         if last_index:
+            self.Yes_or_No = True
             return self.generate_final_course(last_index)
         else:
             print("Cannot find path")
+            self.Yes_or_No = False
 
         return None
 
