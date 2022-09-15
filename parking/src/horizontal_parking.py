@@ -13,6 +13,7 @@ from nav_msgs.msg import Path
 from visualization_msgs.msg import Marker, MarkerArray
 from path_plan.msg import PathResponse
 from erp42_control.msg import ControlMessage
+from load_parking_area import loadCSV
 from parking_area import ParkingArea
 from cubic_spline_planner import calc_spline_course
 from reeds_shepp_path_planning import reeds_shepp_path_planning
@@ -29,46 +30,49 @@ except Exception as ex:
 
 
 class HorizontalParkingState(Enum):
-    Straight = 0
-    Reverse = 1
-    Home = 2
-    Final = 3
-    Out = 4
-    End = 5
-    Break = 6
+    Search = 0
+    Straight = 1
+    Reverse = 2
+    Home = 3
+    Final = 4
+    Out = 5
+    End = 6
+    Break = 7
 
     def __int__(self):
         return self.value
 
 
 class HorizontalParking(object):
-    def __init__(self, state, cmd_pub):
+    def __init__(self, state, cmd_pub, search_path, file_path):
         self.state = state
+
+        self.search_path = search_path  # PathResponse
 
         self.stanley = Stanley()
         self.target_idx = 0
 
+        self.r = rospy.Rate(30)
+
         # For test
         self.stanley.setCGain(1.0)
-        self.stanley.setHdrRatio(1.0)
+        # self.stanley.setHdrRatio(1.0)
 
-        self.horizontal_parking_state = HorizontalParkingState.Straight
-
-        self.parking_areas = []
-
-        self.parking_sub = rospy.Subscriber(
-            "/parking_areas", MarkerArray, callback=self.markerCallback)
         self.circles_pub = rospy.Publisher(
-            "/circles", MarkerArray, queue_size=1
+            "/horizontal_parking/circles", MarkerArray, queue_size=5
         )
         self.path_pub = rospy.Publisher(
-            "/parking_path", Path, queue_size=1
+            "/horizontal_parking/parking_path", Path, queue_size=5
         )
+        self.parking_pub = rospy.Publisher(
+            "/horizontal_parking/parking_area", MarkerArray, queue_size=5
+        )
+
+        self.horizontal_parking_state = HorizontalParkingState.Straight
+        self.parking_areas = loadCSV(file_path)
 
         self.cmd_pub = cmd_pub
         self.cmd_msg = ControlMessage()
-
-        rospy.wait_for_message("/parking_areas", MarkerArray)
 
         # TO DO : Put function for decide parking lot
         idx = 0
@@ -78,21 +82,22 @@ class HorizontalParking(object):
 
         self.current_path = self.straight_path
 
-        self.path_pub.publish(self.path)
-
-    # Subscribe Parking Area Data
-    def markerCallback(self, msg):
-        for marker in msg.markers:
-            point = marker.pose.position
-            orientation = marker.pose.orientation
-            scale = marker.scale
-
-            self.parking_areas.append(ParkingArea(
-                x=point.x, y=point.y, quat=orientation, w=scale.y, h=scale.x))
+        for i in range(30):
+            self.path_pub.publish(self.path)
+            # self.publishParkingArea()
+            self.r.sleep()
 
         rospy.loginfo("Subscribe MarkerArray")
 
         self.parking_sub.unregister()
+
+    def publishParkingArea(self):
+        msg = MarkerArray()
+
+        for i, parking in enumerate(self.parking_areas):
+            msg.markers.append(parking.parseMarker(id=i, duration=int(1)))
+
+        self.parking_pub.publish(msg)
 
     # Loop : Stop for <duration> secs
     def wait_for_stop(self, duration):
@@ -174,16 +179,16 @@ class HorizontalParking(object):
                               (1.0 if yaw_end > yaw_start else -1.0))
 
         # Set end point : +n m(relative with car height) of end point of parking lot
-        fs = float(rospy.get_param("/horizontal_parking/fs", 1.5))
+        fs = float(rospy.get_param("/horizontal_parking/fs", 1.2))
         end_x = selected_parking_area.position.x + ((selected_parking_area.scale.x / 2.0) *
-                                                    m.cos(yaw + m.pi)) - ((1.5 / 2.0) * m.cos(yaw + m.pi) * fs)
+                                                    m.cos(yaw + m.pi)) - ((2.02 / 2.0) * m.cos(yaw + m.pi) * fs)
         end_y = selected_parking_area.position.y + ((selected_parking_area.scale.x / 2.0) *
-                                                    m.sin(yaw + m.pi)) - ((1.5 / 2.0) * m.sin(yaw + m.pi) * fs)
+                                                    m.sin(yaw + m.pi)) - ((2.02 / 2.0) * m.sin(yaw + m.pi) * fs)
 
         end_x2 = selected_parking_area.position.x + (selected_parking_area.scale.x / 2.0) * \
-            m.cos(yaw) - (1.5 / 2.0) * m.cos(yaw) * fs
+            m.cos(yaw) - (2.02 / 2.0) * m.cos(yaw) * fs
         end_y2 = selected_parking_area.position.y + (selected_parking_area.scale.x / 2.0) * \
-            m.sin(yaw) - (1.5 / 2.0) * m.sin(yaw) * fs
+            m.sin(yaw) - (2.02 / 2.0) * m.sin(yaw) * fs
 
         xs2 = [circle1.pose.position.x +
                circle1.scale.x / 2.0 * m.cos(y) for y in yaw_range]
@@ -236,16 +241,12 @@ class HorizontalParking(object):
         final_path = PathResponse(None, None, None, fcx, fcy, fcyaw)
         out_path = PathResponse(None, None, None, ocx, ocy, ocyaw)
 
-        # cx = straight_path.cx + reverse_path.cx + \
-        #     home_path.cx + final_path.cx + out_path.cx
-        # cy = straight_path.cy + reverse_path.cy + \
-        #     home_path.cy + final_path.cy + out_path.cy
-        # cyaw = straight_path.cyaw + reverse_path.cyaw + \
-        #     home_path.cyaw + final_path.cyaw + out_path.cyaw
-
-        cx = out_path.cx
-        cy = out_path.cy
-        cyaw = out_path.cyaw
+        cx = straight_path.cx + reverse_path.cx + \
+            home_path.cx + final_path.cx + out_path.cx
+        cy = straight_path.cy + reverse_path.cy + \
+            home_path.cy + final_path.cy + out_path.cy
+        cyaw = straight_path.cyaw + reverse_path.cyaw + \
+            home_path.cyaw + final_path.cyaw + out_path.cyaw
 
         path = Path()
         path.header = Header(None, rospy.Time.now(), "map")
@@ -269,7 +270,7 @@ class HorizontalParking(object):
         h = selected_parking_area.scale.x   # 4.5m
         w = selected_parking_area.scale.y   # 1.7m
         reverse_threshold = np.clip(float(rospy.get_param(
-            "/horizontal_parking/reverse_threshold", 0.20)), 0.0, 0.25)
+            "/horizontal_parking/reverse_threshold", 0.15)), 0.0, 0.25)
 
         # ===== circle 1 =====
         circle1 = Marker()
@@ -338,10 +339,12 @@ class HorizontalParking(object):
         circle2.pose.orientation = Quaternion(0, 0, 0, 1)
         circle2.scale = Vector3(r2 * 2.0, r2 * 2.0, 0.1)
 
-        if self.circles_pub.get_num_connections() > 0:
+        for i in range(30):
             msg = MarkerArray()
             msg.markers = [circle1, circle2]
             self.circles_pub.publish(msg)
+            self.publishParkingArea()
+            self.r.sleep()
 
         return circle1, circle2, selected_parking_area
 
@@ -349,7 +352,12 @@ class HorizontalParking(object):
         msg = ControlMessage()
         reverse = False
 
-        if self.horizontal_parking_state == HorizontalParkingState.Straight:
+        if self.horizontal_parking_state == HorizontalParkingState.Search:
+            msg.Speed = int(7)
+            msg.Gear = int(2)
+            self.current_path = self.search_path
+
+        elif self.horizontal_parking_state == HorizontalParkingState.Straight:
             msg.Speed = int(5)
             msg.Gear = int(2)
             self.current_path = self.straight_path
@@ -425,13 +433,14 @@ class HorizontalParking(object):
 
 
 if __name__ == "__main__":
-    rospy.init_node("test")
+    rospy.init_node("horizontal_parking")
 
     state = State("/odometry/kalman", test=True)
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 
-    hp = HorizontalParking(state=state, cmd_pub=cmd_pub)
+    hp = HorizontalParking(state=state, cmd_pub=cmd_pub,
+                           file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking.csv", search_path=None)
 
     r = rospy.Rate(30)
     while not rospy.is_shutdown():

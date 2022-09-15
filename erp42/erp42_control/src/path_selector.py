@@ -124,6 +124,3 @@ class PathSelector(object):
                     rospy.logwarn(ex)
 
         return 0
-
-
-print(PathType.RIGHT == PathType(1))

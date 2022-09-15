@@ -10,11 +10,11 @@ import numpy as np
 from enum import Enum
 from time import sleep
 # msgs
+from std_msgs.msg import Float32, Int16
+from geometry_msgs.msg import PoseStamped
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
-from std_msgs.msg import Float32, Int16
-from geometry_msgs.msg import PoseStamped
 from mission.msg import obTF
 
 try:
@@ -123,14 +123,7 @@ class StateMachine(object):
         # Start!
         self.selector.makeRequest()
 
-        # currnet path is not end
-        if self.selector.path.end.is_end is True:
-            # next path's end point may have traffic sign
-            self.mission_state = MissionState.TRAFFIC
-
-        else:
-            # Ignore traffic sign
-            self.mission_state = MissionState.DRIVING
+        self.mission_state = self.selector.path.mission_type
 
     def path_callback(self, msg):
         # When path response is accepted, reset target idx and update path
@@ -209,10 +202,6 @@ class StateMachine(object):
                 elif self.selector.path.path_type == PathType.LEFT or self.selector.path.path_type == PathType.UTURN:
                     if self.traffic.msg.left == 0:
                         raise Exception()
-
-                elif self.selector.path.path_type == PathType.RIGHT:
-                    # ?
-                    pass
 
                 else:
                     rospy.logfatal("Invalid Path Type!")
@@ -323,16 +312,10 @@ class StateMachine(object):
             rospy.loginfo("parking complete!")
             speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
                                                   desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
-            msg = ControlMessage()
-            msg.Speed = int(speed)
-            msg.Steer = m.degrees(-di)
-            msg.Gear = 2
-            msg.brake = brake
 
-            if self.selector.path.end.is_end is True:
-                self.mission_state = MissionState.TRAFFIC
-            else:
-                self.mission_state == MissionState.DRIVING
+            msg = ControlMessage(0, 0, 2, int(speed), m.degrees(-di), brake, 0)
+            self.mission_state = self.selector.path.mission_type
+
             return msg
 
     def endControl(self):

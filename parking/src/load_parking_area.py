@@ -15,7 +15,6 @@ from parking_area import ParkingArea
 
 
 def loadCSV(path):
-
     res = []
 
     with open(path, "r") as csvFile:
