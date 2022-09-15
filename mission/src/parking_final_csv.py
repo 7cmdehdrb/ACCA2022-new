@@ -395,4 +395,3 @@ class Parking(object):
             self.selectArea()
         else:
             self.parking()
-

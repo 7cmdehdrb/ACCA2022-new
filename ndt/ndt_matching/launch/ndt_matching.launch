@@ -15,13 +15,8 @@
     <!--================================================= points_map_loader =================================================-->
     <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
-    <arg name="path_pcd" default='$(find map_matching_localization)/data/school.pcd' />
-<<<<<<< HEAD
-    <!-- <arg name="path_pcd" default='$(find map_matching_localization)/data/ys.pcd' /> -->
 
-=======
-    
->>>>>>> origin/localization
+    <arg name="path_pcd" default='$(find map_matching_localization)/data/school.pcd' />
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
         <rosparam subst_value="true">
             area: $(arg scene_num)

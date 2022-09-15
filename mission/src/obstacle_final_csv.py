@@ -42,7 +42,7 @@ class Obstacle(object):
 
         # read path data : csv
         # path_ = "/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_static_path.csv" #kcity_ys
-        path_ = "/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_path.csv" #school
+        path_ = "/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_school.csv" #school
 
         path_data = pd.read_csv(path_)
         self.path = []
@@ -57,8 +57,8 @@ class Obstacle(object):
 
 
         # left line
-        left_xs, left_ys  = [60, 70], [10, -30] #school
-
+        left_xs = [60, 70]
+        left_ys = [0, -30]
         self.left_cx, self.left_cy, left_cyaw, _, _ = calc_spline_course(left_xs[:], left_ys[:], ds=0.1)    
 
         for i in range(len(self.left_cx)):
@@ -83,12 +83,15 @@ class Obstacle(object):
         self.target_idx = 0
         self.length = 0
 
+        self.nd_targit_idx = 0
+        self.nd_length = 0
+
         # parameter
         self.detect_obs_angle = 0.8
-        self.detect_obs_range = 1.5
+        self.detect_obs_range = 1.
         self.prox_dis = 1.        
-        self.r = 1.5
-        self.det_iter= 3
+        self.r = 1.3
+        self.det_iter= 10
         
     def ObstacleCallback(self, msg):
         self.ObsMsg = msg

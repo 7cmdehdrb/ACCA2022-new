@@ -104,48 +104,49 @@ class TargetSelector():
         #print(self.parking_state < 2)
 
     def checkIsInParking(self):
-        for i, point in enumerate(self.center_points):
+        if len(self.obstacle_zone) != len(self.the_number_of_parkingarea):
             for obstacle in self.obstacles:
-                if i+1 in self.obstacle_zone:
-                    continue
-                dist = np.hypot(
-                    point[0] - obstacle[0], point[1] - obstacle[1])
 
-                if dist < self.scale_x:
-                    self.obstacle_zone.append(i+1)
-                    break
+                for i, point in enumerate(self.center_points):
+                    if i+1 in self.obstacle_zone:
+                        continue
 
-                area_VEC = np.array([
-                    m.cos(point[2] - m.radians(90.0)
-                          ), m.sin(point[2] - m.radians(90.0))
-                ])
+                    dist = np.hypot(
+                        point[0] - obstacle[0], point[1] - obstacle[1])
 
-                ob_VEC = np.array(
-                    [(obstacle[0] - point[0]), (obstacle[1] - point[1])])
+                    if dist == 0.0:
+                        return True
 
-                abs_multiple = np.sqrt(
-                    area_VEC[0]**2+area_VEC[1]**2) * np.sqrt(ob_VEC[0]**2+ob_VEC[1]**2)
+                    area_VEC = np.array([
+                        m.cos(point[2] - m.radians(90.0)
+                              ), m.sin(point[2] - m.radians(90.0))
+                    ])
 
-                theta = m.acos(np.dot(area_VEC, ob_VEC) / abs_multiple)
+                    ob_VEC = np.array(
+                        [(obstacle[0] - point[0]), (obstacle[1] - point[1])])
 
-                x_dist = abs(dist * m.sin(theta))
-                y_dist = abs(dist * m.cos(theta))
+                    abs_multiple = np.sqrt(
+                        area_VEC[0]**2+area_VEC[1]**2) * np.sqrt(ob_VEC[0]**2+ob_VEC[1]**2)
 
-                if x_dist <= self.scale_x / 2.0 and y_dist <= self.scale_y / 2.0:
+                    theta = m.acos(np.dot(area_VEC, ob_VEC) / abs_multiple)
 
-                    if i+1 not in self.obstacle_zone:
-                        self.obstacle_zone.append(i+1)
-                    break
+                    x_dist = abs(dist * m.sin(theta))
+                    y_dist = abs(dist * m.cos(theta))
 
-        for ob_zone in self.obstacle_zone:
-            try:
-                self.All_of_parking_area.remove(ob_zone)
-            except:
-                pass
+                    if x_dist <= self.scale_x / 2.0 and y_dist <= self.scale_y / 2.0:
+
+                        if i+1 not in self.obstacle_zone:
+                            self.obstacle_zone.append(i+1)
+
+            for ob_zone in self.obstacle_zone:
+                try:
+                    self.All_of_parking_area.remove(ob_zone)
+                except:
+                    pass
+        print(len(self.obstacles))
         self.obstacles = []
 
     def where_to_park(self, available_zone):
-
         if len(available_zone) == 0:
             result = 1
         else:
