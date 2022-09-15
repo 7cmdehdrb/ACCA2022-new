@@ -110,7 +110,7 @@ class HorizontalParking(object):
                 return 0
 
             self.cmd_msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
-            self.cmd_pub.publish(self.cmd_msg)
+            # self.cmd_pub.publish(self.cmd_msg)
 
             r.sleep()
 
