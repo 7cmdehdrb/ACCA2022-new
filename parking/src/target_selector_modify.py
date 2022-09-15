@@ -111,7 +111,7 @@ class TargetSelector():
                 dist = np.hypot(
                     point[0] - obstacle[0], point[1] - obstacle[1])
 
-                if dist < self.scale_x:
+                if dist < self.scale_x and i+1 not in self.obstacle_zone:
                     self.obstacle_zone.append(i+1)
                     break
 
