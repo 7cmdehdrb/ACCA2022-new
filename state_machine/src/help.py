@@ -17,6 +17,9 @@ from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
 from mission.msg import obTF
 
+rospy.init_node("state_machine")
+
+
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
     from speed_supporter import SpeedSupporter
@@ -29,7 +32,7 @@ except Exception as ex:
     rospy.logfatal("Import Error : State Machine - erp42_control")
 
 try:
-    sys.path.append(rospkg.RosPack().get_path("parking]") + "/src")
+    sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
     from horizontal_parking import HorizontalParking
 except Exception as ex:
     rospy.logfatal(ex)
@@ -93,21 +96,21 @@ class StateMachine(object):
         self.path = PathResponse()
 
         # Traffic Sign
-        self.traffic = SignSearch()
+        # self.traffic = SignSearch()
 
         # Delivery
-        self.delivery = Delivery()
+        # self.delivery = Delivery()
 
         # Dynamic
-        self.dynamic = Lidar()
+        # self.dynamic = Lidar()
 
         # Parking
-        self.parking = Parking()
+        # self.parking = Parking()
         self.horizontal_parking = HorizontalParking(
-            state=self.state, cmd_pub=cmd_pub)
+            state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking.csv", search_path=None)
 
         # Static
-        self.static = obstacle()
+        # self.static = obstacle()
 
         """
             Fields
@@ -364,10 +367,8 @@ class StateMachine(object):
 
 
 if __name__ == "__main__":
-    rospy.init_node("stanley_controller")
-
-    # state = State(odometry_topic="/odometry/kalman")
-    state = OdomState(odometry_topic="/odometry/kalman")
+    state = State(odometry_topic="/odometry/kalman", test=True)
+    # state = OdomState(odometry_topic="/odometry/kalman")
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)

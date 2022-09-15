@@ -44,12 +44,12 @@ class HorizontalParkingState(Enum):
 
 
 class HorizontalParking(object):
-    def __init__(self, state, cmd_pub, search_path, file_path):
+    def __init__(self, state, cmd_pub, stanley, search_path, file_path):
         self.state = state
 
         self.search_path = search_path  # PathResponse
 
-        self.stanley = Stanley()
+        self.stanley = stanley
         self.target_idx = 0
 
         self.r = rospy.Rate(30)
@@ -86,10 +86,6 @@ class HorizontalParking(object):
             self.path_pub.publish(self.path)
             # self.publishParkingArea()
             self.r.sleep()
-
-        rospy.loginfo("Subscribe MarkerArray")
-
-        self.parking_sub.unregister()
 
     def publishParkingArea(self):
         msg = MarkerArray()
