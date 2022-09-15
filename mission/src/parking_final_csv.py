@@ -300,7 +300,7 @@ class Parking(object):
             self.msg.Gear = 2
 
 
-            if self.local_target_idx >= (len(self.local_cx) - 3):
+            if m.sqrt((self.state.x - self.local_cx[-1]) ** 2 + (self.state.y - self.local_cy[-1]) ** 2) <= 0.3:
                 self.parking_state = ParkingState.brake
 
 

@@ -15,14 +15,10 @@ from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
 from std_msgs.msg import Float32, Int16
 from geometry_msgs.msg import PoseStamped
-from mission.msg import obTF
-from obstacle_final_csv import Obstacle
-from delivery import Delivery
-from dynamic_ob import Lidar
+
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
 
-    # sys.path.append('/home/acca/catkin_ws/src/ACCA2022-new/erp42/erp42_control' + "/src")
     from speed_supporter import SpeedSupporter
     from stanley import Stanley
     from state import State, OdomState
@@ -33,8 +29,20 @@ except Exception as ex:
     rospy.logfatal("Import Error : State Machine - erp42_control")
 
 try:
-    sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
+    sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
+    from horizontal_parking import HorizontalParking
+    
+except Exception as ex:
+    rospy.logfatal(ex)
+    rospy.logfatal("Import Error : State Machine - parking")
 
+try:
+    sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
+    # from obstacle_final_csv import Obstacle
+    from obstacle_final_csv_sc_bs import Obstacle
+
+    from delivery import Delivery
+    from dynamic_ob import Lidar
     from parking_final_csv import Parking, ParkingState
     from traffic import Traffic
 
@@ -94,12 +102,15 @@ class StateMachine(object):
 
         # Delivery
         self.delivery = Delivery()
+        self.panel_id = None
 
         # Dynamic
         self.dynamic = Lidar(state=self.state)
 
         # Parking
         self.parking = Parking(state=self.state)
+        self.horizontal_parking = HorizontalParking(
+            state=self.state, cmd_pub=cmd_pub)
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -179,7 +190,7 @@ class StateMachine(object):
             speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
                                                   desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
-            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), 0, 0
+            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), brake, 0
             )
 
         except IndexError as ie:
@@ -195,29 +206,30 @@ class StateMachine(object):
         if len(self.path.cx) - 60 < self.target_idx:
             # Almost in front of traffic sign
             desired_speed *= 0.5
+            self.traffic.main()
             # rospy.logfatal(str(self.traffic.msg.straight))
 
-        elif len(self.path.cx) - 25 < self.target_idx:
-            # Stop if required
-            try:
-                if self.selector.path.path_type == PathType.STRAIGHT:
-                    self.traffic.msg.straight = 0
-                    if self.traffic.msg.straight == 0:
+            if len(self.path.cx) - 25 < self.target_idx:
+                # Stop if required
+                try:
+                    if self.selector.path.path_type == PathType.STRAIGHT:
+                        if self.traffic.msg.straight == 0:
+                            raise Exception()
+
+                    elif self.selector.path.path_type == PathType.LEFT or self.selector.path.path_type == PathType.UTURN:
+                        if self.traffic.msg.left == 0:
+                            raise Exception()
+
+                    else:
+                        rospy.logfatal("Invalid Path Type!")
                         raise Exception()
 
-                elif self.selector.path.path_type == PathType.LEFT or self.selector.path.path_type == PathType.UTURN:
-                    if self.traffic.msg.left == 0:
-                        raise Exception()
-
-                else:
-                    rospy.logfatal("Invalid Path Type!")
-                    raise Exception()
-
-            except Exception:
-                # Stop
-                return ControlMessage(0, 0, 2, 0, 0, 150, 0)
+                except Exception:
+                    # Stop
+                    return ControlMessage(0, 0, 2, 0, 0, 150, 0)
 
         msg = self.mainControl(desired_speed=desired_speed)
+
         return msg
 
     def deliveryControl(self):
@@ -226,9 +238,10 @@ class StateMachine(object):
         if self.mission_state == MissionState.DELIVERY_A:
             self.delivery.delivery_A()
             panel = self.delivery.panel_A
+            self.panel_id = self.delivery.panel_id
             
         elif self.mission_state == MissionState.DELIVERY_B:
-            self.delivery.delivery_B()
+            self.delivery.delivery_B(self.panel_id)
             panel = self.delivery.panel_B
 
         # between delivery sign and erp distance
@@ -236,13 +249,14 @@ class StateMachine(object):
         dis = np.hypot([self.state.x - panel.x],
                        [self.state.y - panel.y])
 
-        if dis < .0:
+        if dis < 10:
             # Move to panel
             if self.delivery.is_delivery_path is True:
                 desired_speed *= 0.8
                 msg = self.mainControl(desired_speed=desired_speed)
 
                 if self.target_idx >= self.delivery.target_idx:
+                    
                     wait_for_stop(5)
 
                     self.delivery.is_delivery_path = False
@@ -274,16 +288,36 @@ class StateMachine(object):
 
         return msg
 
+    # bs
     def staticControl(self):
         desired_speed = self.selector.path.desired_speed
-        msg = self.mainControl(desired_speed=desired_speed)
 
         self.static.main()
-
-        if self.static.obs_state == True:
-            return self.static.msg
-
+        
+        if self.target_idx > len(self.path.cx) - 60:
+            msg = self.trafficControl()
+        
+        else:
+            if self.static.obs_state == True:
+                msg = self.static.msg
+            else:
+                msg = self.mainControl(desired_speed=desired_speed)
+        
         return msg
+
+
+    # ys    
+    # def staticControl(self):
+        # desired_speed = self.selector.path.desired_speed
+
+        # self.static.main()
+        
+        # if self.static.obs_state == True:
+        #     msg = self.static.msg
+        # else:
+        #     msg = self.mainControl(desired_speed=desired_speed)
+        
+        # return msg
 
     def dynamicControl(self):
         desired_speed = self.selector.path.desired_speed
@@ -297,34 +331,34 @@ class StateMachine(object):
 
         return msg
 
+    def horizontalParkingControl(self):
+        self.horizontal_parking.loop()
+        return self.horizontal_parking.cmd_msg
+
     def parkingControl(self):
         # WTF
         desired_speed = self.selector.path.desired_speed
 
+        msg = self.mainControl(desired_speed=desired_speed)
+        
         self.parking.main()
-
-        if not self.parking.parking_state == ParkingState.complete and not self.parking.parking_state == ParkingState.brake and not self.parking.parking_state == ParkingState.done:
-            rospy.loginfo("parking")
-            return self.parking.msg
-
-        elif self.parking.parking_state == ParkingState.brake:
+        
+        if self.parking.parking_state == ParkingState.brake:
             wait_for_stop(5)
-            return self.mainControl(desired_speed=desired_speed)
-
+        
         elif self.parking.parking_state == ParkingState.complete:
-            wait_for_stop(2)
             self.parking.parking_state = ParkingState.done
-            return self.mainControl(desired_speed=desired_speed)
-
+            wait_for_stop(2)
+        
         elif self.parking.parking_state == ParkingState.done:
-            
-            if self.selector.path.end.is_end is True:
-                self.mission_state = MissionState.TRAFFIC
-            else:
-                self.mission_state == MissionState.DRIVING
-            
-            return self.mainControl(desired_speed=desired_speed)
-                    
+            pass
+
+        else:
+            rospy.loginfo("parking")
+            msg = self.parking.msg
+        
+        return msg
+        
     def rightControl(self):
         desired_speed = self.selector.path.desired_speed
         
@@ -370,8 +404,9 @@ class StateMachine(object):
             msg = self.dynamicControl()
 
         elif self.mission_state == MissionState.PARKING:
-            msg = self.parkingControl()
-        
+            # msg = self.parkingControl()
+            msg = self.horizontalParkingControl()
+
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()
 

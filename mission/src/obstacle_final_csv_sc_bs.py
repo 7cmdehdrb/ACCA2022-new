@@ -41,29 +41,32 @@ class Obstacle(object):
         self.path = []
 
         # read path data : csv
-        # path_ = "/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_static_path.csv" #kcity_ys
-        path_ = "/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_path.csv" #school
 
-        path_data = pd.read_csv(path_)
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_path_bs.csv")
+        center_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_center_bs.csv")
+        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_left_bs.csv")
+
+        self.path_cx = path_data.cx.tolist()
+        self.path_cy = path_data.cy.tolist()
+        self.path_cyaw = path_data.cyaw.tolist()
         self.path = []
-        self.path_cx = []
-        self.path_cy = []
-        self.path_cyaw = []
-        for i, j, k in zip(path_data.cx, path_data.cy, path_data.cyaw):
-            self.path.append([i, j])
-            self.path_cx.append(i)
-            self.path_cy.append(j)
-            self.path_cyaw.append(k)
-
+        for i in range(len(self.path_cx)):
+            self.path.append([self.path_cx[i], self.path_cy[i]])
 
         # left line
-        left_xs, left_ys  = [60, 70], [10, -30] #school
+        self.left_cx, self.left_cy = left_data.cx.tolist(), left_data.cy.tolist()
+        self.left = []
+        for j in range(len(self.left_cx)):
+            self.left.append([self.left_cx[j], self.left_cy[j]])
 
-        self.left_cx, self.left_cy, left_cyaw, _, _ = calc_spline_course(left_xs[:], left_ys[:], ds=0.1)    
+        # center line      
+        self.center_cx, self.center_cy = center_data.cx.tolist(), center_data.cy.tolist()
+        self.center_cyaw = center_data.cyaw.tolist()
 
-        for i in range(len(self.left_cx)):
-            self.left.append([self.left_cx[i], self.left_cy[i]])
-
+        self.center = []
+        for j in range(len(self.center_cx)):
+            self.center.append([self.center_cx[j], self.center_cy[j]])
+      
 
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)  
         # self.path_response = rospy.Subscriber("/path_response", PathResponse, callback=self.path_callback)    
@@ -177,10 +180,10 @@ class Obstacle(object):
             for obs in self.obstacle:
             
                 a, b = obs[0], obs[1]
-                target_idx = self.calc_target_index(self.path_cx, self.path_cy, [a, b])
+                target_idx = self.calc_target_index(self.center_cx, self.center_cy, [a, b])
                 left_target_idx = self.calc_target_index(self.left_cx, self.left_cy, [a, b])
 
-                p = -1. / self.path_cyaw[target_idx]
+                p = -1. / self.center_cyaw[target_idx]
                 c = b - p * a
                 
                 t1 = (2*a + 2*p*b - 2*p*c + m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
@@ -190,7 +193,7 @@ class Obstacle(object):
                 waypoint2 = [t2, p * t2 + c]
                 
                 dis_obs_left = self.GetDistance([a, b], [self.left[target_idx][0], self.left[target_idx][1]])
-                dis_left_path = self.GetDistance([self.left[left_target_idx][0], self.left[left_target_idx][1]], [self.path[target_idx][0], self.path[target_idx][1]])
+                dis_left_path = self.GetDistance([self.left[left_target_idx][0], self.left[left_target_idx][1]], [self.center[target_idx][0], self.center[target_idx][1]])
 
                 dis_way1_left = self.GetDistance([waypoint1[0], waypoint1[1]], [self.left[left_target_idx][0], self.left[left_target_idx][1]])
                 # dis_way1_right = self.GetDistance([waypoint1[0], waypoint1[1]], [self.right[target_idx][0], self.right[target_idx][1]])

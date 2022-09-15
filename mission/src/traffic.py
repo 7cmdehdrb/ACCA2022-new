@@ -3,105 +3,85 @@
 
 import rospy
 from mission.msg import BoundingBox, BoundingBoxes
-import Queue
 from lidar_camera_calibration.msg import Signmsg
-
+from collections import deque
+    
 class Traffic():
 
     def __init__(self):
-        self.sign =[0 for i in range(9)]
-        self.final_index = None
-        self.stop_0 = ["1301","1302","07","1402","1404"]
+        self.light = deque([0 for i in range(10)], maxlen=10)
+        self.light_class = ["1301","1302","1401","1402","1404","1303","1305","1403","1300","1400","1406","1405"]
+        self.stop_0 = ["1301","1302","1401","1402","1404"]
         self.left_1 = ["1303","1305","1403"]
         self.straight_2 = ["1300","1400","1406"]
-        self.both_3 = ["11"]
-        rospy.Subscriber("darknet_ros/bounding_boxes", BoundingBoxes,self.callback)
+        self.boxclass = []
+        self.boxwhere = []
+        rospy.Subscriber("/bounding_boxes", BoundingBoxes,self.callback)
 
-    def callback(self, msg):
-        self.sign.append(0)
-
+    def callback(self, msg): # select near sign
         temp_class = []
         temp_size = []
         temp_where = []
-        boxclass = []
-        boxwhere = []
+        self.boxclass = []
+        self.boxwhere = []
+        
         for box in msg.bounding_boxes :
-            if box.Class in ["0000","1301","1302","1401","1402","1404","1303","1305","1403","1300","1400","1406","1405"] :
+            if box.Class in self.light_class:
                 temp_size.append(box.ymax-box.ymin)
                 temp_where.append(box.xmin)
                 temp_class.append(box.Class)
+                
         if len(temp_size) > 0 :
             near_sign = max(temp_size)
             for i in range(len(temp_size)):
-                if temp_size[i] >= near_sign -10 : # number is not perfect
-                    boxclass.append(temp_class[i])
-                    boxwhere.append(temp_where[i])
+                if temp_size[i] >= near_sign - 10 : # number is not perfect
+                    self.boxclass.append(temp_class[i])
+                    self.boxwhere.append(temp_where[i])
 
-        # print(len(temp_size))
-
-        self.calculate(boxclass,boxwhere)
 
     def choosenum(self,num): #num type = string
         if num in self.stop_0:
-            self.sign[-1] = 0
+            self.light.append(0)
         elif num in self.left_1:
-            self.sign[-1] = 1
+            self.light.append(1)
         elif num in self.straight_2:
-            self.sign[-1] = 2
+            self.light.append(2)
         else:
-            self.sign[-1] = 3
+            self.light.append(3)
+
 
     def calculate(self,class_list,where_list):
 
         class_set = set(class_list)
 
         if len(class_set) == 0:
-            self.sign[-1] = self.sign[-2]
+            self.light.append(self.light[-1])
+        
         elif len(class_set) == 1 :
-            if "0000" in class_set:
-                self.sign[-1] = self.sign[-2]
-            else:
-                for a in class_set:
-                    self.choosenum(a)
-
+            self.choosenum(class_list[0])
+        
         elif len(class_set) == 2:
-            if "0000" in class_set:
-                for a in class_set:
-                    if a != "0000":
-                        self.choosenum(a)
-            else:
-                for i in range(len(class_list)):
-                    if class_list[i] != class_list[0]:
-                        if class_list[i]%100 == class_list[0]%100:
-                            self.choosenum(1400+class_list[i]%100)
-                        else:
-                            if where_list[0] > where_list[i]:
-                                self.choosenum(class_list[0])
-                            else:
-                                self.choosenum(class_list[i])
+            for i in range(len(class_list)):
+                if class_list[i] != class_list[0]:
+                    # if class_list[i]%100 == class_list[0]%100:
+                    #     self.choosenum(1400+class_list[i]%100)
+                    if where_list[0] > where_list[i]: 
+                        self.choosenum(class_list[0])
                     else:
-                        pass
-        else:
-            if "0000" in class_set :
-                temp_max = 0
-                for i in range(len(class_list)):
-                    if where_list[i]> temp_max:
-                        temp_max = where_list[i]
-                for i in range(len(where_list)):
-                    if where_list[i] == temp_max:
                         self.choosenum(class_list[i])
-            else:
-                self.sign[-1] == self.sign[-2]
-            
-        self.publishresult()
+        
+        else:
+            self.light.append(self.light[-1])
     
-    def publishresult(self):
+    def main(self):
         #custom msg
+        self.calculate(self.boxclass,self.boxwhere)
+        
         self.msg = Signmsg()
         
-        result = max(self.sign, key=self.sign.count)
+        result = max(self.light, key=self.light.count)
         
-        print(self.sign)
+        print(self.light)
         
         if result == 0 :
             self.msg.left = 0
@@ -115,18 +95,3 @@ class Traffic():
         else:
             self.msg.left = 1
             self.msg.straight = 1
-    
-
-        del self.sign[0]
-        
-# if __name__ == '__main__':
-    
-#     rospy.init_node('sign_search',anonymous=True)
-    
-#     sign = SignSearch()
-
-#     sign_pub = rospy.Publisher("sign_publish",Signmsg,queue_size = 5)
-    
-#     r = rospy.Rate(10.0)
-#     while not rospy.is_shutdown():
-#         r.sleep()

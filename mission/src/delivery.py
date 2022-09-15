@@ -25,11 +25,8 @@ class Delivery():
         # check id_number
         self.panel = [[4, 7], [5, 8], [6, 9]]  # [[A1,B1],[A2,B2],[A3,B3]]
         self.panel_id = [0, 0, 0]
-        self.deli_A = False
-        self.deli_B = False
         self.tf_sub = tf.TransformListener()
         self.markers = MarkerArray()
-        self.target_idx = float("inf")
         self.delivery = False
         self.is_delivery_path = False
         
@@ -67,9 +64,9 @@ class Delivery():
         self.panel_A.x = np.mean(self.ax)
         self.panel_A.y = np.mean(self.ay)
           
-    def delivery_B(self):
+    def delivery_B(self, panel_id):
         for marker in self.markers:
-            if (marker.id)//10000 == self.panel[self.panel_id.index(max(self.panel_id))][1]:
+            if (marker.id)//10000 == self.panel[panel_id.index(max(panel_id))][1]:
                 m_to_p = PoseStamped()
 
                 m_to_p.header.frame_id = "velodyne"
@@ -90,5 +87,5 @@ class Delivery():
                 # if d <= self.dis :
                 #     self.pointpublish()
 
-        self.panel_B.x = sum(self.bx)/len(self.bx)
-        self.panel_B.y = sum(self.by)/len(self.by)
+        self.panel_B.x = np.mean(self.bx)
+        self.panel_B.y = np.mean(self.by)

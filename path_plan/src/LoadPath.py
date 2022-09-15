@@ -4,7 +4,7 @@ import rospy
 import time
 import csv
 from time import sleep
-from DB import *
+from DataBase import *
 from path_plan.msg import PathRequest, PathResponse
 from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Int8
 # import pandas as pd
 
-db_name = rospy.get_param("/LoadPath/db_name", "/path.db")
+db_name = rospy.get_param("/LoadPath/db_name", "/school_bs.db")
 
 
 class LoadPath():
@@ -82,15 +82,16 @@ class LoadPath():
     def check_path_avaliable(self):
         path = []
         file_path = rospkg.RosPack().get_path("path_plan") + \
-            "/path/" + rospy.get_param("/LoadPath/path_name", "path.csv")
+            "/path/" + rospy.get_param("/LoadPath/path_name", "school_bs.csv")
 
         with open(file_path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
             for row in reader:
                 try:
                     self.Request.start = row[0]
-                    self.Request.end = row[1]
+                    self.Request.end = row[1] 
                     self.bringPath()
+
                     for info in self.path_info:
                         path.append(info)
 
@@ -124,6 +125,8 @@ if __name__ == "__main__":
     listpath_pub = rospy.Publisher(
         "/path_response", PathResponse, queue_size=1)
     rospath_pub = rospy.Publisher("/global_path", Path, queue_size=1)
+
+    flag = db.checkDB()[0]
 
     load_path.check_path_avaliable()
 
