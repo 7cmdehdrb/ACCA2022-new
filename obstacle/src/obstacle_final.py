@@ -30,7 +30,7 @@ except Exception as ex:
     rospy.logfatal(ex)
 
 
-class obstacle(object):
+class Obstacle(object):
     
     def __init__(self):
         
@@ -323,7 +323,7 @@ if __name__ == "__main__":
     
     rospy.init_node("obstacle")
 
-    obs = obstacle()
+    obs = Obstacle()
     state = State()
     stanley = Stanley()
     

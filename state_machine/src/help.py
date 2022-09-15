@@ -10,15 +10,18 @@ import numpy as np
 from enum import Enum
 from time import sleep
 # msgs
+from std_msgs.msg import Float32, Int16
+from geometry_msgs.msg import PoseStamped
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
-from std_msgs.msg import Float32, Int16
-from geometry_msgs.msg import PoseStamped
+from mission.msg import obTF
+
+rospy.init_node("state_machine")
+
 
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
-
     from speed_supporter import SpeedSupporter
     from stanley import Stanley
     from state import State, OdomState
@@ -31,21 +34,18 @@ except Exception as ex:
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
     from horizontal_parking import HorizontalParking
-    
 except Exception as ex:
     rospy.logfatal(ex)
     rospy.logfatal("Import Error : State Machine - parking")
 
 try:
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
-    # from obstacle_final_csv import Obstacle
-    from obstacle_final_csv_sc_bs import Obstacle
-
-    from delivery import Delivery
-    from dynamic_ob import Lidar
     from parking_final_csv import Parking, ParkingState
+    from sign_search import SignSearch
+    from obstacle_final import Obstacle
+    from dynamic_ob import Lidar
+    from deliveryAB import Delivery
     from traffic import Traffic
-
 except Exception as ex:
     rospy.logfatal(ex)
     rospy.logfatal("Import Error : State Machine - mission")
@@ -58,18 +58,16 @@ speed_control_enable = rospy.get_param(
 
 def wait_for_stop(duration):
     global current_time, last_time, r, cmd_pub
-    
-    msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
 
-    dt = 0
     last_time = rospy.Time.now()
-    while dt < duration:
+    while not rospy.is_shutdown():
         current_time = rospy.Time.now()
 
         dt = (current_time - last_time).to_sec()
 
         if dt > duration:
             last_time = current_time
+            return 0
 
         cmd_pub.publish(msg)
         r.sleep()
@@ -133,14 +131,7 @@ class StateMachine(object):
         # Start!
         self.selector.makeRequest()
 
-        # currnet path is not end
-        if self.selector.path.end.is_end is True:
-            # next path's end point may have traffic sign
-            self.mission_state = MissionState.TRAFFIC
-
-        else:
-            # Ignore traffic sign
-            self.mission_state = MissionState.DRIVING
+        self.mission_state = self.selector.path.mission_type
 
     def path_callback(self, msg):
         # When path response is accepted, reset target idx and update path
@@ -421,10 +412,8 @@ class StateMachine(object):
 
 
 if __name__ == "__main__":
-    rospy.init_node("stanley_controller")
-
-    # state = State(odometry_topic="/odometry/kalman")
-    state = OdomState(odometry_topic="/odometry/kalman")
+    state = State(odometry_topic="/odometry/kalman", test=True)
+    # state = OdomState(odometry_topic="/odometry/kalman")
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)

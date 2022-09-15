@@ -87,7 +87,11 @@ if __name__ == "__main__":
     odom_path = OdometryPath()
     state = OdomState(odometry_topic=odom_topic)
 
+<<<<<<< HEAD
     r = rospy.Rate(10)
+=======
+    r = rospy.Rate(1)
+>>>>>>> origin/localization
     while not rospy.is_shutdown():
         cx, cy, cyaw, _, _ = odom_path.appendPath(state.x, state.y)
         if cx is not None:
