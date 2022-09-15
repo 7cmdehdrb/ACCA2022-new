@@ -20,6 +20,8 @@ from std_msgs.msg import Int8
 from path_plan.msg import PathResponse
 
 try:
+    rospy.init_node("parking_local_path_planner")
+
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
     from state import State
@@ -98,9 +100,9 @@ class Local_path_planner():
                 x2 = xc - self.scale_x / 2 * m.cos(self.yaw)
                 y2 = yc - self.scale_x / 2 * m.sin(self.yaw)
 
-                o_c = [xc, yc, self.scale_x/2]
-                o_1 = [x1, y1, self.scale_x/2]
-                o_2 = [x2, y2, self.scale_x/2]
+                o_c = [xc, yc, self.scale_x/3]
+                o_1 = [x1, y1, self.scale_x/3]
+                o_2 = [x2, y2, self.scale_x/3]
 
                 obstacleList.append(o_c)
                 obstacleList.append(o_1)
@@ -189,7 +191,6 @@ class Local_path_planner():
 
 
 if __name__ == "__main__":
-    rospy.init_node("parking_local_path_planner")
 
     local_path_planner = Local_path_planner()
 
@@ -245,7 +246,7 @@ if __name__ == "__main__":
         [local_path_planner.start_x, local_path_planner.WP3_x], [local_path_planner.start_y, local_path_planner.WP3_y])
 
     start = [local_path_planner.WP3_x,
-             local_path_planner.WP3_y, local_path_former_part_yaw[-1]]
+             local_path_planner.WP3_y, local_path_former_part_yaw[5]]
     goal = [local_path_planner.parking_areas[target_idx].position.x,
             local_path_planner.parking_areas[target_idx].position.y, local_path_planner.yaw]
 
@@ -269,27 +270,29 @@ if __name__ == "__main__":
 
     obstacle_pub.publish(msg)
 
-    rrt_star_reeds_shepp = RRTStarReedsShepp(start, goal,
-                                             obstacleList,
-                                             [0.0, 5.0], max_iter=100)
+    rrt_star_reeds_shepp = RRTStarReedsShepp(start=start, goal=goal,
+                                             obstacle_list=obstacleList,
+                                             rand_area=[0.0, 5.0], max_iter=150)
+
     while rrt_star_reeds_shepp.Yes_or_No == False:
         print('yet finding')
         path = rrt_star_reeds_shepp.planning(animation=False)
-    xs = [0]
-    while len(xs) < 5:
-        try:
-            xs = [x for (x, y, syaw) in path]
-            ys = [y for (x, y, syaw) in path]
-            yaws = [syaw for (x, y, syaw) in path]
-        except:
-            pass
 
-    local_path_planner.path.cx = local_path_former_part_x + xs
-    local_path_planner.path.cy = local_path_former_part_y + ys
-    local_path_planner.path.cyaw = local_path_former_part_yaw + yaws
+    xs = [x for (x, y, syaw) in path]
+    ys = [y for (x, y, syaw) in path]
+    yaws = [syaw for (x, y, syaw) in path]
+
+    local_path_planner.path.cx = local_path_former_part_x + list(reversed(xs))
+    local_path_planner.path.cy = local_path_former_part_y + list(reversed(ys))
+    local_path_planner.path.cyaw = local_path_former_part_yaw + \
+        list(reversed(yaws))
 
     hz = 1.
     freq = 1 / hz
+
+    print(start)
+    print(goal)
+    # print(local_path_planner.path.cx)
 
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
@@ -302,6 +305,7 @@ if __name__ == "__main__":
 
         local_path_planner.publishPath(
             path_pub, local_path_planner.path.cx, local_path_planner.path.cy, local_path_planner.path.cyaw)
+
         local_path_planner.toRosPath(
             local_path_planner.path.cx, local_path_planner.path.cy, local_path_planner.path.cyaw)
 

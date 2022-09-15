@@ -211,10 +211,11 @@ class VerticalParkingBase(object):
 
         target_Zone_idx = target_Zone - 1
 
-        x, y = self._list[target_Zone_idx][0], self._list[target_Zone_idx][1]
+        self.target_cool_x, self.target_cool_y = self._list[
+            target_Zone_idx][0], self._list[target_Zone_idx][1]
 
-        WP3_x, WP3_y = x - self.scale_YawVEC * m.cos(self.pyaw) + 5 * \
-            beta_yaw[0], y - self.scale_YawVEC * \
+        WP3_x, WP3_y = self.target_cool_x - self.scale_YawVEC * m.cos(self.pyaw) + 5 * \
+            beta_yaw[0], self.target_cool_y - self.scale_YawVEC * \
             m.sin(self.pyaw) + 5 * beta_yaw[1]
 
         return WP3_x, WP3_y

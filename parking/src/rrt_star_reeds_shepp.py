@@ -236,7 +236,7 @@ class RRTStarReedsShepp(RRTStar):
         return path
 
 
-def main(max_iter=500):
+def main(max_iter=50):
     print("Start " + __file__)
 
     # ====Search Path with RRT====
@@ -260,6 +260,8 @@ def main(max_iter=500):
                                              obstacleList,
                                              [-2.0, 15.0], max_iter=max_iter)
     path = rrt_star_reeds_shepp.planning(animation=show_animation)
+
+    print(path)
 
     # Draw final path
     if path and show_animation:  # pragma: no cover

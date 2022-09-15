@@ -147,7 +147,7 @@ class TargetSelector():
     def where_to_park(self, available_zone):
 
         if len(available_zone) == 0:
-            result = 1
+            result = 3
         else:
             available_zone.insert(0, 0)
             available_zone.append(self.the_number_of_parkingarea+1)
