@@ -94,11 +94,11 @@ class Local_path_planner():
                 yc = self.center_points[self.target_area_Idx][1] + \
                     sign * y_interval * j  # 중심점의 y좌표
 
-                x1 = xc + self.scale_x / 2 * m.cos(self.yaw)
-                y1 = yc + self.scale_x / 2 * m.sin(self.yaw)
+                x1 = xc + self.scale_x / 3 * m.cos(self.yaw)
+                y1 = yc + self.scale_x / 3 * m.sin(self.yaw)
 
-                x2 = xc - self.scale_x / 2 * m.cos(self.yaw)
-                y2 = yc - self.scale_x / 2 * m.sin(self.yaw)
+                x2 = xc - self.scale_x / 3 * m.cos(self.yaw)
+                y2 = yc - self.scale_x / 3 * m.sin(self.yaw)
 
                 o_c = [xc, yc, self.scale_x/3]
                 o_1 = [x1, y1, self.scale_x/3]
@@ -114,15 +114,15 @@ class Local_path_planner():
                 xc = self.center_points[i][0]  # 중심점의 x좌표
                 yc = self.center_points[i][1]  # 중심점의 y좌표
 
-                x1 = xc + self.scale_x / 2 * m.cos(self.yaw)
-                y1 = yc + self.scale_x / 2 * m.sin(self.yaw)
+                x1 = xc + self.scale_x / 3 * m.cos(self.yaw)
+                y1 = yc + self.scale_x / 3 * m.sin(self.yaw)
 
-                x2 = xc - self.scale_x / 2 * m.cos(self.yaw)
-                y2 = yc - self.scale_x / 2 * m.sin(self.yaw)
+                x2 = xc - self.scale_x / 3 * m.cos(self.yaw)
+                y2 = yc - self.scale_x / 3 * m.sin(self.yaw)
 
-                o_c = [xc, yc, self.scale_x/2]
-                o_1 = [x1, y1, self.scale_x/2]
-                o_2 = [x2, y2, self.scale_x/2]
+                o_c = [xc, yc, self.scale_x/3]
+                o_1 = [x1, y1, self.scale_x/3]
+                o_2 = [x2, y2, self.scale_x/3]
 
                 obstacleList.append(o_c)
                 obstacleList.append(o_1)
@@ -186,6 +186,7 @@ class Local_path_planner():
         point.z = 0
 
         point_stamped.point = point
+        print('WP')
 
         pub.publish(point_stamped)
 
@@ -270,9 +271,9 @@ if __name__ == "__main__":
 
     obstacle_pub.publish(msg)
 
-    rrt_star_reeds_shepp = RRTStarReedsShepp(start=start, goal=goal,
+    rrt_star_reeds_shepp = RRTStarReedsShepp(start=goal, goal=start,
                                              obstacle_list=obstacleList,
-                                             rand_area=[0.0, 5.0], max_iter=150)
+                                             rand_area=[0.0, 20.0], max_iter=150)
 
     while rrt_star_reeds_shepp.Yes_or_No == False:
         print('yet finding')
@@ -282,10 +283,12 @@ if __name__ == "__main__":
     ys = [y for (x, y, syaw) in path]
     yaws = [syaw for (x, y, syaw) in path]
 
-    local_path_planner.path.cx = local_path_former_part_x + list(reversed(xs))
-    local_path_planner.path.cy = local_path_former_part_y + list(reversed(ys))
+    local_path_planner.path.cx = local_path_former_part_x + \
+        xs  # list(reversed(xs))
+    local_path_planner.path.cy = local_path_former_part_y + \
+        ys  # list(reversed(ys))
     local_path_planner.path.cyaw = local_path_former_part_yaw + \
-        list(reversed(yaws))
+        yaws  # list(reversed(yaws))
 
     hz = 1.
     freq = 1 / hz
@@ -296,6 +299,7 @@ if __name__ == "__main__":
 
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
+        print([goal, start])
 
         local_path_planner.standard_pub(rrt_startpoint_pub, local_path_planner.WP3_x,
                                         local_path_planner.WP3_y)
@@ -308,6 +312,8 @@ if __name__ == "__main__":
 
         local_path_planner.toRosPath(
             local_path_planner.path.cx, local_path_planner.path.cy, local_path_planner.path.cyaw)
+
+        obstacle_pub.publish(msg)
 
         # rrt_star_reeds_shepp.draw_graph()
         # plt.plot([x for (x, y, syaw) in path], [

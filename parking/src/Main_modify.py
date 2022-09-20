@@ -214,9 +214,9 @@ class VerticalParkingBase(object):
         self.target_cool_x, self.target_cool_y = self._list[
             target_Zone_idx][0], self._list[target_Zone_idx][1]
 
-        WP3_x, WP3_y = self.target_cool_x - self.scale_YawVEC * m.cos(self.pyaw) + 5 * \
+        WP3_x, WP3_y = self.target_cool_x - self.scale_YawVEC * m.cos(self.pyaw) + 4 * \
             beta_yaw[0], self.target_cool_y - self.scale_YawVEC * \
-            m.sin(self.pyaw) + 5 * beta_yaw[1]
+            m.sin(self.pyaw) + 4 * beta_yaw[1]
 
         return WP3_x, WP3_y
 
@@ -358,7 +358,6 @@ class VerticalParkingBase(object):
             self.point_Pub(self.WP3_x, self.WP3_y)
             target_zone_pub.publish(self.target_zone_msg)
             self.toRosPath(self.path.cx, self.path.cy, self.path.cyaw)
-            print(100, self.target_zone_msg)
             if self.is_end == False:
                 '------------------------------------------------------------------------------'
                 try:

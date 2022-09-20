@@ -270,6 +270,8 @@ def main(max_iter=50):
                  y for (x, y, yaw) in path], '-r')
         plt.grid(True)
         plt.pause(0.001)
+        plt.xlim(0, 20)
+        plt.ylim(0, 15)
         plt.show()
 
 

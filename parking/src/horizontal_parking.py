@@ -19,6 +19,7 @@ from cubic_spline_planner import calc_spline_course
 from reeds_shepp_path_planning import reeds_shepp_path_planning
 from enum import Enum
 from time import sleep
+from whereToPark import Where_to_park
 
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
@@ -75,7 +76,7 @@ class HorizontalParking(object):
         self.cmd_msg = ControlMessage()
 
         # TO DO : Put function for decide parking lot
-        idx = 0
+        self.idx = 0
         circle1, circle2, selected_parking_area = self.getTwoCircle(idx)
         self.straight_path, self.reverse_path, self.home_path, self.final_path, self.out_path, self.path = self.createPath(
             circle1, circle2, selected_parking_area)
@@ -356,6 +357,9 @@ class HorizontalParking(object):
             msg.Speed = int(7)
             msg.Gear = int(2)
             self.current_path = self.search_path
+            _bool, Idx = WTP.interval_checkIsInParking()
+            if _bool == True:
+                self.Idx = Idx
 
         elif self.horizontal_parking_state == HorizontalParkingState.Straight:
             msg.Speed = int(5)
@@ -441,6 +445,8 @@ if __name__ == "__main__":
 
     hp = HorizontalParking(state=state, cmd_pub=cmd_pub,
                            file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking.csv", search_path=None)
+    WTP = Where_to_park()
+    WTP.parking_areas = hp.parking_areas
 
     r = rospy.Rate(30)
     while not rospy.is_shutdown():
