@@ -14,6 +14,8 @@ import numpy as np
 import tf
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
+from load_parking_area import loadCSV
+import rospkg
 
 
 class TargetSelector():
@@ -34,6 +36,10 @@ class TargetSelector():
         self.the_number_of_parkingarea = 6
         self.map_obstacle_pub = rospy.Publisher(
             "/map_obstacle", PoseArray, queue_size=1)
+        self.csv_path = rospkg.RosPack().get_path("parking") + "/parking/" + \
+            rospy.get_param("/create_parking_area/parking_file",
+                            "parking3.csv")
+        self.base = None
 
     def markerCallback(self, msg):
         self.markers = msg
@@ -44,10 +50,10 @@ class TargetSelector():
             scale = marker.scale
             self.scale_y = scale.y
             self.scale_x = scale.x
-            Parking_area = ParkingArea(
+            parking_area = ParkingArea(
                 x=point.x, y=point.y, quat=orientation, w=scale.y, h=scale.x)
 
-            self.parking_areas.append(Parking_area.parseArray().tolist())
+            self.parking_areas.append(parking_area)
 
             _, _, yaw = euler_from_quaternion(
                 [orientation.x, orientation.y, orientation.z, orientation.w])
@@ -56,6 +62,8 @@ class TargetSelector():
             self.center_points.append(center_point)  # 주차 라인 중앙 점 좌표 list
 
         rospy.loginfo("Subscribe parking area MarkerArray")
+
+        marker_sub.unregister()
 
     # FOR random_obstacle
     # def obstacleCallback(self, msg):
@@ -103,52 +111,78 @@ class TargetSelector():
 
         #print(self.parking_state < 2)
 
-    def checkIsInParking(self):
-        if len(self.obstacle_zone) != len(self.the_number_of_parkingarea):
+    def checkIsInParking(obstacle, box):
+        dist = np.hypot(box.position.x - obstacle[0],
+                        box.position.y - obstacle[1])
+        box_yaw = euler_from_quaternion(
+            [box.orientation.x, box.orientation.y, box.orientation.z, box.orientation.w])
+
+        if dist == 0.0:
+            return True
+
+        area_VEC = np.array([
+            m.cos(box_yaw - m.radians(90.0)), m.sin(box_yaw - m.radians(90.0))
+        ])
+
+        ob_VEC = np.array([
+            obstacle.x - box.x, obstacle.y - box.y
+        ])
+
+        theta = m.acos(np.dot(area_VEC, ob_VEC) / dist)
+
+        x_dist = abs(dist * m.sin(theta))
+        y_dist = abs(dist * m.cos(theta))
+
+        if x_dist <= box.scale.x / 2.0 and y_dist <= box.scale.y / 2.0:
+            return True
+
+        return False
+
+    def inerval_checkIsInParking(self, state):
+        dist_list = []
+        state_x = state.x
+        state_y = state.y
+        for _ in range(len(self.parking_areas)):
+            dist = np.hypot(state_x - self.parking_areas.position.x,
+                            state_y - self.parking_areas.position.y)
+            dist_list.append(dist)
+
+        Idx = np.argmin(np.array(dist_list))
+
+        # 해당 idx의 parking area yaw 벡터와 내적하여 구간 내에 위치하는지 확인
+        p_orientation = self.parking_areas[Idx].orientation
+        pyaw = m.pi/2 + euler_from_quaternion(
+            [p_orientation.x, p_orientation.y, p_orientation.z, p_orientation.w])
+
+        pyaw_VEC = [m.cos(pyaw), m.sin(pyaw)]
+        car_VEC = [state_x - self.parking_areas[Idx].x,
+                   state_y - self.parking_areas[Idx].y]
+
+        inner_product = np.abs(np.dot(pyaw_VEC, car_VEC))
+        if inner_product < self.parking_areas[Idx].scale.x / 2:
+            # 해당 구간 내에 있으면, 해당 idx의 parking area에 대하여 adaptive clustering data 계산하기
             for obstacle in self.obstacles:
-
-                for i, point in enumerate(self.center_points):
-                    if i+1 in self.obstacle_zone:
-                        continue
-
-                    dist = np.hypot(
-                        point[0] - obstacle[0], point[1] - obstacle[1])
-
-                    if dist == 0.0:
-                        return True
-
-                    area_VEC = np.array([
-                        m.cos(point[2] - m.radians(90.0)
-                              ), m.sin(point[2] - m.radians(90.0))
-                    ])
-
-                    ob_VEC = np.array(
-                        [(obstacle[0] - point[0]), (obstacle[1] - point[1])])
-
-                    abs_multiple = np.sqrt(
-                        area_VEC[0]**2+area_VEC[1]**2) * np.sqrt(ob_VEC[0]**2+ob_VEC[1]**2)
-
-                    theta = m.acos(np.dot(area_VEC, ob_VEC) / abs_multiple)
-
-                    x_dist = abs(dist * m.sin(theta))
-                    y_dist = abs(dist * m.cos(theta))
-
-                    if x_dist <= self.scale_x / 2.0 and y_dist <= self.scale_y / 2.0:
-
-                        if i+1 not in self.obstacle_zone:
-                            self.obstacle_zone.append(i+1)
-
-            for ob_zone in self.obstacle_zone:
-                try:
-                    self.All_of_parking_area.remove(ob_zone)
-                except:
-                    pass
-        print(len(self.obstacles))
+                _bool = self.checkIsInParking(
+                    obstacle, self.parking_areas[Idx])
+                if _bool == True:
+                    self.obstacles = []
+                    result_bool = True
+                    break
+                    # return True, Idx
         self.obstacles = []
 
+        return result_bool, Idx
+
+    def available_area(self):
+        if self.base == None:
+            self.base = []
+            for _ in range(self.parking_areas):
+                self.base.append(0)
+
     def where_to_park(self, available_zone):
+
         if len(available_zone) == 0:
-            result = 1
+            result = 4
         else:
             available_zone.insert(0, 0)
             available_zone.append(self.the_number_of_parkingarea+1)

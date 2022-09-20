@@ -18,6 +18,7 @@ from cubic_spline_planner import calc_spline_course
 from reeds_shepp_path_planning import reeds_shepp_path_planning
 from enum import Enum
 from time import sleep
+from whereToPark import Where_to_park
 
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"

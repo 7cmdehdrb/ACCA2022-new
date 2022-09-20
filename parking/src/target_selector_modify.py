@@ -111,7 +111,7 @@ class TargetSelector():
                 dist = np.hypot(
                     point[0] - obstacle[0], point[1] - obstacle[1])
 
-                if dist < self.scale_x:
+                if dist < self.scale_x and i+1 not in self.obstacle_zone:
                     self.obstacle_zone.append(i+1)
                     break
 
@@ -147,7 +147,7 @@ class TargetSelector():
     def where_to_park(self, available_zone):
 
         if len(available_zone) == 0:
-            result = 1
+            result = 4
         else:
             available_zone.insert(0, 0)
             available_zone.append(self.the_number_of_parkingarea+1)

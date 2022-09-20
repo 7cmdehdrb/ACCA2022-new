@@ -202,7 +202,7 @@ if __name__ == "__main__":
     target_idx = local_path_planner.target_area_Idx - 1
 
     print("@@@@@@@@@@@")
-    obstacleList = local_path_planner.erase_other_zone()
+    obstacleList = []  # local_path_planner.erase_other_zone()
     print("@@@@@@@@@@")
     print(obstacleList)
 

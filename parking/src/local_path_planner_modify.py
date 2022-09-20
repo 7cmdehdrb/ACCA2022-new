@@ -20,6 +20,8 @@ from std_msgs.msg import Int8
 from path_plan.msg import PathResponse
 
 try:
+    rospy.init_node("parking_local_path_planner")
+
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
     from state import State
@@ -30,12 +32,6 @@ except Exception as ex:
 class Local_path_planner():
     def __init__(self):
         self.path = PathResponse()
-        self.path.cx = 0
-        self.path.cy = 0
-        self.path.cyaw = 0
-        self.scale_x = 2.5
-        self.scale_y = 5.0
-        self.yaw = 0.4
         self.parking_areas = []
         self.points_of_parking_areas = []
         self.center_points = []
@@ -83,48 +79,54 @@ class Local_path_planner():
     def erase_other_zone(self):
 
         obstacleList = []
+
         x_interval = self.center_points[1][0] - \
             self.center_points[0][0]
 
+        y_interval = self.center_points[1][1] - \
+            self.center_points[0][1]
+
         for i in [0, 5]:
-            sign = - (-1)**i
-            xc = self.center_points[i][0] + \
-                sign * x_interval  # 중심점의 x좌표
-            yc = self.center_points[i][1]  # 중심점의 y좌표
+            for j in [1, 3]:
+                sign = - (-1)**i
+                xc = self.center_points[self.target_area_Idx][0] + \
+                    sign * x_interval * j  # 중심점의 x좌표
+                yc = self.center_points[self.target_area_Idx][1] + \
+                    sign * y_interval * j  # 중심점의 y좌표
 
-            x1 = xc + self.scale_x / 2 * m.cos(self.yaw)
-            y1 = yc + self.scale_x / 2 * m.sin(self.yaw)
+                x1 = xc + self.scale_x / 3 * m.cos(self.yaw)
+                y1 = yc + self.scale_x / 3 * m.sin(self.yaw)
 
-            x2 = xc - self.scale_x / 2 * m.cos(self.yaw)
-            y2 = yc - self.scale_x / 2 * m.sin(self.yaw)
+                x2 = xc - self.scale_x / 3 * m.cos(self.yaw)
+                y2 = yc - self.scale_x / 3 * m.sin(self.yaw)
 
-            o_c = [xc, yc, self.scale_x/2]
-            o_1 = [x1, y1, self.scale_x/2]
-            o_2 = [x2, y2, self.scale_x/2]
+                o_c = [xc, yc, self.scale_x/3]
+                o_1 = [x1, y1, self.scale_x/3]
+                o_2 = [x2, y2, self.scale_x/3]
 
-            obstacleList.append(o_c)
-            obstacleList.append(o_1)
-            obstacleList.append(o_2)
+                obstacleList.append(o_c)
+                obstacleList.append(o_1)
+                obstacleList.append(o_2)
 
-        for i in range(self.the_number_of_parkinarea):
+        '''for i in range(self.the_number_of_parkinarea):
 
             if i != self.target_area_Idx:
                 xc = self.center_points[i][0]  # 중심점의 x좌표
                 yc = self.center_points[i][1]  # 중심점의 y좌표
 
-                x1 = xc + self.scale_x / 2 * m.cos(self.yaw)
-                y1 = yc + self.scale_y / 2 * m.sin(self.yaw)
+                x1 = xc + self.scale_x / 3 * m.cos(self.yaw)
+                y1 = yc + self.scale_x / 3 * m.sin(self.yaw)
 
-                x2 = xc - self.scale_x / 2 * m.cos(self.yaw)
-                y2 = yc - self.scale_y / 2 * m.sin(self.yaw)
+                x2 = xc - self.scale_x / 3 * m.cos(self.yaw)
+                y2 = yc - self.scale_x / 3 * m.sin(self.yaw)
 
-                o_c = [xc, yc, self.scale_x/2]
-                o_1 = [x1, y1, self.scale_x/2]
-                o_2 = [x2, y2, self.scale_x/2]
+                o_c = [xc, yc, self.scale_x/3]
+                o_1 = [x1, y1, self.scale_x/3]
+                o_2 = [x2, y2, self.scale_x/3]
 
                 obstacleList.append(o_c)
                 obstacleList.append(o_1)
-                obstacleList.append(o_2)
+                obstacleList.append(o_2)'''
 
         return obstacleList
 
@@ -157,23 +159,39 @@ class Local_path_planner():
             self.center_points.append(
                 center_point)  # 주차 라인 중앙 점 좌표 list
             self.the_number_of_parkinarea = len(self.center_points)
-        _, _, self.yaw = euler_from_quaternion(
-            [orientation.x, orientation.y, orientation.z, orientation.w])
+            _, _, self.yaw = euler_from_quaternion(
+                [orientation.x, orientation.y, orientation.z, orientation.w])
         rospy.loginfo("Subscribe MarkerArray")
 
         marker_sub.unregister()
 
     def parking_zone_callback(self, msg):
-        self.target_area_Idx = msg.data
-        print(self.target_area_Idx)
+        self.target_area_Idx = msg.data - 1
+        # (self.target_area_Idx)
 
     def WP3_callback(self, msg):
         self.WP3_x = msg.x
         self.WP3_y = msg.y
 
+    def standard_pub(self, pub, x, y):
+
+        point_stamped = PointStamped()
+        point = Point()
+
+        point_stamped.header.frame_id = "map"
+        point_stamped.header.stamp = rospy.Time(0)
+
+        point.x = x
+        point.y = y
+        point.z = 0
+
+        point_stamped.point = point
+        print('WP')
+
+        pub.publish(point_stamped)
+
 
 if __name__ == "__main__":
-    rospy.init_node("parking_local_path_planner")
 
     local_path_planner = Local_path_planner()
 
@@ -199,15 +217,23 @@ if __name__ == "__main__":
 
     WP3_sub = rospy.Subscriber(
         '/parking_WP3',  Point, callback=local_path_planner.WP3_callback)
+
+    rrt_startpoint_pub = rospy.Publisher(
+        "/rrt_startpoint", PointStamped, queue_size=1)
+
+    rrt_goalpoint_pub = rospy.Publisher(
+        "/rrt_goalpoint", PointStamped, queue_size=1)
+
     sleep(1.)
 
     rospy.wait_for_message('/target_zone', Int8)
 
     '''obstacleList = []'''  # [x,y,size(radius)]
-    target_idx = local_path_planner.target_area_Idx - 1
+    target_idx = local_path_planner.target_area_Idx
 
     print("@@@@@@@@@@@")
     obstacleList = local_path_planner.erase_other_zone()
+    #obstacleList = []
     print("@@@@@@@@@@")
     print(obstacleList)
 
@@ -221,9 +247,11 @@ if __name__ == "__main__":
         [local_path_planner.start_x, local_path_planner.WP3_x], [local_path_planner.start_y, local_path_planner.WP3_y])
 
     start = [local_path_planner.WP3_x,
-             local_path_planner.WP3_y, local_path_former_part_yaw[-1]]
+             local_path_planner.WP3_y, local_path_former_part_yaw[5]]
     goal = [local_path_planner.parking_areas[target_idx].position.x,
             local_path_planner.parking_areas[target_idx].position.y, local_path_planner.yaw]
+
+    print(start, goal)
 
     msg = PoseArray()
     msg.header.frame_id = "map"
@@ -243,36 +271,49 @@ if __name__ == "__main__":
 
     obstacle_pub.publish(msg)
 
-    rrt_star_reeds_shepp = RRTStarReedsShepp(start, goal,
-                                             obstacleList,
-                                             [0.0, 30.0], max_iter=100)
-    print(start)
-    print(goal)
-    print(obstacleList)
-    path = rrt_star_reeds_shepp.planning(animation=False)
-    xs = [0]
-    while len(xs) < 5:
-        try:
-            xs = [x for (x, y, syaw) in path]
-            ys = [y for (x, y, syaw) in path]
-            yaws = [syaw for (x, y, syaw) in path]
-        except:
-            pass
+    rrt_star_reeds_shepp = RRTStarReedsShepp(start=goal, goal=start,
+                                             obstacle_list=obstacleList,
+                                             rand_area=[0.0, 20.0], max_iter=150)
 
-    local_path_planner.path.cx = local_path_former_part_x + xs
-    local_path_planner.path.cy = local_path_former_part_y + ys
-    local_path_planner.path.cyaw = local_path_former_part_yaw + yaws
+    while rrt_star_reeds_shepp.Yes_or_No == False:
+        print('yet finding')
+        path = rrt_star_reeds_shepp.planning(animation=False)
+
+    xs = [x for (x, y, syaw) in path]
+    ys = [y for (x, y, syaw) in path]
+    yaws = [syaw for (x, y, syaw) in path]
+
+    local_path_planner.path.cx = local_path_former_part_x + \
+        xs  # list(reversed(xs))
+    local_path_planner.path.cy = local_path_former_part_y + \
+        ys  # list(reversed(ys))
+    local_path_planner.path.cyaw = local_path_former_part_yaw + \
+        yaws  # list(reversed(yaws))
 
     hz = 1.
     freq = 1 / hz
 
+    print(start)
+    print(goal)
+    # print(local_path_planner.path.cx)
+
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
+        print([goal, start])
+
+        local_path_planner.standard_pub(rrt_startpoint_pub, local_path_planner.WP3_x,
+                                        local_path_planner.WP3_y)
+
+        local_path_planner.standard_pub(rrt_goalpoint_pub, local_path_planner.parking_areas[target_idx].position.x,
+                                        local_path_planner.parking_areas[target_idx].position.y)
 
         local_path_planner.publishPath(
             path_pub, local_path_planner.path.cx, local_path_planner.path.cy, local_path_planner.path.cyaw)
+
         local_path_planner.toRosPath(
             local_path_planner.path.cx, local_path_planner.path.cy, local_path_planner.path.cyaw)
+
+        obstacle_pub.publish(msg)
 
         # rrt_star_reeds_shepp.draw_graph()
         # plt.plot([x for (x, y, syaw) in path], [
