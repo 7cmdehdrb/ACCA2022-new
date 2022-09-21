@@ -8,12 +8,17 @@ from tf.transformations import *
 from tf.msg import tfMessage
 from geometry_msgs.msg import *
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Float32
 from autoware_msgs.msg import NDTStat
 from header import Queue
 
 
-score_threshold = rospy.get_param("/global_localizer/score_threshold", 1.0)
+score_threshold = rospy.get_param("/global_localizer/score_threshold", 5.0)
+
+
+def thresholdCallback(msg):
+    global score_threshold
+    score_threshold = msg.data
 
 
 class Odom(object):
@@ -61,11 +66,11 @@ class ScanStatus(object):
 if __name__ == "__main__":
     rospy.init_node("global_localizer")\
 
-    hz = 10
+    hz = 30
     freq = 1 / hz
 
-    hz = 100.
-    freq = 1 / hz
+    # hz = 100.
+    # freq = 1 / hz
 
     map_frame = Odom(topic="/ndt_matching/ndt_pose")
     odom_frame = Odom(topic="/odometry/kalman")
@@ -74,11 +79,17 @@ if __name__ == "__main__":
     initial_pose_pub = rospy.Publisher(
         "/initialpose", PoseWithCovarianceStamped, queue_size=1)
 
+    tol_sub = rospy.Subscriber(
+        "/global_localizer/threshold", Float32, callback=thresholdCallback
+    )
+
+
     tf_pub = tf.TransformBroadcaster()
     tf_sub = tf.TransformListener()
 
     trans = (0., 0., 0.)
     rot = (0., 0., 0., 1.)
+    dist = float("inf")
 
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
@@ -88,7 +99,7 @@ if __name__ == "__main__":
                 # Trustable TF
                 dyaw = map_frame.yaw - odom_frame.yaw
 
-                trans = (
+                new_trans = (
                     map_frame.pose.pose.position.x -
                     (odom_frame.pose.pose.position.x * m.cos(dyaw) -
                      odom_frame.pose.pose.position.y * m.sin(dyaw)),
@@ -97,7 +108,18 @@ if __name__ == "__main__":
                      odom_frame.pose.pose.position.y * m.cos(dyaw)),
                     0.
                 )
-                rot = quaternion_from_euler(0., 0., dyaw)
+                new_rot = quaternion_from_euler(0., 0., dyaw)
+                d = np.hypot(new_trans[0] - trans[0], new_trans[1] - trans[0])
+                
+
+                print(dist)
+
+                if abs(dist - d) <= 1. or trans == (0., 0., 0.):
+                    trans = new_trans
+                    rot = new_rot
+
+                dist = d
+                
 
             elif scan_status.queue.isFalse(threshhold=10):
                 # Untrustable TF : Relocalize
@@ -132,6 +154,7 @@ if __name__ == "__main__":
             # Cannot subscribe map / odom
             rospy.logwarn("Wait for Odometry...")
 
+
         tf_pub.sendTransform(
             translation=trans,
             rotation=rot,
@@ -139,5 +162,7 @@ if __name__ == "__main__":
             child="odom",
             parent="map"
         )
+
+        print(trans)
 
         r.sleep()

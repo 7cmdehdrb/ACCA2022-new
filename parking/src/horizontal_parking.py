@@ -54,7 +54,7 @@ class HorizontalParking(object):
         self.r = rospy.Rate(30)
 
         # For test
-        self.stanley.setCGain(1.0)
+        # self.stanley.setCGain(0.1)
         # self.stanley.setHdrRatio(1.0)
 
         self.circles_pub = rospy.Publisher(

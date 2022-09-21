@@ -2,11 +2,7 @@
 
 from tf.transformations import euler_from_quaternion
 import rospy
-<<<<<<< HEAD
 from DataBase import *
-=======
-from DB import *
->>>>>>> origin/localization
 from std_msgs.msg import Empty, String, UInt8
 from path_plan.msg import PathRequest, PathResponse
 from geometry_msgs.msg import PoseArray, Pose

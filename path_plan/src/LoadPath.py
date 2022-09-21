@@ -4,11 +4,7 @@ import rospy
 import time
 import csv
 from time import sleep
-<<<<<<< HEAD
 from DataBase import *
-=======
-from DB import *
->>>>>>> origin/localization
 from path_plan.msg import PathRequest, PathResponse
 from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
@@ -16,11 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Int8
 # import pandas as pd
 
-<<<<<<< HEAD
-db_name = rospy.get_param("/LoadPath/db_name", "/school_bs.db")
-=======
 db_name = rospy.get_param("/LoadPath/db_name", "/path.db")
->>>>>>> origin/localization
 
 
 class LoadPath():
@@ -90,25 +82,16 @@ class LoadPath():
     def check_path_avaliable(self):
         path = []
         file_path = rospkg.RosPack().get_path("path_plan") + \
-<<<<<<< HEAD
-            "/path/" + rospy.get_param("/LoadPath/path_name", "school_bs.csv")
-=======
             "/path/" + rospy.get_param("/LoadPath/path_name", "path.csv")
->>>>>>> origin/localization
 
         with open(file_path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
             for row in reader:
                 try:
                     self.Request.start = row[0]
-<<<<<<< HEAD
                     self.Request.end = row[1] 
                     self.bringPath()
 
-=======
-                    self.Request.end = row[1]
-                    self.bringPath()
->>>>>>> origin/localization
                     for info in self.path_info:
                         path.append(info)
 
@@ -143,11 +126,6 @@ if __name__ == "__main__":
         "/path_response", PathResponse, queue_size=1)
     rospath_pub = rospy.Publisher("/global_path", Path, queue_size=1)
 
-<<<<<<< HEAD
-    flag = db.checkDB()[0]
-
-=======
->>>>>>> origin/localization
     load_path.check_path_avaliable()
 
     r = rospy.Rate(10)

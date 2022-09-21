@@ -232,7 +232,7 @@ class Xsens(Sensor):
             self.init_yaw = yaw
 
         self.yaw = normalize_angle(
-            yaw - self.init_yaw + (np.pi if erp.gear == 2 else 0.0))
+            yaw - self.init_yaw)
 
         # print("%.4f\t%.4f\t%.4f" % (yaw, self.init_yaw, self.yaw))
 

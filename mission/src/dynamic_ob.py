@@ -27,7 +27,7 @@ class Lidar(object):
     def __init__(self, state):
         super(Lidar, self).__init__()
 
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/dynamic_path.csv")
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/dynamic_path.csv")
 
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()

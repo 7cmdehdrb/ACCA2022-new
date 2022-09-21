@@ -43,7 +43,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
-    from obstacle_final_csv import Obstacle
+    from obstacle_final_csv_ys import Obstacle
     from delivery import Delivery
     from dynamic_ob import Lidar
     from parking_final_csv import Parking, ParkingState
@@ -113,7 +113,7 @@ class StateMachine(object):
         # Parking
         self.parking = Parking(state=self.state)
         self.horizontal_parking = HorizontalParking(
-            state=self.state, cmd_pub=cmd_pub)
+            state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -183,10 +183,10 @@ class StateMachine(object):
             desired_speed = self.selector.path.desired_speed if desired_speed == 0 else desired_speed
             di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
-            speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                                  desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
+            # speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
+            #                                       desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
-            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), brake, 0
+            return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0
             )
 
         except IndexError as ie:
@@ -400,8 +400,8 @@ class StateMachine(object):
             msg = self.dynamicControl()
 
         elif self.mission_state == MissionState.PARKING:
-            # msg = self.parkingControl()
-            msg = self.horizontalParkingControl()
+            msg = self.parkingControl()
+            # msg = self.horizontalParkingControl()
 
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()

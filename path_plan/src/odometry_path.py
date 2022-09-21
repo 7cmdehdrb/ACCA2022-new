@@ -15,7 +15,7 @@ from cubic_spline_planner import calc_spline_course
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
-    from state import OdomState
+    from state import OdomState, State
 except Exception as ex:
     rospy.logfatal(ex)
 
@@ -85,13 +85,9 @@ if __name__ == "__main__":
     odom_topic = rospy.get_param(
         "/odometry_path/odom_topic", "/odometry/kalman")
     odom_path = OdometryPath()
-    state = OdomState(odometry_topic=odom_topic)
+    state = State(odometry_topic=odom_topic)
 
-<<<<<<< HEAD
     r = rospy.Rate(10)
-=======
-    r = rospy.Rate(1)
->>>>>>> origin/localization
     while not rospy.is_shutdown():
         cx, cy, cyaw, _, _ = odom_path.appendPath(state.x, state.y)
         if cx is not None:
