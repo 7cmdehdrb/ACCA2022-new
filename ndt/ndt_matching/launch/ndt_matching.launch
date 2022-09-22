@@ -15,7 +15,7 @@
     <!--================================================= points_map_loader =================================================-->
     <!-- <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
-    <arg name="path_pcd" default='$/home/enbang/pcd/school.pcd'/>
+    <arg name="path_pcd" default='$/home/enbang/pcd/0909_kcity_ys01.pcd'/>
     
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
         <rosparam subst_value="true">
@@ -23,12 +23,12 @@
             arealist_path: $(arg path_area_list)
             pcd_paths: [ $(arg path_pcd) ]
         </rosparam>
-    </node> -->
-    
+    </node>
+     -->
     <!--================================================= voxel_grid_filter =================================================-->
     <arg name="sync" default="false" />
     <arg name="node_name" default="voxel_grid_filter" />
-    <arg name="points_topic" default="/velodyne_points" />
+    <arg name="points_topic" default="/velodyne_points2" />
     <arg name="output_log" default="false" />
     <arg name="measurement_range" default="200" />
     
