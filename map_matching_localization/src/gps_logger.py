@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import rospkg
 import numpy as np
 import math as m
 import tf
@@ -68,24 +69,27 @@ class OdometryTracker(Tracker):
         return super(OdometryTracker, self).logging()
 
 
+def logCallback(msg):
+    global flag
+    flag = True
+
+
 if __name__ == "__main__":
-    rospy.init_node("test")
+    rospy.init_node("gps_logger")
+
+    flag = False
 
     odom = OdometryTracker("/ndt_matching/ndt_pose")
     gps = GPSTracker("/ublox_gps/fix")
-    file = "/home/acca/catkin_ws/src/ACCA2022-new/map_matching_localization/data/test2.csv"
-
-    odom_last_data = odom.data
+    logger = rospy.Subscriber("/gps_logger/logging",
+                              Empty, callback=logCallback)
+    file = rospkg.RosPack().get_path("map_matching_localization") + "/data/" + \
+        rospy.get_param("/gps_logger/file_name", "test.csv")
 
     with open(file, 'w') as csvfile:
         r = rospy.Rate(5)
         while not rospy.is_shutdown():
-
-            data = odom.data
-            distance = np.hypot(odom_last_data.x - data.x,
-                                odom_last_data.y - data.y)
-
-            if distance > 1.0:
+            if flag is True:
                 text = ""
                 text += str(rospy.Time.now().to_sec())
                 text += ","
@@ -101,6 +105,7 @@ if __name__ == "__main__":
                 print(text)
 
                 csvfile.write(text)
-                odom_last_data = data
+
+                flag = False
 
             r.sleep()

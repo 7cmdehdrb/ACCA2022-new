@@ -1,0 +1,9 @@
+<launch>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
+        <arg name="port" value="9090"/>
+    </include>
+
+    <node name="gps_logger" pkg="map_matching_localization" type="gps_logger.py">
+        <param name="file_name" type="string" value="test3.csv"></param>
+    </node>
+</launch>
