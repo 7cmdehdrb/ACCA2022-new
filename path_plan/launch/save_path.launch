@@ -3,7 +3,7 @@
     <arg name="save_waypoint" default="false" />
     <arg name="db_name" default="/0903_test.db" />
     <arg name="odom_topic" default="odometry/kalman"/>
-    <arg name="waypoints_file" default="school_test_waypoint.csv" />
+    <arg name="waypoints_file" default="bs_waypoint.csv" />
 
     <!-- <include file="$(find map_matching_localization)/launch/localization.launch" if="$(arg odometry_enable)" /> -->
 

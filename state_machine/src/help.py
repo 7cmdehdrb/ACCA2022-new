@@ -10,11 +10,16 @@ import numpy as np
 from enum import Enum
 from time import sleep
 # msgs
+from std_msgs.msg import Float32, Int16
+from geometry_msgs.msg import PoseStamped
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
 from std_msgs.msg import Float32, Int16
 from geometry_msgs.msg import PoseStamped
+
+rospy.init_node("state_machine")
+
 
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
@@ -29,7 +34,7 @@ except Exception as ex:
     rospy.logfatal("Import Error : State Machine - erp42_control")
 
 try:
-    sys.path.append(rospkg.RosPack().get_path("parking]") + "/src")
+    sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
     from horizontal_parking import HorizontalParking
     
 except Exception as ex:
@@ -38,7 +43,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
-    from obstacle_final_csv import Obstacle
+    from obstacle_final_csv_ys import Obstacle
     from delivery import Delivery
     from dynamic_ob import Lidar
     from parking_final_csv import Parking, ParkingState
@@ -103,12 +108,12 @@ class StateMachine(object):
         self.panel_id = None
 
         # Dynamic
-        self.dynamic = Lidar()
+        self.dynamic = Lidar(state=self.state)
 
         # Parking
-        self.parking = Parking()
+        self.parking = Parking(state=self.state)
         self.horizontal_parking = HorizontalParking(
-            state=self.state, cmd_pub=cmd_pub)
+            state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -131,14 +136,7 @@ class StateMachine(object):
         # Start!
         self.selector.makeRequest()
 
-        # currnet path is not end
-        if self.selector.path.end.is_end is True:
-            # next path's end point may have traffic sign
-            self.mission_state = MissionState.TRAFFIC
-
-        else:
-            # Ignore traffic sign
-            self.mission_state = MissionState.DRIVING
+        self.mission_state = self.selector.path.mission_type
 
     def path_callback(self, msg):
         # When path response is accepted, reset target idx and update path
@@ -185,10 +183,10 @@ class StateMachine(object):
             desired_speed = self.selector.path.desired_speed if desired_speed == 0 else desired_speed
             di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
-            speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-                                                  desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
+            # speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
+            #                                       desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
-            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), 0, 0
+            return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0
             )
 
         except IndexError as ie:
@@ -227,6 +225,7 @@ class StateMachine(object):
                     return ControlMessage(0, 0, 2, 0, 0, 150, 0)
 
         msg = self.mainControl(desired_speed=desired_speed)
+
         return msg
 
     def deliveryControl(self):
@@ -285,13 +284,14 @@ class StateMachine(object):
 
         return msg
 
+    # bs
     def staticControl(self):
         desired_speed = self.selector.path.desired_speed
 
         self.static.main()
         
         if self.target_idx > len(self.path.cx) - 60:
-            msg = self.trafficControl(desired_speed=desired_speed)
+            msg = self.trafficControl()
         
         else:
             if self.static.obs_state == True:
@@ -300,6 +300,20 @@ class StateMachine(object):
                 msg = self.mainControl(desired_speed=desired_speed)
         
         return msg
+
+
+    # ys    
+    # def staticControl(self):
+        # desired_speed = self.selector.path.desired_speed
+
+        # self.static.main()
+        
+        # if self.static.obs_state == True:
+        #     msg = self.static.msg
+        # else:
+        #     msg = self.mainControl(desired_speed=desired_speed)
+        
+        # return msg
 
     def dynamicControl(self):
         desired_speed = self.selector.path.desired_speed
@@ -313,7 +327,7 @@ class StateMachine(object):
 
         return msg
 
-    def horizontalParkingContorl(self):
+    def horizontalParkingControl(self):
         self.horizontal_parking.loop()
         return self.horizontal_parking.cmd_msg
 
@@ -329,8 +343,12 @@ class StateMachine(object):
             wait_for_stop(5)
         
         elif self.parking.parking_state == ParkingState.complete:
+            self.parking.parking_state = ParkingState.done
             wait_for_stop(2)
-                        
+        
+        elif self.parking.parking_state == ParkingState.done:
+            pass
+
         else:
             rospy.loginfo("parking")
             msg = self.parking.msg
@@ -382,8 +400,11 @@ class StateMachine(object):
             msg = self.dynamicControl()
 
         elif self.mission_state == MissionState.PARKING:
-            # msg = self.parkingControl()
-            msg = self.horizontalParkingContorl()
+            msg = self.parkingControl()
+            # msg = self.horizontalParkingControl()
+
+        elif self.mission_state == MissionState.RIGHT:
+            msg = self.rightControl()
 
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()
@@ -399,9 +420,7 @@ class StateMachine(object):
 
 
 if __name__ == "__main__":
-    rospy.init_node("stanley_controller")
-
-    # state = State(odometry_topic="/odometry/kalman")
+    # state = State(odometry_topic="/odometry/kalman", test=True)
     state = OdomState(odometry_topic="/odometry/kalman")
 
     cmd_pub = rospy.Publisher(

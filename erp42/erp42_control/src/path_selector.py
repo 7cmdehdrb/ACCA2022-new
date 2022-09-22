@@ -101,31 +101,27 @@ class PathSelector(object):
         with open(file_path, "r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
             for row in reader:
-                try:
-                    start = row[0]
-                    end = row[1]
-                    desired_speed = float(row[2])
-                    path_type = PathType(int(row[3]))
-                    mission_type = MissionState(int(row[4]))
+                start = row[0]
+                end = row[1]
+                desired_speed = float(row[2])
+                path_type = PathType(int(row[3]))
+                mission_type = MissionState(int(row[4]))
 
-                    start_point = findWaypoint(waypoints_path, id=start)
-                    end_point = findWaypoint(waypoints_path, id=end)
+                start_point = findWaypoint(waypoints_path, id=start)
+                end_point = findWaypoint(waypoints_path, id=end)
 
-                    temp = Node(PathRequest(start, end, start+end),
-                                start=start_point, end=end_point, desired_speed=desired_speed, path_type=path_type, mission_type=mission_type)
+                temp = Node(PathRequest(start, end, start+end),
+                            start=start_point, end=end_point, desired_speed=desired_speed, path_type=path_type, mission_type=mission_type)
 
-                    if node is None:
-                        node = temp
+                if node is None:
+                    node = temp
+                    self.path = node
+
+                else:
+                    node.append(temp)
+                    node = temp
+
+                    if len(row) == 6:
                         self.path = node
 
-                    else:
-                        node.append(temp)
-                        node = temp
-
-                except Exception as ex:
-                    rospy.logwarn(ex)
-
         return 0
-
-
-print(PathType.RIGHT == PathType(1))

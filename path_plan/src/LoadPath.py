@@ -4,7 +4,7 @@ import rospy
 import time
 import csv
 from time import sleep
-from DB import *
+from DataBase import *
 from path_plan.msg import PathRequest, PathResponse
 from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
@@ -89,8 +89,9 @@ class LoadPath():
             for row in reader:
                 try:
                     self.Request.start = row[0]
-                    self.Request.end = row[1]
+                    self.Request.end = row[1] 
                     self.bringPath()
+
                     for info in self.path_info:
                         path.append(info)
 

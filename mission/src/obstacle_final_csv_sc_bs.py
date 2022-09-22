@@ -24,10 +24,8 @@ from cubic_spline_planner import calc_spline_course
 
 
 try:
-    # erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
-    # sys.path.append(erp42_control_pkg_path)
-    sys.path.append('/home/enbang/catkin_ws/src/ACCA2022-new/erp42/erp42_control' + "/src")
-
+    erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
+    sys.path.append(erp42_control_pkg_path)
     from stanley import Stanley
 except Exception as ex:
     rospy.logfatal(ex)
@@ -43,28 +41,32 @@ class Obstacle(object):
         self.path = []
 
         # read path data : csv
-        path_ = "/home/enbang/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_static_path.csv"
-        print(path_)
-        path_data = pd.read_csv(path_)
-        self.path = []
-        self.path_cx = []
-        self.path_cy = []
-        self.path_cyaw = []
-        for i, j, k in zip(path_data.cx, path_data.cy, path_data.cyaw):
-            self.path.append([i, j])
-            self.path_cx.append(i)
-            self.path_cy.append(j)
-            self.path_cyaw.append(k)
 
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_path_bs.csv")
+        center_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_center_bs.csv")
+        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_left_bs.csv")
+
+        self.path_cx = path_data.cx.tolist()
+        self.path_cy = path_data.cy.tolist()
+        self.path_cyaw = path_data.cyaw.tolist()
+        self.path = []
+        for i in range(len(self.path_cx)):
+            self.path.append([self.path_cx[i], self.path_cy[i]])
 
         # left line
-        left_xs = [60, 70]
-        left_ys = [0, -30]
-        self.left_cx, self.left_cy, left_cyaw, _, _ = calc_spline_course(left_xs[:], left_ys[:], ds=0.1)    
+        self.left_cx, self.left_cy = left_data.cx.tolist(), left_data.cy.tolist()
+        self.left = []
+        for j in range(len(self.left_cx)):
+            self.left.append([self.left_cx[j], self.left_cy[j]])
 
-        for i in range(len(self.left_cx)):
-            self.left.append([self.left_cx[i], self.left_cy[i]])
+        # center line      
+        self.center_cx, self.center_cy = center_data.cx.tolist(), center_data.cy.tolist()
+        self.center_cyaw = center_data.cyaw.tolist()
 
+        self.center = []
+        for j in range(len(self.center_cx)):
+            self.center.append([self.center_cx[j], self.center_cy[j]])
+      
 
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)  
         # self.path_response = rospy.Subscriber("/path_response", PathResponse, callback=self.path_callback)    
@@ -84,15 +86,12 @@ class Obstacle(object):
         self.target_idx = 0
         self.length = 0
 
-        self.nd_targit_idx = 0
-        self.nd_length = 0
-
         # parameter
         self.detect_obs_angle = 0.8
-        self.detect_obs_range = 2.
+        self.detect_obs_range = 1.5
         self.prox_dis = 1.        
-        self.r = 1.3
-        self.det_iter= 10
+        self.r = 2.0
+        self.det_iter= 5
         
     def ObstacleCallback(self, msg):
         self.ObsMsg = msg
@@ -140,7 +139,7 @@ class Obstacle(object):
             angle = abs(m.atan2(velodtne_y, velodyne_x))
             map_x = self.state.x + velodyne_x * m.cos(self.state.yaw) - velodtne_y * m.sin(self.state.yaw)
             map_y = self.state.y + velodyne_x * m.sin(self.state.yaw) + velodtne_y * m.cos(self.state.yaw)
-            dis_path = self.GetDistance2(self.path, [map_x, map_y])
+            dis_path = self.GetDistance2(self.center, [map_x, map_y])
                         
             if angle <= self.detect_obs_angle and dis_path <= self.detect_obs_range:
 
@@ -181,10 +180,10 @@ class Obstacle(object):
             for obs in self.obstacle:
             
                 a, b = obs[0], obs[1]
-                target_idx = self.calc_target_index(self.path_cx, self.path_cy, [a, b])
+                target_idx = self.calc_target_index(self.center_cx, self.center_cy, [a, b])
                 left_target_idx = self.calc_target_index(self.left_cx, self.left_cy, [a, b])
 
-                p = -1. / self.path_cyaw[target_idx]
+                p = self.center_cyaw[target_idx]
                 c = b - p * a
                 
                 t1 = (2*a + 2*p*b - 2*p*c + m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
@@ -194,7 +193,7 @@ class Obstacle(object):
                 waypoint2 = [t2, p * t2 + c]
                 
                 dis_obs_left = self.GetDistance([a, b], [self.left[target_idx][0], self.left[target_idx][1]])
-                dis_left_path = self.GetDistance([self.left[left_target_idx][0], self.left[left_target_idx][1]], [self.path[target_idx][0], self.path[target_idx][1]])
+                dis_left_path = self.GetDistance([self.left[left_target_idx][0], self.left[left_target_idx][1]], [self.center[target_idx][0], self.center[target_idx][1]])
 
                 dis_way1_left = self.GetDistance([waypoint1[0], waypoint1[1]], [self.left[left_target_idx][0], self.left[left_target_idx][1]])
                 # dis_way1_right = self.GetDistance([waypoint1[0], waypoint1[1]], [self.right[target_idx][0], self.right[target_idx][1]])

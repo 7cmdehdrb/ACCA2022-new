@@ -1,0 +1,5 @@
+<launch>
+    <include file="/home/acca/catkin_ws/src/ACCA2022-new/ndt/ndt_matching/launch/ndt_matching.launch"/>
+    <node type="kalman_odometry.py" name="kalman_odometry" pkg="map_matching_localization" output="screen"/>
+    <node type="global_localizer.py" name="global_localizer" pkg="map_matching_localization" output="screen"/>
+</launch>

@@ -1,0 +1,4 @@
+<launch>
+    <include file="/home/acca/catkin_ws/src/cone_track/LMS/laser_filters/my_laser_cloud_filter.launch"/>
+    <include file="/home/acca/catkin_ws/src/adaptive_clustering/launch/adaptive_clustering.launch"/>
+</launch>

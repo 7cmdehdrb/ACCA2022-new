@@ -11,11 +11,10 @@ from sensor_msgs.msg import LaserScan
 from visualization_msgs.msg import MarkerArray, Marker
 from geometry_msgs.msg import Point, Quaternion, Vector3, PoseStamped, PoseArray
 from std_msgs.msg import ColorRGBA
-from mission.msg import obTF
-from geometry_msgs.msg import PoseArray,Pose
-from mission.msg  import obTF
-import math
+from nav_msgs.msg import Odometry
+from cubic_spline_planner import calc_spline_course
 
+from mission.msg import obTF
 
 """
 Subscribe 'scan_filtered' and
@@ -24,33 +23,37 @@ Publish 'ob_TF'
 
 
 class Lidar(object):
-    def __init__(self, state):
+    def __init__(self):
         super(Lidar, self).__init__()
 
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/dynamic_path.csv")
-
-        self.path_cx = path_data.cx.tolist()
-        self.path_cy = path_data.cy.tolist()
-        self.path_cyaw = path_data.cyaw.tolist()
+        xs = [0, 20]
+        ys = [0, 0]
+        
+        cx, cy, _, _, _ = calc_spline_course(xs[:], ys[:], ds=0.1)
         self.path = []
-        for i in range(len(self.path_cx)):
-            self.path.append([self.path_cx[i], self.path_cy[i]])
+        for i in range(len(cx)):
+            self.path.append([cx[i], cy[i]])
             
-        self.state = state
+        self.thr_dis = 1.
+        self.thr_path_dis = 1.0
         
-        self.thr_dis = 5.
-        self.thr_path_dis = 1.5
-        
-        rospy.Subscriber("/scan_filtered", LaserScan, self.laserCallback)
-        
+        rospy.Subscriber("/scan_filtered", LaserScan, callback=self.laserCallback)
+        rospy.Subscriber("/odometry/kalman", Odometry, callback=self.odomcallback)
         self.obs_pub = rospy.Publisher("/obs_pub", MarkerArray, queue_size=10)        
         self.part_pub = rospy.Publisher("ob_TF", obTF, queue_size=5)
 
+        self.ranges = []
 
     def laserCallback(self, msg):
+
         self.ranges = msg.ranges
 
-
+    def odomcallback(self, msg):
+        self.state_x = msg.pose.pose.position.x
+        self.state_y = msg.pose.pose.position.y
+        self.state_yaw = msg.pose.pose.orientation.z
+        
+        
     def GetDistance(self, path, point):           
         dis_r_array = []  
         for i in range(len(path)):
@@ -64,7 +67,7 @@ class Lidar(object):
         msg = MarkerArray()
         for i in range(len(point)):
             marker = Marker()
-            marker.header.frame_id = "map"
+            marker.header.frame_id = "odom"
             marker.header.stamp = rospy.Time.now()
             marker.ns = str(i)
             marker.id = 1
@@ -83,17 +86,17 @@ class Lidar(object):
         
         self.mapping = []
         self.obstacle = []
-        
+
         if len(self.ranges) == 0:
             return 0
 
         for i in range(1, 41):
             
-            theta = (-10 + (i / 2)) * np.pi * 180
+            theta = (100 + (i / 2)) * np.pi / 180
             lidar_x = self.ranges[158+i] * m.cos(theta)
             lidar_y = self.ranges[158+i] * m.sin(theta)
-            map_x = self.state.x + lidar_x * m.cos(self.state.yaw) - lidar_y * m.sin(self.state.yaw)
-            map_y = self.state.y + lidar_x * m.sin(self.state.yaw) + lidar_y * m.cos(self.state.yaw)
+            map_x = self.state_x + lidar_x * m.cos(self.state_yaw) - lidar_y * m.sin(self.state_yaw)
+            map_y = self.state_y + lidar_x * m.sin(self.state_yaw) + lidar_y * m.cos(self.state_yaw)
             
             dis_path = self.GetDistance(self.path, [map_x, map_y])
             
@@ -104,35 +107,43 @@ class Lidar(object):
     def Result(self):
         
         obs_num = 0
-        self.partTF = obTF()
-
-        self.partTF.front_right = 0
-        self.partTF.front_left = 0
-        self.partTF.side_right = 0
-        self.partTF.side_left = 0
-        
+        partTF = obTF()
+        print(self.obstacle)
         for i in self.obstacle:
             
             if i[0] < self.thr_dis and i[1] < self.thr_path_dis and i[0] != 0.0:
                 obs_num += 1
-
+            
         print(obs_num)
-
-        if obs_num >= 1:
-            self.partTF.front_right = 1
-            self.partTF.front_left = 1
-            self.partTF.side_right = 0
-            self.partTF.side_left = 0
+        if obs_num >= 5:
+            partTF.front_right = 1
+            partTF.front_left = 1
+            partTF.side_right = 0
+            partTF.side_left = 0
             rospy.logfatal("stop!!!!!")
             
         else:
-            self.partTF.front_right = 0
-            self.partTF.front_left = 0
-            self.partTF.side_right = 0
-            self.partTF.side_left = 0
+            partTF.front_right = 0
+            partTF.front_left = 0
+            partTF.side_right = 0
+            partTF.side_left = 0
             rospy.logwarn("keep going!!!!!")
 
     def main(self):
         self.detect_range()
         self.Result()
         self.publishPoint(self.mapping)
+
+
+
+
+if __name__ == "__main__":
+    
+    rospy.init_node("dynamic")
+    dy = Lidar()
+
+    r = rospy.Rate(5.)
+    
+    while not rospy.is_shutdown():
+        dy.main()
+        r.sleep()

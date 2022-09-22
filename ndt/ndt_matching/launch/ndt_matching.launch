@@ -13,7 +13,7 @@
     <arg name="period_in_ms" default="5"/>
     
     <!--================================================= points_map_loader =================================================-->
-    <!-- <arg name="scene_num" default="noupdate" />
+    <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
     <arg name="path_pcd" default='$/home/enbang/pcd/0909_kcity_ys01.pcd'/>
     
@@ -24,13 +24,13 @@
             pcd_paths: [ $(arg path_pcd) ]
         </rosparam>
     </node>
-     -->
+
     <!--================================================= voxel_grid_filter =================================================-->
     <arg name="sync" default="false" />
     <arg name="node_name" default="voxel_grid_filter" />
     <arg name="points_topic" default="/velodyne_points2" />
     <arg name="output_log" default="false" />
-    <arg name="measurement_range" default="200" />
+    <arg name="measurement_range" default="50" />
     
     <node pkg="points_downsampler" name="$(arg node_name)" type="$(arg node_name)">
         <param name="points_topic" value="$(arg points_topic)" />

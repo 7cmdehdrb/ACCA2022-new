@@ -14,7 +14,9 @@ class Traffic():
         self.stop_0 = ["1301","1302","1401","1402","1404"]
         self.left_1 = ["1303","1305","1403"]
         self.straight_2 = ["1300","1400","1406"]
-        rospy.Subscriber("darknet_ros/bounding_boxes", BoundingBoxes,self.callback)
+        self.boxclass = []
+        self.boxwhere = []
+        rospy.Subscriber("/bounding_boxes", BoundingBoxes,self.callback)
 
     def callback(self, msg): # select near sign
         temp_class = []
@@ -39,13 +41,13 @@ class Traffic():
 
     def choosenum(self,num): #num type = string
         if num in self.stop_0:
-            self.light.append = 0
+            self.light.append(0)
         elif num in self.left_1:
-            self.light.append = 1
+            self.light.append(1)
         elif num in self.straight_2:
-            self.light.append = 2
+            self.light.append(2)
         else:
-            self.light.append = 3
+            self.light.append(3)
 
 
     def calculate(self,class_list,where_list):
@@ -56,7 +58,7 @@ class Traffic():
             self.light.append(self.light[-1])
         
         elif len(class_set) == 1 :
-            self.choosenum(class_set[0])
+            self.choosenum(class_list[0])
         
         elif len(class_set) == 2:
             for i in range(len(class_list)):

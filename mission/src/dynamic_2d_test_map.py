@@ -12,9 +12,6 @@ from visualization_msgs.msg import MarkerArray, Marker
 from geometry_msgs.msg import Point, Quaternion, Vector3, PoseStamped, PoseArray
 from std_msgs.msg import ColorRGBA
 from mission.msg import obTF
-from geometry_msgs.msg import PoseArray,Pose
-from mission.msg  import obTF
-import math
 
 
 """
@@ -27,7 +24,7 @@ class Lidar(object):
     def __init__(self, state):
         super(Lidar, self).__init__()
 
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/dynamic_path.csv")
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/dynamic_path.csv")
 
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()
@@ -38,8 +35,8 @@ class Lidar(object):
             
         self.state = state
         
-        self.thr_dis = 5.
-        self.thr_path_dis = 1.5
+        self.thr_dis = 3.
+        self.thr_path_dis = 1.0
         
         rospy.Subscriber("/scan_filtered", LaserScan, self.laserCallback)
         
@@ -84,9 +81,6 @@ class Lidar(object):
         self.mapping = []
         self.obstacle = []
         
-        if len(self.ranges) == 0:
-            return 0
-
         for i in range(1, 41):
             
             theta = (-10 + (i / 2)) * np.pi * 180
@@ -104,32 +98,25 @@ class Lidar(object):
     def Result(self):
         
         obs_num = 0
-        self.partTF = obTF()
+        partTF = obTF()
 
-        self.partTF.front_right = 0
-        self.partTF.front_left = 0
-        self.partTF.side_right = 0
-        self.partTF.side_left = 0
-        
         for i in self.obstacle:
             
-            if i[0] < self.thr_dis and i[1] < self.thr_path_dis and i[0] != 0.0:
+            if i[0] < self.thr_dis and i[1] < self.thr_path_dis:
                 obs_num += 1
-
-        print(obs_num)
-
-        if obs_num >= 1:
-            self.partTF.front_right = 1
-            self.partTF.front_left = 1
-            self.partTF.side_right = 0
-            self.partTF.side_left = 0
+            
+        if obs_num >= 5:
+            partTF.front_right = 1
+            partTF.front_left = 1
+            partTF.side_right = 0
+            partTF.side_left = 0
             rospy.logfatal("stop!!!!!")
             
         else:
-            self.partTF.front_right = 0
-            self.partTF.front_left = 0
-            self.partTF.side_right = 0
-            self.partTF.side_left = 0
+            partTF.front_right = 0
+            partTF.front_left = 0
+            partTF.side_right = 0
+            partTF.side_left = 0
             rospy.logwarn("keep going!!!!!")
 
     def main(self):

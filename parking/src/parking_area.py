@@ -36,7 +36,7 @@ class ParkingArea(object):
         marker.type = 1
         marker.id = id
         marker.ns = str(id)
-        marker.lifetime = Duration(secs=duration)
+        # marker.lifetime = Duration(secs=duration)
 
         return marker
 

@@ -39,6 +39,7 @@ class ParkingState(Enum):
     brake = 2
     area_out = 3
     complete = 4
+    done = 5
 
 
 class AreaState(Enum):
@@ -52,8 +53,8 @@ class Parking(object):
     def __init__(self, state):
 
         # school
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/parking_path.csv")
-        area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/parking_area.csv")
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/parking_path.csv")
+        area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/parking_area.csv")
 
         # kcity
         # path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
@@ -75,17 +76,16 @@ class Parking(object):
         for j in range(len(path_area_x)):
             self.area.append([path_area_x[j], path_area_y[j]])
 
-        self.p = path_area_yaw[0] + 1.57
-        
+        self.p = 0.3 + 2.       
 
         self.create_path_length = 2 # meter
-        self.point3_inx = 30
+        self.point3_inx = 60
         self.detect_start_idx = 20 # point3 - parameter
         self.obs_range = 1.5
         self.obs_count = 3
-        self.width = 2.
-        self.length_p = 3.
-        self.path_depth = 5
+        self.width = 2.3
+        self.length_p = 4.5
+        self.path_depth = 2
 
         self.parking_state = ParkingState.detect
         self.start_signal = False
@@ -299,7 +299,7 @@ class Parking(object):
             self.msg.Gear = 2
 
 
-            if self.local_target_idx >= (len(self.local_cx) - 3):
+            if m.sqrt((self.state.x - self.local_cx[-1]) ** 2 + (self.state.y - self.local_cy[-1]) ** 2) <= 0.3:
                 self.parking_state = ParkingState.brake
 
 
@@ -394,4 +394,3 @@ class Parking(object):
             self.selectArea()
         else:
             self.parking()
-

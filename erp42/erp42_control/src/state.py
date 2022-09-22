@@ -21,7 +21,6 @@ class State(object):
         self.hz = hz
         self.data = Odometry()
         self.test = test
-        print(self.test)
 
         self.x = 0.  # m
         self.y = 0.  # m
