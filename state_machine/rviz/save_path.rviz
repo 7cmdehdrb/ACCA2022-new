@@ -28,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -138,8 +138,43 @@ Visualization Manager:
       Marker Topic: /waypoints
       Name: MarkerArray
       Namespaces:
-        {}
+        A1: true
+        A2: true
+        A3: true
+        A4: true
+        B1: true
+        B2: true
+        B3: true
+        B4: true
+        C1: true
+        C2: true
+        C3: true
+        C4: true
+        D1: true
+        D2: true
+        E1: true
+        E2: true
+        M1: true
+        M2: true
+        M3: true
+        M4: true
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /create_global_path
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -187,7 +222,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.965404987335205
+      Yaw: 5.355405807495117
     Saved: ~
 Window Geometry:
   Displays:

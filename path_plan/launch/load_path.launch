@@ -13,14 +13,14 @@
     <arg name="waypoints_file" default="ys_waypoint.csv" /> -->
 
     <!-- school ys-->
-    <!-- <arg name="db_name" default="/0903_test.db" />
+    <arg name="db_name" default="/0903_test.db" />
     <arg name="path_name" default="school_ys.csv" />
-    <arg name="waypoints_file" default="school_test_waypoint.csv" /> -->
+    <arg name="waypoints_file" default="school_test_waypoint.csv" />
 
     <!-- school bs -->
-    <arg name="db_name" default="/0914_test.db" />
+    <!-- <arg name="db_name" default="/school_bs.db" />
     <arg name="path_name" default="school_bs.csv" />
-    <arg name="waypoints_file" default="school_test_waypoint.csv" />
+    <arg name="waypoints_file" default="school_test_waypoint.csv" /> -->
 
 
     <!-- waypoints -->

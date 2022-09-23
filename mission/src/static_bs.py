@@ -42,9 +42,9 @@ class Obstacle(object):
 
         # read path data : csv
 
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_path_bs.csv")
-        center_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_center_bs.csv")
-        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_left_bs.csv")
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_path_bs.csv")
+        center_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_center_bs.csv")
+        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_left_bs.csv")
 
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()

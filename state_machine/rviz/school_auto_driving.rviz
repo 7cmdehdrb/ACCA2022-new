@@ -7,11 +7,11 @@ Panels:
         - /Global Options1
         - /Status1
         - /PointCloud21
+        - /Path1
+        - /Path2
         - /Odometry1/Shape1
         - /Odometry2/Shape1
-        - /Odometry3
         - /Odometry3/Shape1
-        - /PointCloud22
         - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.5
@@ -260,18 +260,13 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /parking_position
       Name: MarkerArray
       Namespaces:
-        0: true
-        1: true
-        2: true
-        3: true
-        4: true
-        5: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /horizontal_parking/parking_area
@@ -336,31 +331,19 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        base_link:
-          Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
-        velodyne:
-          Value: false
       Marker Scale: 20
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          odom:
-            base_link:
-              velodyne:
-                {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -389,16 +372,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 87.70198059082031
+      Distance: 133.85328674316406
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 7.301731109619141
-        Y: 4.63859748840332
-        Z: -19.940515518188477
+        X: 3.694753408432007
+        Y: -36.35353088378906
+        Z: -19.53439712524414
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -407,7 +390,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.490413188934326
+      Yaw: 3.480419874191284
     Saved: ~
 Window Geometry:
   Displays:
