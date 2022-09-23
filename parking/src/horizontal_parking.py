@@ -6,18 +6,19 @@ import numpy as np
 import math as m
 import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
-from std_msgs.msg import Empty, Header, ColorRGBA
+from parking_area_selector import ParkingAreaSelector
+from cubic_spline_planner import calc_spline_course
+from reeds_shepp_path_planning import reeds_shepp_path_planning
+from enum import Enum
+
+# msgs
+from std_msgs.msg import Header, ColorRGBA
 from geometry_msgs.msg import *
 from nav_msgs.msg import Path
 from visualization_msgs.msg import Marker, MarkerArray
 from path_plan.msg import PathResponse
 from erp42_control.msg import ControlMessage
 from load_parking_area import loadCSV
-from parking_area import ParkingArea
-from cubic_spline_planner import calc_spline_course
-from reeds_shepp_path_planning import reeds_shepp_path_planning
-from enum import Enum
-from time import sleep
 
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
@@ -30,13 +31,14 @@ except Exception as ex:
 
 class HorizontalParkingState(Enum):
     Search = 0
-    Straight = 1
-    Reverse = 2
-    Home = 3
-    Final = 4
-    Out = 5
-    End = 6
-    Break = 7
+    Back = 1
+    Straight = 2
+    Reverse = 3
+    Home = 4
+    Final = 5
+    Out = 6
+    End = 7
+    Break = 8
 
     def __int__(self):
         return self.value
@@ -47,6 +49,9 @@ class HorizontalParking(object):
         self.state = state
 
         self.search_path = search_path  # PathResponse
+        self.search_path = PathResponse()
+        self.back_path = PathResponse(None, None, None, list(reversed(self.search_path.cx)), list(
+            reversed(self.search_path.cy)), [self.search_path.cyaw[i] + m.pi for i in range(len(self.search_path.cyaw) - 1, -1, -1)])
 
         self.stanley = stanley
         self.target_idx = 0
@@ -54,7 +59,11 @@ class HorizontalParking(object):
         self.r = rospy.Rate(30)
 
         # For test
+<<<<<<< HEAD
         # self.stanley.setCGain(0.1)
+=======
+        # self.stanley.setCGain(1.0)
+>>>>>>> 710d4afdd66f71a9153e9219f70268460fb24178
         # self.stanley.setHdrRatio(1.0)
 
         self.circles_pub = rospy.Publisher(
@@ -74,17 +83,9 @@ class HorizontalParking(object):
         self.cmd_msg = ControlMessage()
 
         # TO DO : Put function for decide parking lot
-        idx = 0
-        circle1, circle2, selected_parking_area = self.getTwoCircle(idx)
-        self.straight_path, self.reverse_path, self.home_path, self.final_path, self.out_path, self.path = self.createPath(
-            circle1, circle2, selected_parking_area)
-
-        self.current_path = self.straight_path
-
-        for i in range(30):
-            self.path_pub.publish(self.path)
-            # self.publishParkingArea()
-            self.r.sleep()
+        self.idx = -1
+        self.parking_area_selector = ParkingAreaSelector(
+            self.state, self.parking_areas)
 
     def publishParkingArea(self):
         msg = MarkerArray()
@@ -351,6 +352,37 @@ class HorizontalParking(object):
             msg.Speed = int(7)
             msg.Gear = int(2)
             self.current_path = self.search_path
+
+            if self.parking_area_selector.flag is True:
+                self.idx = self.parking_area_selector.target_idx
+                self.target_idx = 0
+
+                self.horizontal_parking_state = HorizontalParkingState.Back
+                self.wait_for_stop(2)
+
+        elif self.horizontal_parking_state == HorizontalParkingState.Back:
+            msg.Speed = int(5)
+            msg.Gear = int(0)
+            self.current_path = self.back_path
+
+            reverse = True
+
+            if self.idx == -1:
+                # Fuck...
+                rospy.logfatal("ERROR : FORCE PARKING - IDX 1")
+                self.idx = 1
+
+            if self.target_idx >= len(self.current_path.cx) - 30:
+                circle1, circle2, selected_parking_area = self.getTwoCircle(
+                    self.idx)
+                self.straight_path, self.reverse_path, self.home_path, self.final_path, self.out_path, self.path = self.createPath(
+                    circle1, circle2, selected_parking_area)
+
+                self.current_path = self.straight_path
+
+                for _ in range(30):
+                    self.path_pub.publish(self.path)
+                    self.r.sleep()
 
         elif self.horizontal_parking_state == HorizontalParkingState.Straight:
             msg.Speed = int(5)

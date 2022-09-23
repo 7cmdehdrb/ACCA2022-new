@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= name %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+  </head>
+  <body>
+
+    <% include partial %>
+
+    <h2><%= name %></h2>
+
+    <div style="margin-top: 30px;">
+        
+        <div class="monitor">
+          <input style="width: 100px; height: 35px;" type='button' value='Save' onclick="publish()">
+        </div>
+
+      </form>
+      
+    </div>
+  </body>
+  <script src="/js/gps_logger.js"></script>
+</html>

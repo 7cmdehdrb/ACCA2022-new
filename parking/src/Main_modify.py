@@ -203,7 +203,7 @@ class VerticalParkingBase(object):
 
     def WP3_creator(self, target_Zone):
         reverse_beta_VEC = [-self._list[1][0] + self._list[0][0], -self._list[1]
-                            [1] + self._list[0][1]]  # 주차장 결대로 그은 벡터
+                            [1] + self._list[0][1]]  # 주차장 결대로 그은 벡터의 역방향
 
         scale_of_beta_VEC = np.hypot(reverse_beta_VEC[0], reverse_beta_VEC[1])
 
@@ -212,11 +212,12 @@ class VerticalParkingBase(object):
 
         target_Zone_idx = target_Zone - 1
 
-        x, y = self._list[target_Zone_idx][0], self._list[target_Zone_idx][1]
+        self.target_cool_x, self.target_cool_y = self._list[
+            target_Zone_idx][0], self._list[target_Zone_idx][1]
 
-        WP3_x, WP3_y = x + self.scale_YawVEC * m.cos(self.pyaw) + 2 * \
-            beta_yaw[0], y + self.scale_YawVEC * \
-            m.sin(self.pyaw) + 2 * beta_yaw[1]
+        WP3_x, WP3_y = self.target_cool_x - self.scale_YawVEC * m.cos(self.pyaw) + 4 * \
+            beta_yaw[0], self.target_cool_y - self.scale_YawVEC * \
+            m.sin(self.pyaw) + 4 * beta_yaw[1]
 
         return WP3_x, WP3_y
 
@@ -316,7 +317,6 @@ class VerticalParkingBase(object):
                 self.path = self.createPath(
                     Point(self.WP2_x, self.WP2_y, 0.))'''
 
-            self.point_Pub(self.WP2_x, self.WP2_y)
             self.current_loc_pub(self.state.x, self.state.y)
 
             # self.toRosPath(self.path.cx, self.path.cy, self.path.cyaw)
@@ -348,18 +348,19 @@ class VerticalParkingBase(object):
                 self.gear = 0
                 self.path = self.createPath(self.startPoint)
                 self.trigger = True
-                
+
                 self.WP3_x, self.WP3_y = self.WP3_creator(
                     target_Zone=self.target_zone_number)
                 print(self.WP3_x, self.WP3_y)
-                self.WP3_Point = Point(float(self.WP3_x), float(self.WP3_y), 0.)
+                self.WP3_Point = Point(
+                    float(self.WP3_x), float(self.WP3_y), 0.)
                 # self.WP3_Point.x, self.WP3_Point.y, self.WP3_Point.z = self.WP3_x, (self.WP3_y), 0.
                 self.target_zone_msg = Int8()
                 self.target_zone_msg.data = self.target_zone_number
             WP3_pub.publish(self.WP3_Point)
+            self.point_Pub(self.WP3_x, self.WP3_y)
             target_zone_pub.publish(self.target_zone_msg)
             self.toRosPath(self.path.cx, self.path.cy, self.path.cyaw)
-            print(100, self.target_zone_msg)
             if self.is_end == False:
                 '------------------------------------------------------------------------------'
                 try:

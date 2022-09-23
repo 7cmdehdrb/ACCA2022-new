@@ -64,6 +64,7 @@ class RRTStarReedsShepp(RRTStar):
         self.max_iter = max_iter
         self.obstacle_list = obstacle_list
         self.connect_circle_dist = connect_circle_dist
+        self.Yes_or_No = False
 
         self.curvature = 1.0
         self.goal_yaw_th = np.deg2rad(1.0)
@@ -111,9 +112,11 @@ class RRTStarReedsShepp(RRTStar):
 
         last_index = self.search_best_goal_node()
         if last_index:
+            self.Yes_or_No = True
             return self.generate_final_course(last_index)
         else:
             print("Cannot find path")
+            self.Yes_or_No = False
 
         return None
 
@@ -233,7 +236,7 @@ class RRTStarReedsShepp(RRTStar):
         return path
 
 
-def main(max_iter=500):
+def main(max_iter=50):
     print("Start " + __file__)
 
     # ====Search Path with RRT====
@@ -258,6 +261,8 @@ def main(max_iter=500):
                                              [-2.0, 15.0], max_iter=max_iter)
     path = rrt_star_reeds_shepp.planning(animation=show_animation)
 
+    print(path)
+
     # Draw final path
     if path and show_animation:  # pragma: no cover
         rrt_star_reeds_shepp.draw_graph()
@@ -265,6 +270,8 @@ def main(max_iter=500):
                  y for (x, y, yaw) in path], '-r')
         plt.grid(True)
         plt.pause(0.001)
+        plt.xlim(0, 20)
+        plt.ylim(0, 15)
         plt.show()
 
 
