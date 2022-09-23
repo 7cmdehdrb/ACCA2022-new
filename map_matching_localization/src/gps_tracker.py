@@ -50,6 +50,8 @@ class GPSOdometry(object):
         x = self.state.x
         y = self.state.y
 
+        print(x, y)
+
         for odom, gps in self.track1:
             dist = np.hypot(gps.x - x, gps.y - y)
 
@@ -68,6 +70,7 @@ class GPSOdometry(object):
             if dist < 0.5:
                 min_dist2 = dist
                 near_odom2 = odom
+                print("TRACK2 : BREAK")
                 break
 
             if dist < min_dist2:
@@ -79,6 +82,13 @@ class GPSOdometry(object):
 
         y = near_odom1.y * (min_dist2 / (min_dist1 + min_dist2)) + \
             near_odom2.y * (min_dist1 / (min_dist1 + min_dist2))
+
+        # print(near_odom1)
+        # print("")
+        # print(near_odom2)
+        # print("")
+        # print(min_dist1, min_dist2)
+        # print("######")
 
         return Point(x, y, 0.)
 
@@ -96,6 +106,8 @@ class GPState(object):
     def callback(self, msg):
         x, y = transform(p1=self.gps, p2=self.tm,
                          x=msg.longitude, y=msg.latitude)
+
+        print(x, y)
 
         self.x = x
         self.y = y

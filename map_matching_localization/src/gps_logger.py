@@ -77,6 +77,7 @@ def logCallback(msg):
 if __name__ == "__main__":
     rospy.init_node("gps_logger")
 
+    auto = True
     flag = False
 
     odom = OdometryTracker("/ndt_matching/ndt_pose")
@@ -86,9 +87,21 @@ if __name__ == "__main__":
     file = rospkg.RosPack().get_path("map_matching_localization") + "/data/" + \
         rospy.get_param("/gps_logger/file_name", "test.csv")
 
+    current = odom.data
+    last = odom.data
+
     with open(file, 'w') as csvfile:
         r = rospy.Rate(5)
         while not rospy.is_shutdown():
+
+            if auto is True:
+                current = odom.data
+
+                dist = np.hypot(current.x - last.x, current.y - last.y)
+                if dist > 1.0:
+                    flag = True
+                    last = current
+
             if flag is True:
                 text = ""
                 text += str(rospy.Time.now().to_sec())
