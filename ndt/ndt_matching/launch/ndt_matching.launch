@@ -30,7 +30,7 @@
     <arg name="node_name" default="voxel_grid_filter" />
     <arg name="points_topic" default="/velodyne_points2" />
     <arg name="output_log" default="false" />
-    <arg name="measurement_range" default="100" />
+    <arg name="measurement_range" default="10" />
     
     <node pkg="points_downsampler" name="$(arg node_name)" type="$(arg node_name)">
         <param name="points_topic" value="$(arg points_topic)" />
@@ -53,7 +53,7 @@
     <arg name="output_log_data" default="false" />
     <arg name="output_tf_frame_id" default="base_link"/>
     <arg name="gnss_reinit_fitness" default="500.0" />
-    <arg name="is_publish_tf" default="true" />
+    <arg name="is_publish_tf" default="false" />
     
     <!-- tf -->
     <param name="tf_x" value="$(arg tf_x)" />
