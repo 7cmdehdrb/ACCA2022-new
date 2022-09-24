@@ -54,9 +54,9 @@ class LoadPath():
 
     def toRosPath(self):
         # ros path publish
-        path = Path()
-        path.header.frame_id = "map"
-        path.header.stamp = rospy.Time.now()
+        self.path = Path()
+        self.path.header.frame_id = "map"
+        self.path.header.stamp = rospy.Time.now()
 
         for info in self.path_info:
 
@@ -75,9 +75,9 @@ class LoadPath():
             pose.pose.orientation.z = quat[2]
             pose.pose.orientation.w = quat[3]
 
-            path.poses.append(pose)
+            self.path.poses.append(pose)
 
-        return path
+        return self.path
 
     def check_path_avaliable(self):
         path = []
