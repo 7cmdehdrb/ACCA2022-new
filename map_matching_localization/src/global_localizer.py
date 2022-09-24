@@ -76,6 +76,7 @@ class ScanStatus(object):
 if __name__ == "__main__":
     rospy.init_node("global_localizer")\
 
+    ignore = True
 
     hz = 30.
     freq = 1 / hz
@@ -103,7 +104,7 @@ if __name__ == "__main__":
                 dist = np.hypot(map_frame.pose.pose.position.x - gps.point.x,
                                 map_frame.pose.pose.position.y - gps.point.y)
 
-                if dist < 2.0:
+                if dist < 2.0 or ignore is True:
                     # Distance between ndt matching and gps tracker
                     dyaw = map_frame.yaw - odom_frame.yaw
 

@@ -48,10 +48,8 @@ class HorizontalParking(object):
     def __init__(self, state, cmd_pub, stanley, search_path, file_path):
         self.state = state
 
-        self.search_path = search_path  # PathResponse
-        self.search_path = PathResponse()
-        self.back_path = PathResponse(None, None, None, list(reversed(self.search_path.cx)), list(
-            reversed(self.search_path.cy)), [self.search_path.cyaw[i] + m.pi for i in range(len(self.search_path.cyaw) - 1, -1, -1)])
+        self.search_path = None
+        self.back_path = None
 
         self.stanley = stanley
         self.target_idx = 0
@@ -82,6 +80,13 @@ class HorizontalParking(object):
         self.idx = -1
         self.parking_area_selector = ParkingAreaSelector(
             self.state, self.parking_areas)
+
+    def setSearchPath(self, search_path):
+        self.search_path = search_path  # PathResponse
+        self.back_path = PathResponse(None, None, None, list(reversed(self.search_path.cx)), list(
+            reversed(self.search_path.cy)), [self.search_path.cyaw[i] + m.pi for i in range(len(self.search_path.cyaw) - 1, -1, -1)])
+
+        return True
 
     def publishParkingArea(self):
         msg = MarkerArray()
