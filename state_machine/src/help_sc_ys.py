@@ -112,8 +112,8 @@ class StateMachine(object):
 
         # Parking
         self.parking = Parking(state=self.state)
-        self.horizontal_parking = HorizontalParking(
-            state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
+        # self.horizontal_parking = HorizontalParking(
+        #     state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
 
         # Static
         self.static = Obstacle(state=self.state)

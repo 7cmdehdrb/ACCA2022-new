@@ -42,9 +42,9 @@ class Obstacle(object):
 
         # read path data : csv
 
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_path_bs.csv")
-        center_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_center_bs.csv")
-        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/static_left_bs.csv")
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_static_path.csv")
+        center_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_static_path.csv")
+        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/static_left.csv")
 
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()
@@ -90,7 +90,7 @@ class Obstacle(object):
         self.detect_obs_angle = 0.8
         self.detect_obs_range = 1.5
         self.prox_dis = 1.        
-        self.r = 2.0
+        self.r = 1.8
         self.det_iter= 5
         
     def ObstacleCallback(self, msg):

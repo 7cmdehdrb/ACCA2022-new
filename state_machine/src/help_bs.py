@@ -208,11 +208,11 @@ class StateMachine(object):
             if len(self.path.cx) - 25 < self.target_idx:
                 # Stop if required
                 try:
-                    if self.selector.path.path_type == PathType.STRAIGHT:
+                    if self.selector.path.next.path_type == PathType.STRAIGHT:
                         if self.traffic.msg.straight == 0:
                             raise Exception()
 
-                    elif self.selector.path.path_type == PathType.LEFT or self.selector.path.path_type == PathType.UTURN:
+                    elif self.selector.path.next.path_type == PathType.LEFT or self.selector.path.next.path_type == PathType.UTURN:
                         if self.traffic.msg.left == 0:
                             raise Exception()
 
@@ -328,9 +328,12 @@ class StateMachine(object):
         return msg
 
     def horizontalParkingControl(self):
-        self.horizontal_parking.loop()
-        return self.horizontal_parking.cmd_msg
+            if self.horizontal_parking.search_path is None:
+                self.horizontal_parking.setSearchPath(self.path)
 
+            self.horizontal_parking.loop()
+            return self.horizontal_parking.cmd_msg
+        
     def parkingControl(self):
         # WTF
         desired_speed = self.selector.path.desired_speed

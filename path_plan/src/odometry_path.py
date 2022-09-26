@@ -85,7 +85,7 @@ if __name__ == "__main__":
     odom_topic = rospy.get_param(
         "/odometry_path/odom_topic", "/odometry/kalman")
     odom_path = OdometryPath()
-    state = State(odometry_topic=odom_topic)
+    state = OdomState(odometry_topic=odom_topic)
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():

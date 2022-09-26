@@ -8,7 +8,7 @@ import math as m
 import pandas as pd
 import genpy
 from enum import Enum
-from tf.transformations import quaternion_from_euler
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from geometry_msgs.msg import Point, Quaternion, Vector3, PoseStamped, PoseArray
 from path_plan.msg import PathRequest, PathResponse
 from nav_msgs.msg import Path, Odometry
@@ -53,8 +53,8 @@ class Parking(object):
     def __init__(self, state):
 
         # school
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/ys/parking_path.csv")
-        area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/sc/ys/parking_area.csv")
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/parking_path.csv")
+        area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/parking_area.csv")
 
         # kcity
         # path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
@@ -76,16 +76,17 @@ class Parking(object):
         for j in range(len(path_area_x)):
             self.area.append([path_area_x[j], path_area_y[j]])
 
-        self.p = 0.3 + 2.       
+        _, _, yaw = euler_from_quaternion([0,0,0.3408, 0.94])
+        self.p = -1 / yaw
 
-        self.create_path_length = 2 # meter
-        self.point3_inx = 60
+        self.create_path_length = 3 # meter
+        self.point3_inx = 40
         self.detect_start_idx = 20 # point3 - parameter
         self.obs_range = 1.5
         self.obs_count = 3
         self.width = 2.3
         self.length_p = 4.5
-        self.path_depth = 2
+        self.path_depth = 3
 
         self.parking_state = ParkingState.detect
         self.start_signal = False
@@ -192,7 +193,7 @@ class Parking(object):
             
             if dis <= self.obs_range:
                 self.area_num[target_idx] += 1
-    
+        print(self.area_num)
     
     def selectArea(self):
         print("detect!!!")
@@ -225,7 +226,7 @@ class Parking(object):
         point1, meetpoint, point3 = self.GetPoint(self.area[self.target_area])
         
         a, b = point1[0], point1[1]
-        p = self.p
+        p = -1/self.p
         c = b - p * a
         
         xs = [self.state.x]
@@ -299,7 +300,7 @@ class Parking(object):
             self.msg.Gear = 2
 
 
-            if m.sqrt((self.state.x - self.local_cx[-1]) ** 2 + (self.state.y - self.local_cy[-1]) ** 2) <= 0.3:
+            if m.sqrt((self.state.x - self.local_cx[-1]) ** 2 + (self.state.y - self.local_cy[-1]) ** 2) <= 0.5:
                 self.parking_state = ParkingState.brake
 
 
@@ -378,11 +379,11 @@ class Parking(object):
             marker.header.stamp = rospy.Time.now()
             marker.ns = str(i)
             marker.id = 1
-            marker.type = 1
+            marker.type = 3
             marker.action = 0
             marker.pose.position = Point(parking_area[i][0], parking_area[i][1], 0.)
             marker.pose.orientation = Quaternion(0., 0., self.p, 1)
-            marker.scale = Vector3(self.width, self.length_p, 0.1)
+            marker.scale = Vector3(0.2, 0.2, 0.1)
             marker.color = ColorRGBA(1., 0., 0., 0.7)
             marker.lifetime = genpy.Duration(secs=0.2)
             msg.markers.append(marker)

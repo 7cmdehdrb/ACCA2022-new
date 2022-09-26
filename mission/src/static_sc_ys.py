@@ -90,7 +90,7 @@ class Obstacle(object):
         self.detect_obs_angle = 0.8
         self.detect_obs_range = 1.5
         self.prox_dis = 1.        
-        self.r = 2.0
+        self.r = 1.5
         self.det_iter= 5
         
     def ObstacleCallback(self, msg):

@@ -42,9 +42,9 @@ class Obstacle(object):
 
         # read path data : csv
 
-        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_path_bs.csv")
-        center_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_center_bs.csv")
-        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_left_bs.csv")
+        path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_path.csv")
+        center_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_center.csv")
+        left_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/bs/static_left.csv")
 
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()
@@ -88,9 +88,9 @@ class Obstacle(object):
 
         # parameter
         self.detect_obs_angle = 0.8
-        self.detect_obs_range = 1.5
+        self.detect_obs_range = 2.5
         self.prox_dis = 1.        
-        self.r = 2.0
+        self.r = 2.5
         self.det_iter= 5
         
     def ObstacleCallback(self, msg):
@@ -182,8 +182,9 @@ class Obstacle(object):
                 a, b = obs[0], obs[1]
                 target_idx = self.calc_target_index(self.center_cx, self.center_cy, [a, b])
                 left_target_idx = self.calc_target_index(self.left_cx, self.left_cy, [a, b])
+                center_point = [self.center_cx[target_idx], self.center_cy[target_idx]]
 
-                p = self.center_cyaw[target_idx]
+                p = (b - center_point[1]) / (a- center_point[0])
                 c = b - p * a
                 
                 t1 = (2*a + 2*p*b - 2*p*c + m.sqrt((-2*a -2*p*b + 2*p*c)**2 - 4 * (1+p**2) * (a**2 + b**2 + c**2 -2*b*c - self.r**2)))/(2 * (1 + p**2))
@@ -192,7 +193,7 @@ class Obstacle(object):
                 waypoint1 = [t1, p * t1 + c]
                 waypoint2 = [t2, p * t2 + c]
                 
-                dis_obs_left = self.GetDistance([a, b], [self.left[target_idx][0], self.left[target_idx][1]])
+                dis_obs_left = self.GetDistance([a, b], [self.left[left_target_idx][0], self.left[left_target_idx][1]])
                 dis_left_path = self.GetDistance([self.left[left_target_idx][0], self.left[left_target_idx][1]], [self.center[target_idx][0], self.center[target_idx][1]])
 
                 dis_way1_left = self.GetDistance([waypoint1[0], waypoint1[1]], [self.left[left_target_idx][0], self.left[left_target_idx][1]])
@@ -208,7 +209,7 @@ class Obstacle(object):
                         
                 else : # obstacle position : left
                     if dis_way2_left > dis_way1_left: # waypoint position : right 
-                        waypoint = waypoint2    
+                        waypoint = waypoint2  
                     else :
                         waypoint = waypoint1
         

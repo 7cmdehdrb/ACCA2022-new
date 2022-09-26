@@ -13,7 +13,7 @@ from autoware_msgs.msg import NDTStat
 from header import Queue
 
 
-score_threshold = rospy.get_param("/global_localizer/score_threshold", 0.1)
+score_threshold = rospy.get_param("/global_localizer/score_threshold", 5.)
 
 
 def thresholdCallback(msg):

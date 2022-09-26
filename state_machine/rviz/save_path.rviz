@@ -28,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: PointCloud2
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -77,7 +77,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.05000000074505806
       Style: Flat Squares
-      Topic: /points_map
+      Topic: /cloud_pcd
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -140,8 +140,6 @@ Visualization Manager:
       Namespaces:
         A1: true
         A2: true
-        A3: true
-        A4: true
         B1: true
         B2: true
         B3: true
@@ -152,8 +150,20 @@ Visualization Manager:
         C4: true
         D1: true
         D2: true
+        D3: true
+        D4: true
         E1: true
         E2: true
+        E3: true
+        E4: true
+        E5: true
+        E6: true
+        F1: true
+        F2: true
+        F3: true
+        F4: true
+        G1: true
+        H1: true
         M1: true
         M2: true
         M3: true
@@ -204,16 +214,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 56.37065124511719
+      Distance: 39.33207321166992
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 15.55070972442627
-        Y: 10.778251647949219
-        Z: 0.1754358559846878
+        X: -44.700408935546875
+        Y: 157.94207763671875
+        Z: 2.1705129146575928
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -222,7 +232,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.355405807495117
+      Yaw: 0.10721443593502045
     Saved: ~
 Window Geometry:
   Displays:

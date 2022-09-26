@@ -30,15 +30,9 @@ def loadCSV(path):
 if __name__ == "__main__":
     rospy.init_node("load_parking_area")
 
-<<<<<<< HEAD
-    path = rospkg.RosPack().get_path("parking") + "/parking/" + \
-        rospy.get_param("/create_parking_area/parking_file",
-                        "hor_parking.csv")
-=======
     path = rospkg.RosPack().get_path("parking") + "/parking_csv/" + \
         rospy.get_param("/create_parking_area/parking_file",
                         "hor_parking5.csv")
->>>>>>> 710d4afdd66f71a9153e9219f70268460fb24178
 
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
 

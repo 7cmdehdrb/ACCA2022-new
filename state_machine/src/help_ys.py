@@ -62,7 +62,7 @@ speed_control_enable = rospy.get_param(
 def wait_for_stop(duration):
     global current_time, last_time, r, cmd_pub
     
-    msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
+    msg = ControlMessage(0, 0, 2, 0, 0, 80, 0)
 
     dt = 0
     last_time = rospy.Time.now()
@@ -112,8 +112,8 @@ class StateMachine(object):
 
         # Parking
         self.parking = Parking(state=self.state)
-        self.horizontal_parking = HorizontalParking(
-            state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
+        # self.horizontal_parking = HorizontalParking(
+        #     state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -285,35 +285,35 @@ class StateMachine(object):
         return msg
 
     # bs
+    # def staticControl(self):
+    #     desired_speed = self.selector.path.desired_speed
+
+    #     self.static.main()
+        
+    #     if self.target_idx > len(self.path.cx) - 60:
+    #         msg = self.trafficControl()
+        
+    #     else:
+    #         if self.static.obs_state == True:
+    #             msg = self.static.msg
+    #         else:
+    #             msg = self.mainControl(desired_speed=desired_speed)
+        
+    #     return msg
+
+
+    # ys    
     def staticControl(self):
         desired_speed = self.selector.path.desired_speed
 
         self.static.main()
         
-        if self.target_idx > len(self.path.cx) - 60:
-            msg = self.trafficControl()
-        
+        if self.static.obs_state == True:
+            msg = self.static.msg
         else:
-            if self.static.obs_state == True:
-                msg = self.static.msg
-            else:
-                msg = self.mainControl(desired_speed=desired_speed)
+            msg = self.mainControl(desired_speed=desired_speed)
         
         return msg
-
-
-    # ys    
-    # def staticControl(self):
-        # desired_speed = self.selector.path.desired_speed
-
-        # self.static.main()
-        
-        # if self.static.obs_state == True:
-        #     msg = self.static.msg
-        # else:
-        #     msg = self.mainControl(desired_speed=desired_speed)
-        
-        # return msg
 
     def dynamicControl(self):
         desired_speed = self.selector.path.desired_speed
