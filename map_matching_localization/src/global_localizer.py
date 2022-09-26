@@ -11,14 +11,19 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Header, Float32
 from autoware_msgs.msg import NDTStat
 from header import Queue
+from gaussian import Gaussian, gaussianConvolution
 
 
+<<<<<<< HEAD
 score_threshold = rospy.get_param("/global_localizer/score_threshold", 5.0)
 
 
 def thresholdCallback(msg):
     global score_threshold
     score_threshold = msg.data
+=======
+score_threshold = rospy.get_param("/global_localizer/score_threshold", 0.5)
+>>>>>>> 8d41b4996f5ba5a91c0a109914e47946ebee631a
 
 
 class Odom(object):
@@ -31,11 +36,14 @@ class Odom(object):
             self.topic, Odometry, callback=self.odomCallback)
 
         self.pose = PoseStamped()
+        self.cov = float("inf")
         self.yaw = 0.
 
     def odomCallback(self, msg):
         self.frame_id = msg.header.frame_id
         self.child_frame_id = msg.child_frame_id
+
+        self.cov = msg.pose.covariance[0]
 
         p = PoseStamped()
 
@@ -48,6 +56,17 @@ class Odom(object):
         _, _, self.yaw = euler_from_quaternion(
             [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w])
 
+
+class GPS(object):
+    def __init__(self, topic="/ublox_gps/odometry"):
+        self.sub = rospy.Subscriber(
+            topic, PointStamped, callback=self.callback
+        )
+
+        self.point = None
+
+    def callback(self, msg):
+        self.point = msg.point
 
 
 class ScanStatus(object):
@@ -66,14 +85,22 @@ class ScanStatus(object):
 if __name__ == "__main__":
     rospy.init_node("global_localizer")\
 
+<<<<<<< HEAD
     hz = 30
     freq = 1 / hz
 
     # hz = 100.
     # freq = 1 / hz
+=======
+    ignore = True
+
+    hz = 30.
+    freq = 1 / hz
+>>>>>>> 8d41b4996f5ba5a91c0a109914e47946ebee631a
 
     map_frame = Odom(topic="/ndt_matching/ndt_pose")
     odom_frame = Odom(topic="/odometry/kalman")
+    gps = GPS(topic="/gps_tracker/odometry")
     scan_status = ScanStatus()
 
     initial_pose_pub = rospy.Publisher(
@@ -93,10 +120,11 @@ if __name__ == "__main__":
 
     r = rospy.Rate(hz)
     while not rospy.is_shutdown():
-        if odom_frame.frame_id is not None and map_frame.frame_id is not None:
+        if odom_frame.frame_id is not None and map_frame.frame_id is not None and gps.point is not None:
             # Subscribe odom / map
             if scan_status.queue.isTrue(threshhold=10):
                 # Trustable TF
+<<<<<<< HEAD
                 dyaw = map_frame.yaw - odom_frame.yaw
 
                 new_trans = (
@@ -120,6 +148,32 @@ if __name__ == "__main__":
 
                 dist = d
                 
+=======
+                dist = np.hypot(map_frame.pose.pose.position.x - gps.point.x,
+                                map_frame.pose.pose.position.y - gps.point.y)
+
+                if dist < 2.0 or ignore is True:
+                    # Distance between ndt matching and gps tracker
+                    dyaw = map_frame.yaw - odom_frame.yaw
+
+                    trans = (
+                        map_frame.pose.pose.position.x -
+                        (odom_frame.pose.pose.position.x * m.cos(dyaw) -
+                         odom_frame.pose.pose.position.y * m.sin(dyaw)),
+                        map_frame.pose.pose.position.y -
+                        (odom_frame.pose.pose.position.x * m.sin(dyaw) +
+                         odom_frame.pose.pose.position.y * m.cos(dyaw)),
+                        0.
+                    )
+                    rot = quaternion_from_euler(0., 0., dyaw)
+
+                else:
+                    rospy.logwarn(
+                        "Scan Status is good but there is distance gap between ndt mathcing and gps tracker...")
+
+                    for _ in range(10):
+                        scan_status.queue.inputValue(False)
+>>>>>>> 8d41b4996f5ba5a91c0a109914e47946ebee631a
 
             elif scan_status.queue.isFalse(threshhold=10):
                 # Untrustable TF : Relocalize
@@ -127,10 +181,30 @@ if __name__ == "__main__":
                     transformed_pose = tf_sub.transformPose(
                         ps=odom_frame.pose, target_frame="map")
 
+                    ndt_x = Gaussian(
+                        None, transformed_pose.pose.position.x, odom_frame.cov * 2.0)
+                    ndt_y = Gaussian(
+                        None, transformed_pose.pose.position.y, odom_frame.cov * 2.0
+                    )
+
+                    gps_x = Gaussian(
+                        None, gps.point.x, 3.0
+                    )
+                    gps_y = Gaussian(
+                        None, gps.point.y, 3.0
+                    )
+
+                    convolution_x = gaussianConvolution(ndt_x, gps_x)
+                    convolution_y = gaussianConvolution(ndt_y, gps_y)
+
                     p = PoseWithCovarianceStamped(
                         Header(None, rospy.Time.now(), "map"),
                         PoseWithCovariance(
-                            transformed_pose.pose,
+                            Pose(
+                                Point(convolution_x.mean,
+                                      convolution_y.mean, 0.0),
+                                transformed_pose.pose.orientation
+                            ),
                             None
                         )
                     )
@@ -139,7 +213,7 @@ if __name__ == "__main__":
 
                     scan_status.queue.inputValue(True)
 
-                    rospy.logwarn("Relocalizing...")
+                    rospy.loginfo("Relocalizing...")
 
                 else:
                     # Cannot Transform
@@ -147,8 +221,9 @@ if __name__ == "__main__":
                         "Cannot lookup transform between map and odom")
 
             else:
-                rospy.logwarn("Scan is not trustable : %.4f" %
-                              scan_status.scroe)
+                pass
+                # rospy.logwarn("Scan is not trustable : %.4f" %
+                #               scan_status.scroe)
 
         else:
             # Cannot subscribe map / odom
