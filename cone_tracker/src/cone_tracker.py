@@ -229,6 +229,25 @@ class ConeTracker(object):
         self.map.mapping(cones)
 
 
+def parsePath(path_response=PathResponse()):
+    path = Path()
+    header = Header(None, rospy.Time.now(), "odom")
+
+    path.header = header
+
+    for i in range(len(path_response.cx)):
+        quat = quaternion_from_euler(0., 0., path_response.cyaw[i])
+
+        p = PoseStamped()
+        p.header = header
+        p.pose.position = Point(path_response.cx[i], path_response.cy[i], 0.)
+        p.pose.orientation = Quaternion(quat[0], quat[1], quat[2], quat[3])
+
+        path.poses.append(p)
+
+    return path
+
+
 if __name__ == "__main__":
     rospy.init_node("cone_tracker")
 
@@ -240,6 +259,7 @@ if __name__ == "__main__":
     stanley = Stanley()
     s_target_idx = 0
 
+    path_pub = rospy.Publisher("/cone_path", Path, queue_size=1)
     cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
     msg = ControlMessage()
 
@@ -258,6 +278,7 @@ if __name__ == "__main__":
         msg.Steer = int(m.degrees(-di))
         msg.Gear = int(2)
 
+        path_pub.publish(parsePath(path))
         cmd_pub.publish(msg)
 
         r.sleep()
