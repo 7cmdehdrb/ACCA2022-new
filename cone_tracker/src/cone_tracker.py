@@ -13,6 +13,7 @@ from enum import Enum
 from random import randint, random
 import tf
 from tf.transformations import quaternion_from_euler
+from time import sleep
 
 # msg
 from geometry_msgs.msg import *
@@ -61,6 +62,23 @@ class Cone(object):
 class Mapper(object):
     def __init__(self):
         self.cones = []
+        
+        self.cone_pub = rospy.Publisher("/cone_tracker/cones", PoseArray, queue_size=1)
+        
+    def publishCones(self):
+        msg = PoseArray()
+        header = Header(None, rospy.Time.now(), "odom")
+        
+        msg.header = header
+        for cone in self.cones:
+            p = Pose()
+            
+            p.position.x = cone.x
+            p.position.y = cone.y
+            
+            msg.poses.append(p)
+            
+        self.cone_pub.publish(msg)
 
     def mapping(self, cones):
         temp = []
@@ -68,9 +86,10 @@ class Mapper(object):
         for new_cone in cones:
             flag = False
             idx = -1
+            dist = -1
             for i, cone in enumerate(self.cones):
                 dist = np.hypot(cone.x - new_cone.x, cone.y - new_cone.y)
-                if dist < cone.r and dist < new_cone.r:
+                if dist < cone.r or dist < new_cone.r:
                     flag = True
                     calibrated_cone = new_cone + cone
                     idx = i
@@ -81,8 +100,9 @@ class Mapper(object):
                 self.cones.pop(idx)
                 temp.append(calibrated_cone)
 
-            elif flag is False:
+            elif (flag is False and dist > 0.) or len(self.cones) == 0:
                 # find new cone
+                rospy.loginfo("New cone detected! : %.4f" % dist)
                 temp.append(new_cone)
 
         self.cones = self.cones + temp
@@ -119,19 +139,19 @@ class Mapper(object):
         x = (p0[0] + p1[0]) / 2.
         y = (p0[1] + p1[1]) / 2.
 
-        res.append(Point(x, y, 0.))
+        res.append([x, y])
 
         # 2
         x = (p0[0] + p2[0]) / 2.
         y = (p0[1] + p2[1]) / 2.
 
-        res.append(Point(x, y, 0.))
+        res.append([x, y])
 
         # 3
         x = (p1[0] + p2[0]) / 2.
         y = (p1[1] + p2[1]) / 2.
 
-        res.append(Point(x, y, 0.))
+        res.append([x, y])
 
         return res
 
@@ -163,35 +183,43 @@ class PathPlanner(object):
 
         min_cost = float("inf")
         best_path = PathResponse(None, None, None, [], [], [])
+        
 
         for point in points:
             cost = self.calculateCost(state_vec, point)
+            # cost = self.calculateCurveCost(state_vec, point)
+            
             if cost < self.threshold:
                 return self.createPath(goal=point)
 
             if cost < min_cost:
                 min_cost = cost
                 best_path = self.createPath(goal=point)
+                
 
         return best_path
 
     def createPath(self, goal):
-        cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, goal.x], [
-            self.state.y, goal.y], ds=0.1)
+        cx, cy, cyaw, _, _ = calc_spline_course([self.state.x, goal[0]], [
+            self.state.y, goal[1]], ds=0.1)
         return PathResponse(None, None, None, cx, cy, cyaw)
 
     def calculateDistanceCost(self, state_vec, point):
-        distance = np.hypot(self.state.x - point.x, self.state.y - point.y)
-        return distance * self.d_gain
+        distance = np.hypot(self.state.x - point[0], self.state.y - point[1])
+        
+        if distance < 1.0:
+            return float("inf")
+        
+        return 0.0
 
     def calculateCurveCost(self, state_vec, point):
         point_vec = np.array([
-            point.x - self.state.x, point.y - self.state.y
+            point[0] - self.state.x, point[1] - self.state.y
         ])
 
         # 0.0 ~
         theta = abs(m.acos((np.dot(state_vec, point_vec)) /
-                           (np.hypot(state_vec) * np.hypot(point_vec))))
+                           (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
 
         if theta >= (m.pi / 2.0):
             return float("inf")
@@ -216,15 +244,21 @@ class ConeTracker(object):
 
     def coneCallback(self, msg):
         cones = []
+        
+        if len(msg.poses) > 50:
+            return 0
 
         if self.tf_sub.canTransform("odom", "velodyne", rospy.Time(0)):
             for p in msg.poses:
                 pose = PoseStamped(Header(None, rospy.Time(0), "velodyne"), p)
-                transformed_pose = self.tf_sub.transformPose("map", pose)
+                transformed_pose = self.tf_sub.transformPose("odom", pose)
 
                 cone = Cone(transformed_pose.pose.position.x,
-                            transformed_pose.pose.position.y, 0.2)
+                            transformed_pose.pose.position.y, 1.0)
                 cones.append(cone)
+                
+        else:
+            rospy.logwarn("Cannot lookup transform betwwen odom and velodyne")
 
         self.map.mapping(cones)
 
@@ -266,19 +300,28 @@ if __name__ == "__main__":
     cone_tracker = ConeTracker()
     path_planner = PathPlanner(
         state=state, d_gain=d_gain, c_gain=c_gain, threshold=threshold)
-
+    
+    # sleep(5)
+    
     r = rospy.Rate(30)
     while not rospy.is_shutdown():
 
-        path = path_planner.planning(cone_tracker.map.cones)
-        di, s_target_idx = stanley.stanley_control(
-            state, path.cx, path.cy, path.cyaw, last_target_idx=s_target_idx)
+        if len(cone_tracker.map.cones) < 10:
+            r.sleep()
+            continue
+        
+        cone_tracker.map.publishCones()
+        
+        path = path_planner.planning(cone_tracker.map.calculateMiddlePoints(state))
+        
+        # di, s_target_idx = stanley.stanley_control(
+        #     state, path.cx, path.cy, path.cyaw, last_target_idx=s_target_idx)
 
-        msg.Speed = int(5)
-        msg.Steer = int(m.degrees(-di))
-        msg.Gear = int(2)
+        # msg.Speed = int(5)
+        # msg.Steer = int(m.degrees(-di))
+        # msg.Gear = int(2)
 
         path_pub.publish(parsePath(path))
-        cmd_pub.publish(msg)
+        # cmd_pub.publish(msg)
 
         r.sleep()
