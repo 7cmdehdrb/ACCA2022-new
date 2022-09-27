@@ -62,27 +62,26 @@ class Cone(object):
 class Mapper(object):
     def __init__(self):
         self.cones = []
-        
-        self.cone_pub = rospy.Publisher("/cone_tracker/cones", PoseArray, queue_size=1)
-        
+
+        self.cone_pub = rospy.Publisher(
+            "/cone_tracker/cones", PoseArray, queue_size=1)
+
     def publishCones(self):
         msg = PoseArray()
         header = Header(None, rospy.Time.now(), "odom")
-        
+
         msg.header = header
         for cone in self.cones:
             p = Pose()
-            
+
             p.position.x = cone.x
             p.position.y = cone.y
-            
+
             msg.poses.append(p)
-            
+
         self.cone_pub.publish(msg)
 
     def mapping(self, cones):
-        temp = []
-
         for new_cone in cones:
             flag = False
             idx = -1
@@ -98,14 +97,12 @@ class Mapper(object):
             if flag is True:
                 # new_cone is already existed.
                 self.cones.pop(idx)
-                temp.append(calibrated_cone)
+                self.cones += [calibrated_cone]
 
             elif (flag is False and dist > 0.) or len(self.cones) == 0:
                 # find new cone
                 rospy.loginfo("New cone detected! : %.4f" % dist)
-                temp.append(new_cone)
-
-        self.cones = self.cones + temp
+                self.cones += [new_cone]
 
         return self.cones
 
@@ -183,19 +180,17 @@ class PathPlanner(object):
 
         min_cost = float("inf")
         best_path = PathResponse(None, None, None, [], [], [])
-        
 
         for point in points:
             cost = self.calculateCost(state_vec, point)
             # cost = self.calculateCurveCost(state_vec, point)
-            
+
             if cost < self.threshold:
                 return self.createPath(goal=point)
 
             if cost < min_cost:
                 min_cost = cost
                 best_path = self.createPath(goal=point)
-                
 
         return best_path
 
@@ -206,10 +201,10 @@ class PathPlanner(object):
 
     def calculateDistanceCost(self, state_vec, point):
         distance = np.hypot(self.state.x - point[0], self.state.y - point[1])
-        
+
         if distance < 1.0:
             return float("inf")
-        
+
         return 0.0
 
     def calculateCurveCost(self, state_vec, point):
@@ -244,7 +239,7 @@ class ConeTracker(object):
 
     def coneCallback(self, msg):
         cones = []
-        
+
         if len(msg.poses) > 50:
             return 0
 
@@ -256,7 +251,7 @@ class ConeTracker(object):
                 cone = Cone(transformed_pose.pose.position.x,
                             transformed_pose.pose.position.y, 1.0)
                 cones.append(cone)
-                
+
         else:
             rospy.logwarn("Cannot lookup transform betwwen odom and velodyne")
 
@@ -300,20 +295,21 @@ if __name__ == "__main__":
     cone_tracker = ConeTracker()
     path_planner = PathPlanner(
         state=state, d_gain=d_gain, c_gain=c_gain, threshold=threshold)
-    
+
     # sleep(5)
-    
+
     r = rospy.Rate(30)
     while not rospy.is_shutdown():
 
         if len(cone_tracker.map.cones) < 10:
             r.sleep()
             continue
-        
+
         cone_tracker.map.publishCones()
-        
-        path = path_planner.planning(cone_tracker.map.calculateMiddlePoints(state))
-        
+
+        path = path_planner.planning(
+            cone_tracker.map.calculateMiddlePoints(state))
+
         # di, s_target_idx = stanley.stanley_control(
         #     state, path.cx, path.cy, path.cyaw, last_target_idx=s_target_idx)
 
