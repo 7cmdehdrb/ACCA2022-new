@@ -43,6 +43,9 @@ except Exception as ex:
     rospy.logfatal(ex)
 
 
+frame_id = "map"
+
+
 class Cone(object):
     def __init__(self, x, y, r=0.2):
         self.x = x
@@ -68,7 +71,7 @@ class Mapper(object):
 
     def publishCones(self):
         msg = PoseArray()
-        header = Header(None, rospy.Time.now(), "odom")
+        header = Header(None, rospy.Time.now(), frame_id)
 
         msg.header = header
         for cone in self.cones:
@@ -183,7 +186,6 @@ class PathPlanner(object):
 
         for point in points:
             cost = self.calculateCost(state_vec, point)
-            # cost = self.calculateCurveCost(state_vec, point)
 
             if cost < self.threshold:
                 return self.createPath(goal=point)
@@ -202,10 +204,10 @@ class PathPlanner(object):
     def calculateDistanceCost(self, state_vec, point):
         distance = np.hypot(self.state.x - point[0], self.state.y - point[1])
 
-        if distance < 1.0:
+        if distance < 3.0:
             return float("inf")
 
-        return 0.0
+        return distance * self.d_gain
 
     def calculateCurveCost(self, state_vec, point):
         point_vec = np.array([
@@ -216,7 +218,7 @@ class PathPlanner(object):
         theta = abs(m.acos((np.dot(state_vec, point_vec)) /
                            (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
 
-        if theta >= (m.pi / 2.0):
+        if theta >= (m.pi / 2.0) * 0.6:
             return float("inf")
 
         return theta * self.c_gain
@@ -224,6 +226,12 @@ class PathPlanner(object):
     def calculateCost(self, state_vec, obstacle):
         distance_cost = self.calculateDistanceCost(state_vec, obstacle)
         curve_cost = self.calculateCurveCost(state_vec, obstacle)
+
+        total = distance_cost + curve_cost
+
+        if total < 9999.:
+            print(distance_cost, curve_cost)
+
         return distance_cost + curve_cost
 
 
@@ -231,36 +239,45 @@ class ConeTracker(object):
     def __init__(self):
         # Subscriber
         self.cone_sub = rospy.Subscriber(
-            "/adaptive_clustering/poses", PoseArray, self.coneCallback)
+            "/cone_simulator/detected_cones", PoseArray, self.coneCallback)
         self.tf_sub = tf.TransformListener()
 
         # Map
         self.map = Mapper()
 
-    def coneCallback(self, msg):
+    def coneCallback(self, msg, test=True):
         cones = []
 
         if len(msg.poses) > 50:
             return 0
 
-        if self.tf_sub.canTransform("odom", "velodyne", rospy.Time(0)):
+        if test is True:
             for p in msg.poses:
-                pose = PoseStamped(Header(None, rospy.Time(0), "velodyne"), p)
-                transformed_pose = self.tf_sub.transformPose("odom", pose)
-
-                cone = Cone(transformed_pose.pose.position.x,
-                            transformed_pose.pose.position.y, 1.0)
+                cone = Cone(p.position.x, p.position.y, 0.5)
                 cones.append(cone)
 
         else:
-            rospy.logwarn("Cannot lookup transform betwwen odom and velodyne")
+            if self.tf_sub.canTransform(frame_id, "velodyne", rospy.Time(0)):
+                for p in msg.poses:
+                    pose = PoseStamped(
+                        Header(None, rospy.Time(0), "velodyne"), p)
+                    transformed_pose = self.tf_sub.transformPose(
+                        frame_id, pose)
+
+                    cone = Cone(transformed_pose.pose.position.x,
+                                transformed_pose.pose.position.y, 1.0)
+                    cones.append(cone)
+
+            else:
+                rospy.logwarn(
+                    "Cannot lookup transform")
 
         self.map.mapping(cones)
 
 
 def parsePath(path_response=PathResponse()):
     path = Path()
-    header = Header(None, rospy.Time.now(), "odom")
+    header = Header(None, rospy.Time.now(), frame_id)
 
     path.header = header
 
@@ -281,10 +298,10 @@ if __name__ == "__main__":
     rospy.init_node("cone_tracker")
 
     d_gain = 1.0
-    c_gain = 1.0
-    threshold = 1.0
+    c_gain = 4.0
+    threshold = 0.0
 
-    state = State(odometry_topic="odometry/kalman", hz=30, test=False)
+    state = State(odometry_topic="odometry/kalman", hz=30, test=True)
     stanley = Stanley()
     s_target_idx = 0
 
@@ -309,15 +326,20 @@ if __name__ == "__main__":
 
         path = path_planner.planning(
             cone_tracker.map.calculateMiddlePoints(state))
-
-        # di, s_target_idx = stanley.stanley_control(
-        #     state, path.cx, path.cy, path.cyaw, last_target_idx=s_target_idx)
-
-        # msg.Speed = int(5)
-        # msg.Steer = int(m.degrees(-di))
-        # msg.Gear = int(2)
-
         path_pub.publish(parsePath(path))
-        # cmd_pub.publish(msg)
+
+        try:
+            di, _ = stanley.stanley_control(
+                state, path.cx, path.cy, path.cyaw, last_target_idx=len(path.cx)-1)
+            di = np.clip(di, -m.radians(30), m.radians(30))
+
+            msg.Speed = int(3)
+            msg.Steer = int(m.degrees(-di))
+            msg.Gear = int(2)
+
+            cmd_pub.publish(msg)
+
+        except Exception as ex:
+            rospy.logwarn(ex)
 
         r.sleep()
