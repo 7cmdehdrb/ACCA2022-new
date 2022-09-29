@@ -306,7 +306,7 @@ class HorizontalParking(object):
 if __name__ == "__main__":
     rospy.init_node("horizontal_parking")
 
-    state = State(odometry_topic="/odometry/kalman", hz=30, test=True)
+    state = State(odometry_topic="/ndt_matching/ndt_pose", hz=30, test=False)
     stanley = Stanley()
 
     cmd_pub = rospy.Publisher(
