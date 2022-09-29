@@ -16,7 +16,7 @@
     <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
 
-    <arg name="path_pcd" default='$(find map_matching_localization)/data/bs.pcd' />
+    <arg name="path_pcd" default='$(find map_matching_localization)/data/festi.pcd' />
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
         <rosparam subst_value="true">
             area: $(arg scene_num)
@@ -30,7 +30,7 @@
     <arg name="node_name" default="voxel_grid_filter" />
     <arg name="points_topic" default="/velodyne_points" />
     <arg name="output_log" default="false" />
-    <arg name="measurement_range" default="50" />
+    <arg name="measurement_range" default="100" />
     
     <node pkg="points_downsampler" name="$(arg node_name)" type="$(arg node_name)">
         <param name="points_topic" value="$(arg points_topic)" />

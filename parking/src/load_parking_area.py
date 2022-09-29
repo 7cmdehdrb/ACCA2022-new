@@ -33,6 +33,8 @@ if __name__ == "__main__":
     path = rospkg.RosPack().get_path("parking") + "/parking_csv/" + \
         rospy.get_param("/create_parking_area/parking_file",
                         "hor_parking5.csv")
+        
+    path = "/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/festi_parking.csv"
 
     pub = rospy.Publisher("/parking_areas", MarkerArray, queue_size=1)
 

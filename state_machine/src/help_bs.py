@@ -113,7 +113,7 @@ class StateMachine(object):
         # Parking
         self.parking = Parking(state=self.state)
         self.horizontal_parking = HorizontalParking(
-            state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
+            state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/bs_parking.csv")
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -328,12 +328,13 @@ class StateMachine(object):
         return msg
 
     def horizontalParkingControl(self):
-            if self.horizontal_parking.search_path is None:
-                self.horizontal_parking.setSearchPath(self.path)
+        if self.horizontal_parking.search_path is None:
+            self.horizontal_parking.setSearchPath(self.path)
 
-            self.horizontal_parking.loop()
-            return self.horizontal_parking.cmd_msg
+        self.horizontal_parking.loop()
         
+        return self.horizontal_parking.cmd_msg
+    
     def parkingControl(self):
         # WTF
         desired_speed = self.selector.path.desired_speed
@@ -403,8 +404,8 @@ class StateMachine(object):
             msg = self.dynamicControl()
 
         elif self.mission_state == MissionState.PARKING:
-            msg = self.parkingControl()
-            # msg = self.horizontalParkingControl()
+            # msg = self.parkingControl()
+            msg = self.horizontalParkingControl()
 
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()

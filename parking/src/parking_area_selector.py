@@ -47,18 +47,18 @@ class ParkingAreaSelector():
     def isPossibleParkingArea(self, obstacle, box):
         dist = np.hypot(box.position.x - obstacle[0],
                         box.position.y - obstacle[1])
-        box_yaw = euler_from_quaternion(
+        _, _, box_yaw = euler_from_quaternion(
             [box.orientation.x, box.orientation.y, box.orientation.z, box.orientation.w])
 
-        if dist <= box.scale.x / 2.0:
-            return True
+        # if dist <= box.scale.x / 2.0:
+        #     return True
 
         area_VEC = np.array([
             m.cos(box_yaw - m.radians(90.0)), m.sin(box_yaw - m.radians(90.0))
         ])
 
         ob_VEC = np.array([
-            obstacle.x - box.x, obstacle.y - box.y
+            obstacle[0] - box.position.x, obstacle[1] - box.position.y
         ])
 
         theta = m.acos(np.dot(area_VEC, ob_VEC) / dist)
@@ -66,7 +66,7 @@ class ParkingAreaSelector():
         x_dist = abs(dist * m.sin(theta))
         y_dist = abs(dist * m.cos(theta))
 
-        if x_dist <= box.scale.x / 2.0 and y_dist <= box.scale.y / 2.0:
+        if (x_dist <= box.scale.x / 2.0) * 0.8 and (y_dist <= box.scale.y / 2.0) * 0.8:
             return True
 
         return False
@@ -79,12 +79,13 @@ class ParkingAreaSelector():
 
         print(len(self.parking_areas), self.target_idx)
         
-
         pyaw_VEC = [m.cos(pyaw), m.sin(pyaw)]
-        car_VEC = [self.state.x - self.parking_areas[self.target_idx].position.x,
-                   self.state.y - self.parking_areas[self.target_idx].position.y]
+        car_VEC = [self.parking_areas[self.target_idx].position.x - self.state.x,
+                   self.parking_areas[self.target_idx].position.y - self.state.y]
 
         inner_product = np.dot(pyaw_VEC, car_VEC)
+        
+        print(inner_product)
         if inner_product < 0.:
             if self.parking_areas[self.target_idx] is True:
                 # Parking : Possible
@@ -98,6 +99,9 @@ class ParkingAreaSelector():
                     self.target_idx = len(self.parking_areas) - 1
                     rospy.logfatal(
                         "Cannot try parking into every parking areas!!!!")
+
+                    self.flag = True
+                    return 0
 
         else:
             for obstacle in self.obstacles:
