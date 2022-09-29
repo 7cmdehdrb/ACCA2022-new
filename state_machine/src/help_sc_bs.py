@@ -407,9 +407,6 @@ class StateMachine(object):
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()
 
-        elif self.mission_state == MissionState.RIGHT:
-            msg = self.rightControl()
-
         elif self.mission_state == MissionState.END:
             msg = self.endControl()
 

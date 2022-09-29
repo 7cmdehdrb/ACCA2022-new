@@ -186,7 +186,7 @@ class StateMachine(object):
             # speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
             #                                       desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
-            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), brake, 0
+            return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0
                                   )
 
         except IndexError as ie:
@@ -404,9 +404,6 @@ class StateMachine(object):
         elif self.mission_state == MissionState.PARKING:
             msg = self.parkingControl()
             # msg = self.horizontalParkingControl()
-
-        elif self.mission_state == MissionState.RIGHT:
-            msg = self.rightControl()
 
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()
