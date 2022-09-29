@@ -43,9 +43,9 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("mission") + "/src")
-    from obstacle_final_csv_ys import Obstacle
+    from static_ys import Obstacle
     from delivery import Delivery
-    from dynamic_ob import Lidar
+    from dynamic import Lidar
     from parking_final_csv import Parking, ParkingState
     from traffic import Traffic
 

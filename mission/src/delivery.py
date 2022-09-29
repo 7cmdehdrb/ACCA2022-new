@@ -37,9 +37,9 @@ class Delivery():
 
     def Callback(self, msg):
         self.markers = msg
-
+        
     def delivery_A(self):
-        for marker in self.markers:
+        for marker in self.markers.markers:
             for i in range(3):
                 if (marker.id)//10000 in self.panel[i]:
                     m_to_p = PoseStamped()
@@ -65,7 +65,7 @@ class Delivery():
         self.panel_A.y = np.mean(self.ay)
           
     def delivery_B(self, panel_id):
-        for marker in self.markers:
+        for marker in self.markers.markers:
             if (marker.id)//10000 == self.panel[panel_id.index(max(panel_id))][1]:
                 m_to_p = PoseStamped()
 

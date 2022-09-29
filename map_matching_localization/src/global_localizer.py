@@ -15,7 +15,11 @@ from gaussian import Gaussian, gaussianConvolution
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 score_threshold = rospy.get_param("/global_localizer/score_threshold", 5.0)
+=======
+score_threshold = rospy.get_param("/global_localizer/score_threshold", 5.)
+>>>>>>> e6a0dea53026340178d05cc0311268b2b6fbb391
 
 
 def thresholdCallback(msg):

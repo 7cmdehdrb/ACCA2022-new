@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 
 import rospy
@@ -73,12 +74,15 @@ class ParkingAreaSelector():
     def loop(self):
         # 해당 idx의 parking area yaw 벡터와 내적하여 구간 내에 위치하는지 확인
         p_orientation = self.parking_areas[self.target_idx].orientation
-        pyaw = euler_from_quaternion(
+        _, _, pyaw = euler_from_quaternion(
             [p_orientation.x, p_orientation.y, p_orientation.z, p_orientation.w])
 
+        print(len(self.parking_areas), self.target_idx)
+        
+
         pyaw_VEC = [m.cos(pyaw), m.sin(pyaw)]
-        car_VEC = [self.state.x - self.parking_areas[self.target_idx].x,
-                   self.state.y - self.parking_areas[self.target_idx].y]
+        car_VEC = [self.state.x - self.parking_areas[self.target_idx].position.x,
+                   self.state.y - self.parking_areas[self.target_idx].position.y]
 
         inner_product = np.dot(pyaw_VEC, car_VEC)
         if inner_product < 0.:
@@ -90,7 +94,7 @@ class ParkingAreaSelector():
 
             else:
                 self.target_idx += 1
-                if len(self.parking_areas) < self.target_idx:
+                if len(self.parking_areas) - 1 < self.target_idx:
                     self.target_idx = len(self.parking_areas) - 1
                     rospy.logfatal(
                         "Cannot try parking into every parking areas!!!!")

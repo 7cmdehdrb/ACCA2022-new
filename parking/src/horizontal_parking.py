@@ -468,7 +468,7 @@ if __name__ == "__main__":
         "/cmd_msg", ControlMessage, queue_size=1)
 
     hp = HorizontalParking(state=state, cmd_pub=cmd_pub,
-                           file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking.csv", search_path=None)
+                           file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/bs_parking.csv", search_path=None)
 
     r = rospy.Rate(30)
     while not rospy.is_shutdown():
