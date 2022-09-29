@@ -36,7 +36,7 @@ except Exception as ex:
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
     from horizontal_parking import HorizontalParking
-    
+
 except Exception as ex:
     rospy.logfatal(ex)
     rospy.logfatal("Import Error : State Machine - parking")
@@ -61,7 +61,7 @@ speed_control_enable = rospy.get_param(
 
 def wait_for_stop(duration):
     global current_time, last_time, r, cmd_pub
-    
+
     msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
 
     dt = 0
@@ -230,18 +230,18 @@ class StateMachine(object):
 
     def deliveryControl(self):
         desired_speed = self.selector.path.desired_speed
-        
+
         if self.mission_state == MissionState.DELIVERY_A:
             self.delivery.delivery_A()
             panel = self.delivery.panel_A
             self.panel_id = self.delivery.panel_id
-            
+
         elif self.mission_state == MissionState.DELIVERY_B:
             self.delivery.delivery_B(self.panel_id)
             panel = self.delivery.panel_B
 
         # between delivery sign and erp distance
-        
+
         dis = np.hypot([self.state.x - panel.x],
                        [self.state.y - panel.y])
 
@@ -252,7 +252,7 @@ class StateMachine(object):
                 msg = self.mainControl(desired_speed=desired_speed)
 
                 if self.target_idx >= self.delivery.target_idx:
-                    
+
                     wait_for_stop(5)
 
                     self.delivery.is_delivery_path = False
@@ -289,30 +289,29 @@ class StateMachine(object):
         desired_speed = self.selector.path.desired_speed
 
         self.static.main()
-        
+
         if self.target_idx > len(self.path.cx) - 60:
             msg = self.trafficControl()
-        
+
         else:
             if self.static.obs_state == True:
                 msg = self.static.msg
             else:
                 msg = self.mainControl(desired_speed=desired_speed)
-        
+
         return msg
 
-
-    # ys    
+    # ys
     # def staticControl(self):
         # desired_speed = self.selector.path.desired_speed
 
         # self.static.main()
-        
+
         # if self.static.obs_state == True:
         #     msg = self.static.msg
         # else:
         #     msg = self.mainControl(desired_speed=desired_speed)
-        
+
         # return msg
 
     def dynamicControl(self):
@@ -328,6 +327,9 @@ class StateMachine(object):
         return msg
 
     def horizontalParkingControl(self):
+        if self.horizontal_parking.search_path is None:
+            self.horizontal_parking.setSearchPath(self.path)
+
         self.horizontal_parking.loop()
         return self.horizontal_parking.cmd_msg
 
@@ -336,37 +338,37 @@ class StateMachine(object):
         desired_speed = self.selector.path.desired_speed
 
         msg = self.mainControl(desired_speed=desired_speed)
-        
+
         self.parking.main()
-        
+
         if self.parking.parking_state == ParkingState.brake:
             wait_for_stop(5)
-        
+
         elif self.parking.parking_state == ParkingState.complete:
             self.parking.parking_state = ParkingState.done
             wait_for_stop(2)
-        
+
         elif self.parking.parking_state == ParkingState.done:
             pass
 
         else:
             rospy.loginfo("parking")
             msg = self.parking.msg
-        
+
         return msg
-        
+
     def rightControl(self):
         desired_speed = self.selector.path.desired_speed
-        
+
         if self.right_1 == False and self.target_idx < 10:
             wait_for_stop(3)
             self.right_1 = True
-            
+
         elif self.right_2 == False and len(self.path.cx) - 25 < self.target_idx:
             wait_for_stop(3)
             self.right_2 = True
-        
-        return self.mainControl(desired_speed=desired_speed)     
+
+        return self.mainControl(desired_speed=desired_speed)
 
     def endControl(self):
         if len(self.path.cx) * 0.9 < self.target_idx:
