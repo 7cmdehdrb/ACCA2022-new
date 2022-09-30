@@ -129,6 +129,9 @@ class Mapper(object):
 class PathPlanner(object):
     def __init__(self, state):
         self.state = state
+
+        self.d_gain = 3.0
+        self.c_gain = 15.0
         self.threshold = 0
 
         self.node = Node(data=[self.state.x, self.state.y], parent=None)
@@ -150,55 +153,57 @@ class PathPlanner(object):
 
         points = self.getMiddlePoints(obstacles=self.mapper.obstacles)
 
-        state_vec = np.array(
-            [m.cos(self.state.yaw), m.sin(self.state.yaw)])
+        # state_vec = np.array(
+        #     [m.cos(self.state.yaw), m.sin(self.state.yaw)])
 
-        # if self.node.parent is None:
+        if self.node.parent is None:
+            state_vec = np.array(
+                [m.cos(self.state.yaw), m.sin(self.state.yaw)])
 
-        # else:
-        #     state_vec = np.array([
-        #         self.node.data[0] - self.node.parent.data[0],
-        #         self.node.data[1] - self.node.parent.data[1]
-        #     ])
+        else:
+            state_vec = np.array([
+                self.node.data[0] - self.node.parent.data[0],
+                self.node.data[1] - self.node.parent.data[1]
+            ])
 
         for point in points:
-            if self._calculateCurveCost(state_vec, point) is True:
-                if self._calculateDistanceCost(point) is True:
+            p_curve, c_cost = self._calculateCurveCost(state_vec, point)
+
+            if p_curve:
+                p_distance, d_cost = self._calculateDistanceCost(point)
+
+                if p_distance:
                     i, j = self.mapper.map.getGridIdx(point)
-                    if self.mapper.map.map[i][j].count < 4:
-                        grid_cost = self._calculateGridCost(point)
 
-                        node_dist = np.hypot(
-                            self.node.data[0] - point[0], self.node.data[1] - point[1])
+                    if self.mapper.map.map[i][j].count < 5:
+                        grid_cost = self._calculateGridCost(point) * 0.1
 
-                        if node_dist > 0.5 and node_dist < 5.0:
-                            if grid_cost < self.threshold:
-                                new_node = Node(point, self.node)
-                                self.node = new_node
-                                return createPathFromNode(self.node)
-                                # return self._createPath(point)
+                        total_cost = c_cost + d_cost + grid_cost
 
-                            if grid_cost < min_cost:
-                                min_cost = grid_cost
-                                best_point = point
+                        # print(c_cost, d_cost, grid_cost, node_dist)
+
+                        if total_cost < min_cost:
+                            min_cost = total_cost
+                            best_point = point
 
         if best_point is None:
             rospy.logwarn("Cannot find best node...")
             return createPathFromNode(self.node)
 
+        print(total_cost)
+
         new_node = Node(best_point, self.node)
         self.node = new_node
 
         return createPathFromNode(self.node)
-        # return self._createPath(best_point)
 
     def _calculateDistanceCost(self, point):
-        distance = np.hypot(self.state.x - point[0], self.state.y - point[1])
+        distance = np.hypot(
+            self.node.data[0] - point[0], self.node.data[1] - point[1])
 
-        if distance > 0.5 and distance < 7.0:
-            return True
+        b = (distance > 0.5 and distance < 5.0)
 
-        return False
+        return b, distance * self.d_gain
 
     def _calculateCurveCost(self, state_vec, point):
         point_vec = np.array([
@@ -206,13 +211,18 @@ class PathPlanner(object):
         ])
 
         dot = np.dot(state_vec, point_vec)
-        if dot > 0:
-            return True
+        theta = abs(m.acos(
+            (dot) / (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
 
-        return False
+        cost = theta * self.c_gain
+
+        if theta >= (m.pi / 2.0) * 0.6:
+            cost = float("inf")
+
+        return dot > 0, cost
 
     def _calculateGridCost(self, point):
-        cost = 0
+        total_cost = 0
 
         si, sj = self.mapper.map.getGridIdx([self.state.x, self.state.y])
         gi, gj = self.mapper.map.getGridIdx(point)
@@ -231,20 +241,35 @@ class PathPlanner(object):
         # Login Setting
         if abs(dist_x) >= abs(dist_y):
             for i in range(abs(dist_y)):
-                cost += self.mapper.map.map[si +
-                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
+                cost = self.mapper.map.map[si +
+                                           (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
+                if cost == 10:
+                    return float("inf")
+                total_cost += cost
+
             for j in range(d):
-                cost += self.mapper.map.map[si +
-                                            (i * (1 if positive_x else -1)) + (j * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
+                cost = self.mapper.map.map[si +
+                                           (i * (1 if positive_x else -1)) + (j * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
+                if cost == 10:
+                    return float("inf")
+                total_cost += cost
+
         else:
             for i in range(abs(dist_x)):
-                cost += self.mapper.map.map[si +
-                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-            for j in range(d):
-                cost += self.mapper.map.map[si +
-                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1)) + (j * (1 if positive_y else -1))].count
+                cost = self.mapper.map.map[si +
+                                           (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
+                if cost == 10:
+                    return float("inf")
+                total_cost += cost
 
-        return cost
+            for j in range(d):
+                cost = self.mapper.map.map[si +
+                                           (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1)) + (j * (1 if positive_y else -1))].count
+                if cost == 10:
+                    return float("inf")
+                total_cost += cost
+
+        return total_cost
 
     def _createPath(self, goal):
         cx, cy, cyaw, _, _ = calc_spline_course(
@@ -335,7 +360,10 @@ def createPathFromNode(node):
     xs = []
     ys = []
 
-    while node.parent is not None:
+    while True:
+        if node is None:
+            break
+
         xs.append(node.data[0])
         ys.append(node.data[1])
         node = node.parent
@@ -348,7 +376,7 @@ def createPathFromNode(node):
 
     except Exception as ex:
         rospy.logwarn("Cannot create path from nodes")
-        rospy.logwarn(ex)
+        # rospy.logwarn(ex)
 
     return PathResponse()
 
@@ -379,10 +407,6 @@ if __name__ == "__main__":
     path_pub = rospy.Publisher("/cone_path", Path, queue_size=10)
     cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
 
-    # th = threading.Thread(target=threadMapping)
-    # th.daemon = True
-    # th.start()
-
     target_idx = 0
 
     r = rospy.Rate(2)
@@ -390,9 +414,8 @@ if __name__ == "__main__":
         msg = ControlMessage()
         msg.Gear = int(2)
 
-        layer = GridMap(planner.mapper.xrange, planner.mapper.yrange,
-                        planner.mapper.size, obstacles=planner.mapper.obstacles)
-        planner.mapper.map = planner.mapper.map + layer
+        planner.mapper.map = GridMap(planner.mapper.xrange, planner.mapper.yrange,
+                                     planner.mapper.size, obstacles=planner.mapper.obstacles)
         grid_pub.publish(planner.mapper.map.parseOccupiedGrid())
 
         path = planner.planning()
@@ -407,7 +430,7 @@ if __name__ == "__main__":
 
         except Exception as ex:
             msg.Speed = int(0)
-            rospy.logwarn(ex)
+            # rospy.logwarn(ex)
 
         path_pub.publish(planner.parsePath(path))
         cmd_pub.publish(msg)

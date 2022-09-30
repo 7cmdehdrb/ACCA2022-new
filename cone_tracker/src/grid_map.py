@@ -59,6 +59,11 @@ class Grid(object):
         count = np.clip(self.count + value, 0, max_cost)
         self.count = count
 
+    def set(self, value):
+        new_count = np.clip(value, 0, max_cost)
+        if self.count < new_count:
+            self.count = new_count
+
 
 class GridMap(object):
     def __init__(self, xrange=[-100, 100], yrange=[-100, 100], size=0.25, obstacles=None, data=None):
@@ -121,10 +126,14 @@ class GridMap(object):
         for obstacle in obstacles:
             i, j = self.getGridIdx(obstacle)
 
-            for a in range(-3, 4):
-                for b in range(-3, 4):
-                    self.map[i + a][j +
-                                    b].add(max_cost - np.clip(abs(a) + abs(b), 0, 10))
+            for a in range(-4, 5):
+                for b in range(-4, 5):
+                    cost = max_cost - np.clip(abs(a) + abs(b), 0, 10)
+                    if a == 0 and b == 0:
+                        cost = max_cost
+
+                    self.map[i + a][j + b].set(cost)
+                    # self.map[i + a][j + b].add(cost)
 
     def parseOccupiedGrid(self):
         msg = OccupancyGrid()
