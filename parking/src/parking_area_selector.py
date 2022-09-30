@@ -45,17 +45,14 @@ class ParkingAreaSelector():
         if self.tf_sub.canTransform("map", "velodyne", rospy.Time(0)):
             for p in msg.poses:
                 pose = PoseStamped()
-                pose.header.frame_id = "map"
+                pose.header.frame_id = "velodyne"
                 pose.header.stamp = rospy.Time(0)
 
                 pose.pose = p
-                # point = Point()
-                # point.x = p.position.x
-                # point.y = p.position.y
+                
                 temp = self.tf_sub.transformPose(ps=pose, target_frame="map")
                 self.obstacles.append(
                     [temp.pose.position.x, temp.pose.position.y])
-                # self.obstacles.append([point.x, point.y])
         else:
             rospy.loginfo("tf error")
             
@@ -82,12 +79,6 @@ class ParkingAreaSelector():
 
         x_dist = abs(dist * m.cos(theta))
         y_dist = abs(dist * m.sin(theta))
-
-        print("area",box.position.y)
-        print("obstacle",obstacle[1])
-        
-        print("y_dist", y_dist)
-        print("x_dist", x_dist)
         
         if (x_dist <= box.scale.x / 2.0) and (y_dist <= box.scale.y / 2.0):
             return True
@@ -130,7 +121,6 @@ class ParkingAreaSelector():
                 if self.isPossibleParkingArea(
                         obstacle, self.parking_areas[self.target_idx]) is True:
                     # Cannot park.
-                    rospy.logfatal("dddd")
                     self.parking_possibilities[self.target_idx] += 1
                     
                     break
