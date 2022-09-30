@@ -59,10 +59,13 @@ class HorizontalParking(object):
         self.parking_idx = 0
         self.target_area = self.parking_areas[self.parking_idx]
 
-        self.parking_state = ParkingState.ALIGN1
+        self.parking_state = ParkingState.SEARCH
         self.target_idx = 0
 
-        self.alignPath1, self.alignPath2 = self.createAlignPath()
+        self.area_selector = ParkingAreaSelector(
+            self.state, self.parking_areas)
+
+        self.searchPath, self.alignPath1 = self.alignPath2 = None
 
         # ETC
         self.cmd_pub = cmd_pub
@@ -96,6 +99,9 @@ class HorizontalParking(object):
 
             r.sleep()
 
+    def setSearchPath(self, path):
+        self.searchPath = path
+
     def control(self):
         msg = ControlMessage()
         reverse = False
@@ -104,10 +110,32 @@ class HorizontalParking(object):
             return 0
 
         elif self.parking_state == ParkingState.SEARCH:
-            pass
+            if self.area_selector.obstacle_sub is None:
+                self.area_selector.start()
+
+            msg.Speed = int(5)
+
+            while self.searchPath is None:
+                rospy.logfatal("Search path is not defined!!!!")
+                self.wait_for_stop(1)
+
+            di, self.target_idx = self.stanely.stanley_control(self.state, self.searchPath.cx,
+                                                               self.searchPath.cy, self.searchPath.cyaw, self.target_idx, reverse=reverse)
+
+            if self.area_selector.flag is True:
+                self.parking_idx = self.area_selector.target_idx
+                self.alignPath1, self.alignPath2 = self.createAlignPath()
+
+                self.target_idx = 0
+                self.wait_for_stop(3)
+                self.parking_state = ParkingState.ALIGN1
 
         elif self.parking_state == ParkingState.ALIGN1:
             msg.Speed = int(5)
+
+            while self.alignPath1 is None:
+                rospy.logfatal("Align path is not defined!!!!")
+                self.wait_for_stop(1)
 
             di, self.target_idx = self.stanely.stanley_control(self.state, self.alignPath1.cx,
                                                                self.alignPath1.cy, self.alignPath1.cyaw, self.target_idx, reverse=reverse)
@@ -123,6 +151,10 @@ class HorizontalParking(object):
         elif self.parking_state == ParkingState.ALIGN2:
             reverse = True
             msg.Speed = int(5)
+
+            while self.alignPath2 is None:
+                rospy.logfatal("Align path is not defined!!!!")
+                self.wait_for_stop(1)
 
             di, self.target_idx = self.stanely.stanley_control(self.state, self.alignPath2.cx,
                                                                self.alignPath2.cy, self.alignPath2.cyaw, self.target_idx, reverse=reverse)
@@ -274,7 +306,7 @@ class HorizontalParking(object):
 
         # self.cmd_pub.publish(msg)
         return msg
-    
+
     def publishParkingArea(self):
         msg = MarkerArray()
 
