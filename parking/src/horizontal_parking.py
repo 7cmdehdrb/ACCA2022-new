@@ -489,7 +489,7 @@ if __name__ == "__main__":
 
     # state, cmd_pub, stanley, search_path, file_path
     hp = HorizontalParking(state=state, cmd_pub=cmd_pub, stanley=stanley,
-                           file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/bs_parking.csv", search_path=None)
+                           file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/festi_parking.csv", search_path=None)
 
     hp.horizontal_parking_state = HorizontalParkingState.Straight
     hp.target_idx = 1

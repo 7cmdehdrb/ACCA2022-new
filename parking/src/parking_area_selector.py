@@ -1,15 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 import rospy
 import numpy as np
 import math as m
 import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from geometry_msgs.msg import *
+from visualization_msgs.msg import*
 from parking_area import ParkingArea
+import sys
+import rospkg
+from load_parking_area import loadCSV
 
+
+try:
+    erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
+    sys.path.append(erp42_control_pkg_path)
+    from state import State, OdomState
+    from stanley import Stanley
+    
+except Exception as ex:
+    rospy.logfatal(ex)
 
 class ParkingAreaSelector():
     def __init__(self, state, parking_areas=[]):
@@ -21,7 +33,7 @@ class ParkingAreaSelector():
         self.state = state
         self.parking_areas = parking_areas
         self.parking_possibilities = [
-            None for _ in range(len(self.parking_areas))]
+            0 for _ in range(len(self.parking_areas))]
 
         self.tf_sub = tf.TransformListener()
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray,
@@ -37,11 +49,16 @@ class ParkingAreaSelector():
                 pose.header.stamp = rospy.Time(0)
 
                 pose.pose = p
-
+                # point = Point()
+                # point.x = p.position.x
+                # point.y = p.position.y
                 temp = self.tf_sub.transformPose(ps=pose, target_frame="map")
                 self.obstacles.append(
                     [temp.pose.position.x, temp.pose.position.y])
-
+                # self.obstacles.append([point.x, point.y])
+        else:
+            rospy.loginfo("tf error")
+            
         self.loop()
 
     def isPossibleParkingArea(self, obstacle, box):
@@ -61,12 +78,18 @@ class ParkingAreaSelector():
             obstacle[0] - box.position.x, obstacle[1] - box.position.y
         ])
 
-        theta = m.acos(np.dot(area_VEC, ob_VEC) / dist)
+        theta = m.acos(np.dot(area_VEC, ob_VEC) /np.hypot(ob_VEC[0], ob_VEC[1]))
 
-        x_dist = abs(dist * m.sin(theta))
-        y_dist = abs(dist * m.cos(theta))
+        x_dist = abs(dist * m.cos(theta))
+        y_dist = abs(dist * m.sin(theta))
 
-        if (x_dist <= box.scale.x / 2.0) * 0.8 and (y_dist <= box.scale.y / 2.0) * 0.8:
+        print("area",box.position.y)
+        print("obstacle",obstacle[1])
+        
+        print("y_dist", y_dist)
+        print("x_dist", x_dist)
+        
+        if (x_dist <= box.scale.x / 2.0) and (y_dist <= box.scale.y / 2.0):
             return True
 
         return False
@@ -83,10 +106,10 @@ class ParkingAreaSelector():
                    self.parking_areas[self.target_idx].position.y - self.state.y]
 
         inner_product = np.dot(pyaw_VEC, car_VEC)
+        print("inner",inner_product)
         
-        print(inner_product)
         if inner_product < 0.:
-            if self.parking_areas[self.target_idx] is True:
+            if self.parking_possibilities[self.target_idx] < 30:
                 # Parking : Possible
                 self.flag = True
                 self.obstacle_sub.unregister()
@@ -107,11 +130,24 @@ class ParkingAreaSelector():
                 if self.isPossibleParkingArea(
                         obstacle, self.parking_areas[self.target_idx]) is True:
                     # Cannot park.
-
-                    self.parking_possibilities[self.target_idx] = False
-                    self.target_idx += 1
+                    rospy.logfatal("dddd")
+                    self.parking_possibilities[self.target_idx] += 1
+                    
                     break
 
-            self.parking_possibilities[self.target_idx] = True
-
+                    
+        print(self.parking_possibilities)
         self.obstacles = []
+        
+        
+if __name__ == "__main__":
+
+    rospy.init_node("parking_area_selector")
+
+    state = State(odometry_topic="/ndt_matching/ndt_pose", hz=30, test=False)
+    
+    parkingAreas = loadCSV("/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/festi_parking.csv")
+    
+    selector = ParkingAreaSelector(state=state, parking_areas=parkingAreas)
+    
+    rospy.spin()

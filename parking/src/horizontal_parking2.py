@@ -272,8 +272,9 @@ class HorizontalParking(object):
         msg.Steer = int(m.degrees(di * (-1.0 if reverse is False else 1.0)))
         msg.Gear = 2 if reverse is False else 0
 
-        self.cmd_pub.publish(msg)
-
+        # self.cmd_pub.publish(msg)
+        return msg
+    
     def publishParkingArea(self):
         msg = MarkerArray()
 

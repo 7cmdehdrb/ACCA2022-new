@@ -14,7 +14,7 @@ from header import Queue
 from gaussian import Gaussian, gaussianConvolution
 
 
-score_threshold = rospy.get_param("/global_localizer/score_threshold", 0.5)
+score_threshold = rospy.get_param("/global_localizer/score_threshold", 100)
 
 
 class Odom(object):
