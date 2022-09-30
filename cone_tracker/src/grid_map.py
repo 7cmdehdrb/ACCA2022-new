@@ -12,6 +12,7 @@ from enum import Enum
 from random import randint, random
 import tf
 from tf.transformations import quaternion_from_euler
+from matplotlib import pyplot as plt
 from random import randint
 from time import sleep
 
@@ -24,6 +25,9 @@ from erp42_control.msg import *
 from path_plan.msg import PathResponse
 
 
+max_cost = 10
+
+
 class Grid(object):
     def __init__(self, x, y, size, count=0):
         self.x = x
@@ -32,28 +36,44 @@ class Grid(object):
         self.count = count
 
     def __add__(self, other):
-        return Grid(x=self.x, y=self.y, size=self.size, count=int(self.count + other.count))
+        if self.count == max_cost or other.count == max_cost:
+            count = max_cost
+
+        else:
+            if self.count != 0 and other.count != 0:
+                count = int((self.count + other.count) / 2)
+
+            elif self.count == 0 and other.count == 0:
+                count = 0
+
+            else:
+                count = int(self.count if self.count >
+                            other.count else other.count)
+
+        return Grid(x=self.x, y=self.y, size=self.size, count=np.clip(count, 0, max_cost))
 
     def __str__(self):
         return "Grid(%.2f, %.2f), %d" % (self.x, self.y, self.count)
 
-    def plus(self):
-        self.count += 1
-
-    def minus(self):
-        self.count += 1
+    def add(self, value):
+        count = np.clip(self.count + value, 0, max_cost)
+        self.count = count
 
 
 class GridMap(object):
-    def __init__(self, xrange=[-100, 100], yrange=[-100, 100], size=0.25, data=None):
+    def __init__(self, xrange=[-100, 100], yrange=[-100, 100], size=0.25, obstacles=None, data=None):
         self.xrange = xrange
         self.yrange = yrange
         self.size = size
 
-        if data is None:
-            self.map = self.createMap()
-        else:
+        if data is not None:
             self.map = data
+
+        else:
+            self.map = self.createMap()
+
+            if obstacles is not None:
+                self.addObstacles(obstacles)
 
     def __str__(self):
         text = ""
@@ -77,21 +97,68 @@ class GridMap(object):
 
         return GridMap(xrange=self.xrange, yrange=self.yrange, size=self.size, data=new_map)
 
+    def getGridIdx(self, point=[0., 0.]):
+        xs = np.abs(np.arange(self.xrange[0], self.xrange[-1],
+                              self.size) - np.array([point[0]]))
+        ys = np.abs(np.arange(self.yrange[0], self.yrange[-1],
+                              self.size) - np.array([point[1]]))
+
+        return np.argmin(ys), np.argmin(xs)
+
     def createMap(self):
         grid_map = []
 
-        for y in np.arange(self.xrange[0], self.xrange[-1], self.size):
+        for y in np.arange(self.yrange[0], self.yrange[-1] + 1, self.size):
             xs = []
-            for x in np.arange(self.xrange[0], self.xrange[-1], self.size):
-                grid = Grid(x=x, y=y, size=self.size, count=randint(0, 2))
+            for x in np.arange(self.xrange[0], self.xrange[-1] + 1, self.size):
+                grid = Grid(x=x, y=y, size=self.size, count=0)
                 xs.append(grid)
             grid_map.append(xs)
 
         return grid_map
 
+    def addObstacles(self, obstacles):
+        for obstacle in obstacles:
+            i, j = self.getGridIdx(obstacle)
+
+            for a in range(-3, 4):
+                for b in range(-3, 4):
+                    self.map[i + a][j +
+                                    b].add(max_cost - np.clip(abs(a) + abs(b), 0, 10))
+
+    def parseOccupiedGrid(self):
+        msg = OccupancyGrid()
+
+        xrange = np.arange(self.xrange[0], self.xrange[-1] + 1, self.size)
+        yrange = np.arange(self.yrange[0], self.yrange[-1] + 1, self.size)
+
+        data = []
+
+        msg.header = Header(None, rospy.Time.now(), "map")
+        msg.info = MapMetaData(
+            rospy.Time.now(), self.size, len(xrange), len(yrange), Pose(
+                Point(float(self.xrange[0]), float(self.yrange[0]), 0.0), Quaternion())
+        )
+
+        for i in range(len(self.map)):
+            for j in range(len(self.map[0])):
+                value = self.map[i][j].count
+                data.append(int(value * 8))
+
+        msg.data = data
+
+        return msg
+
 
 if __name__ == "__main__":
-    grid_map = GridMap(xrange=[-2, 2], yrange=[-2, 2],
-                       size=1, data=None)
-    grid_map2 = GridMap(xrange=[-2, 2], yrange=[-2, 2],
-                        size=1, data=None)
+    xrange = [-100, 100]
+    yrange = [-100, 100]
+
+    obstacles = [
+        [randint(-80, 80), randint(-80, 80)] for _ in range(100)
+    ]
+
+    grid_map = GridMap(xrange, yrange, size=1, obstacles=obstacles)
+
+    grid_map.plot()
+    plt.show()

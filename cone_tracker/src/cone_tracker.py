@@ -229,8 +229,8 @@ class PathPlanner(object):
 
         total = distance_cost + curve_cost
 
-        if total < 9999.:
-            print(distance_cost, curve_cost)
+        # if total < 9999.:
+        #     print(distance_cost, curve_cost)
 
         return distance_cost + curve_cost
 

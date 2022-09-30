@@ -81,7 +81,7 @@ class Simulator(object):
 
         for cone in self.cones:
             dist = np.hypot(cone.x - self.state.x, cone.y - self.state.y)
-            if dist < 5.0:
+            if dist < 10.0:
                 p = Pose()
                 p.position.x = cone.x + (randint(-100, 100) * 0.001)
                 p.position.y = cone.y + (randint(-100, 100) * 0.001)
