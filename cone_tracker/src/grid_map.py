@@ -41,7 +41,7 @@ class Grid(object):
 
         else:
             if self.count != 0 and other.count != 0:
-                count = int((self.count + other.count) / 2)
+                count = int(m.floor(self.count + other.count) / 2)
 
             elif self.count == 0 and other.count == 0:
                 count = 0
@@ -126,8 +126,8 @@ class GridMap(object):
         for obstacle in obstacles:
             i, j = self.getGridIdx(obstacle)
 
-            for a in range(-4, 5):
-                for b in range(-4, 5):
+            for a in range(-5, 6):
+                for b in range(-5, 6):
                     cost = max_cost - np.clip(abs(a) + abs(b), 0, 10)
                     if a == 0 and b == 0:
                         cost = max_cost
@@ -143,7 +143,7 @@ class GridMap(object):
 
         data = []
 
-        msg.header = Header(None, rospy.Time.now(), "map")
+        msg.header = Header(None, rospy.Time.now(), "odom")
         msg.info = MapMetaData(
             rospy.Time.now(), self.size, len(xrange), len(yrange), Pose(
                 Point(float(self.xrange[0]), float(self.yrange[0]), 0.0), Quaternion())
@@ -152,7 +152,7 @@ class GridMap(object):
         for i in range(len(self.map)):
             for j in range(len(self.map[0])):
                 value = self.map[i][j].count
-                data.append(int(value * 8))
+                data.append(int(value * (100 / max_cost)))
 
         msg.data = data
 

@@ -48,12 +48,12 @@ except Exception as ex:
     rospy.logfatal(ex)
 
 
-frame_id = "map"
+frame_id = "odom"
 
 
 class Mapper(object):
     def __init__(self, xrange=[-10, 10], yrange=[-10, 10], size=0.25, test=False):
-        self.frame_id = "map"
+        self.frame_id = frame_id
         self.test = test
 
         self.xrange = xrange
@@ -65,7 +65,7 @@ class Mapper(object):
 
         # Subscribers
         rospy.Subscriber(
-            "/cone_simulator/detected_cones", PoseArray, self.obstacleCallback
+            "/adaptive_clustering/poses", PoseArray, self.obstacleCallback
         )
         self.tf_sub = tf.TransformListener()
 
@@ -83,6 +83,11 @@ class Mapper(object):
         else:
             if self.tf_sub.canTransform(self.frame_id, "velodyne", rospy.Time(0)):
                 for p in msg.poses:
+                    dist = np.hypot(p.position.x, p.position.y)
+
+                    if dist < 0.5 or dist > 10.0 or p.position.x < 0.0:
+                        continue
+
                     pose = PoseStamped(
                         Header(None, rospy.Time(0), "velodyne"), p)
                     transformed_pose = self.tf_sub.transformPose(
@@ -107,7 +112,8 @@ class Mapper(object):
 
             for i, cone in enumerate(self.obstacles):
                 dist = np.hypot(cone[0] - new_cone[0], cone[1] - new_cone[1])
-                if dist < 0.25:
+
+                if dist < 0.5:
                     flag = True
                     calibrated_cone = [
                         (cone[0] + new_cone[0]) / 2.0, (cone[1] + new_cone[1]) / 2.0]
@@ -134,13 +140,17 @@ class PathPlanner(object):
         self.c_gain = 15.0
         self.threshold = 0
 
+        self.stack = 0
+
+        self.test_pub = rospy.Publisher(
+            "/cone_tracker/node", PointStamped, queue_size=1)
         self.node = Node(data=[self.state.x, self.state.y], parent=None)
 
-        xrange = [-5, 100]
-        yrange = [-20, 20]
+        xrange = [-5, 50]
+        yrange = [-30, 30]
         size = 0.25
 
-        self.mapper = Mapper(xrange, yrange, size, True)
+        self.mapper = Mapper(xrange, yrange, size, False)
 
     def planning(self):
         if len(self.mapper.obstacles) < 4:
@@ -175,25 +185,29 @@ class PathPlanner(object):
                 if p_distance:
                     i, j = self.mapper.map.getGridIdx(point)
 
-                    if self.mapper.map.map[i][j].count < 5:
+                    if self.mapper.map.map[i][j].count < 7:
                         grid_cost = self._calculateGridCost(point) * 0.1
 
                         total_cost = c_cost + d_cost + grid_cost
 
-                        # print(c_cost, d_cost, grid_cost, node_dist)
-
                         if total_cost < min_cost:
+                            print(c_cost, d_cost, grid_cost, node_dist)
                             min_cost = total_cost
                             best_point = point
 
-        if best_point is None:
+        if best_point is None or min_cost == float("inf"):
             rospy.logwarn("Cannot find best node...")
-            return createPathFromNode(self.node)
 
-        print(total_cost)
+            for i in range(2):
+                self.node.rollback()
+
+            return createPathFromNode(self.node)
 
         new_node = Node(best_point, self.node)
         self.node = new_node
+        self.node.findBestNode(self.mapper.map)
+
+        self.test_pub.publish(self.node.parsePoint())
 
         return createPathFromNode(self.node)
 
@@ -201,7 +215,7 @@ class PathPlanner(object):
         distance = np.hypot(
             self.node.data[0] - point[0], self.node.data[1] - point[1])
 
-        b = (distance > 0.5 and distance < 5.0)
+        b = (distance > 0.1 and distance < 3.0)
 
         return b, distance * self.d_gain
 
@@ -210,13 +224,20 @@ class PathPlanner(object):
             point[0] - self.node.data[0], point[1] - self.node.data[1]
         ])
 
-        dot = np.dot(state_vec, point_vec)
-        theta = abs(m.acos(
-            (dot) / (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
+        try:
+            dot = np.dot(state_vec, point_vec)
+            theta = abs(m.acos(
+                (dot) / (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
+
+        except Exception as ex:
+            print(point_vec)
+            print(state_vec)
+            rospy.logwarn(ex)
+            return False, 0
 
         cost = theta * self.c_gain
 
-        if theta >= (m.pi / 2.0) * 0.6:
+        if theta >= (m.pi / 2.0) * 0.45:
             cost = float("inf")
 
         return dot > 0, cost
@@ -243,14 +264,14 @@ class PathPlanner(object):
             for i in range(abs(dist_y)):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost == 10:
+                if cost >= 10:
                     return float("inf")
                 total_cost += cost
 
             for j in range(d):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1)) + (j * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost == 10:
+                if cost >= 10:
                     return float("inf")
                 total_cost += cost
 
@@ -258,23 +279,23 @@ class PathPlanner(object):
             for i in range(abs(dist_x)):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost == 10:
+                if cost >= 10:
                     return float("inf")
                 total_cost += cost
 
             for j in range(d):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1)) + (j * (1 if positive_y else -1))].count
-                if cost == 10:
+                if cost >= 10:
                     return float("inf")
                 total_cost += cost
 
         return total_cost
 
-    def _createPath(self, goal):
-        cx, cy, cyaw, _, _ = calc_spline_course(
-            [self.state.x, goal[0]], [self.state.y, goal[1]], ds=0.1)
-        return PathResponse(None, None, None, cx, cy, cyaw)
+    # def _createPath(self, goal):
+    #     cx, cy, cyaw, _, _ = calc_spline_course(
+    #         [self.state.x, goal[0]], [self.state.y, goal[1]], ds=0.1)
+    #     return PathResponse(None, None, None, cx, cy, cyaw)
 
     def getMiddlePoints(self, obstacles):
         centers = []
@@ -355,6 +376,40 @@ class Node(object):
         self.data = data
         self.parent = parent
 
+    def findBestNode(self, map):
+        # map = GridMap()
+        i, j = map.getGridIdx(self.data)
+
+        best_grid = map.map[i][j]
+        best_cost = best_grid.count
+
+        for a in range(-1, 2):
+            for b in range(-1, 2):
+                grid = map.map[i + a][j + b]
+                new_cost = grid.count
+                if new_cost < best_cost:
+                    best_grid = grid
+                    best_cost = new_cost
+
+        if self.parent.data[0] == best_grid.x and self.parent.data[1] == best_grid.y:
+            return False
+
+        self.data = [best_grid.x, best_grid.y]
+        print(self.data)
+        return True
+
+    def rollback(self):
+        if self.parent is not None:
+            self.data = self.parent.data
+            self.parent = self.parent.parent
+
+    def parsePoint(self):
+        p = PointStamped(
+            Header(None, rospy.Time.now(), frame_id),
+            Point(self.data[0], self.data[1], 0.0)
+        )
+        return p
+
 
 def createPathFromNode(node):
     xs = []
@@ -376,7 +431,7 @@ def createPathFromNode(node):
 
     except Exception as ex:
         rospy.logwarn("Cannot create path from nodes")
-        # rospy.logwarn(ex)
+        rospy.logwarn(ex)
 
     return PathResponse()
 
@@ -409,14 +464,17 @@ if __name__ == "__main__":
 
     target_idx = 0
 
-    r = rospy.Rate(2)
+    r = rospy.Rate(10)
     while not rospy.is_shutdown():
         msg = ControlMessage()
         msg.Gear = int(2)
 
-        planner.mapper.map = GridMap(planner.mapper.xrange, planner.mapper.yrange,
-                                     planner.mapper.size, obstacles=planner.mapper.obstacles)
-        grid_pub.publish(planner.mapper.map.parseOccupiedGrid())
+        new_layer = GridMap(planner.mapper.xrange, planner.mapper.yrange,
+                            planner.mapper.size, obstacles=planner.mapper.obstacles)
+        planner.mapper.map += new_layer
+
+        if grid_pub.get_num_connections() > 0:
+            grid_pub.publish(planner.mapper.map.parseOccupiedGrid())
 
         path = planner.planning()
 
