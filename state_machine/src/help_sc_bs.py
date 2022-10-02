@@ -15,7 +15,7 @@ from geometry_msgs.msg import PoseStamped
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
-from std_msgs.msg import Float32, Int16
+from std_msgs.msg import Float32, Int16, UInt8
 from geometry_msgs.msg import PoseStamped
 
 
@@ -423,11 +423,14 @@ class StateMachine(object):
 
 
 if __name__ == "__main__":
-    state = State(odometry_topic="/ndt_matching/ndt_pose", test=False)
-    # state = OdomState(odometry_topic="/odometry/kalman")
+    # state = State(odometry_topic="/ndt_matching/ndt_pose", test=False)
+    state = OdomState(odometry_topic="/odometry/kalman")
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
+
+    mission_state_pub = rospy.Publisher("/mission_state", UInt8, queue_size=1) 
+
 
     last_time = rospy.Time.now()
     current_time = rospy.Time.now()
@@ -441,4 +444,7 @@ if __name__ == "__main__":
             cmd_pub.publish(msg)
             print(controller.mission_state)
             print(msg)
+            
+        mission_state_pub.publish(int(controller.mission_state))
+
         r.sleep()
