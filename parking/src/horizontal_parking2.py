@@ -49,16 +49,16 @@ class ParkingState(Enum):
         return self.value
 
 
+file = rospkg.RosPack().get_path("parking") + "/parking/" + \
+    rospy.get_param("/horizontal_parking/file", "festi_parking.csv")
+
 class HorizontalParking(object):
-    def __init__(self, state, stanley, cmd_pub, area):
+    def __init__(self, state, stanley, cmd_pub, selector):
         self.state = state
         self.stanely = stanley
-        self.area = area
-        
-        file = rospkg.RosPack().get_path("parking") + "/parking/" + \
-            rospy.get_param("/horizontal_parking/file", "hor_parking.csv")
+        self.selector = selector
             
-        self.parking_areas = loadCSV(file)
+        self.parking_areas = self.selector.parking_areas
         self.parking_idx = 0
         self.target_area = self.parking_areas[self.parking_idx]
 
@@ -275,8 +275,9 @@ class HorizontalParking(object):
         msg.Steer = int(m.degrees(di * (-1.0 if reverse is False else 1.0)))
         msg.Gear = 2 if reverse is False else 0
 
-        self.cmd_pub.publish(msg)
-
+        # self.cmd_pub.publish(msg)
+        return msg
+    
     def publishParkingArea(self):
         msg = MarkerArray()
 
@@ -363,12 +364,14 @@ if __name__ == "__main__":
 
     state = State(odometry_topic="/odometry/kalman", hz=30, test=True)
     stanley = Stanley()
-    parking_area = ParkingAreaSelector()
+    
+    parking_areas = loadCSV(file)
+    selector = ParkingAreaSelector(state=state, parking_areas=parking_areas)
     
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 
-    hp = HorizontalParking(state, stanley, cmd_pub, parking_area)
+    hp = HorizontalParking(state, stanley, cmd_pub, selector)
 
     r = rospy.Rate(30)
     while not rospy.is_shutdown():

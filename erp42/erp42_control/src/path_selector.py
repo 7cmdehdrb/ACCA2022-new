@@ -94,7 +94,7 @@ class PathSelector(object):
         waypoints_path = rospkg.RosPack().get_path("path_plan") + "/waypoints/" + \
             rospy.get_param("/waypoints/waypoints_file", "waypoints.csv")
         file_path = rospkg.RosPack().get_path("path_plan") + "/path/" + \
-            rospy.get_param("/LoadPath/path_name", "path.csv")
+            rospy.get_param("/LoadPath/path_name", "festi_path.csv")
 
         node = None
 

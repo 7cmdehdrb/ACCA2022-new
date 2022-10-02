@@ -315,11 +315,10 @@ class StateMachine(object):
         return msg
 
     def horizontalParkingControl(self):
-            if self.horizontal_parking.search_path is None:
-                self.horizontal_parking.setSearchPath(self.path)
+        if self.horizontal_parking.search_path is None:
+            self.horizontal_parking.setSearchPath(self.path)
 
-            self.horizontal_parking.loop()
-            return self.horizontal_parking.cmd_msg
+        self.horizontal_parking.loop()
         
     def rightControl(self):
         desired_speed = self.selector.path.desired_speed

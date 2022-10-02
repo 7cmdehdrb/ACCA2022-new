@@ -14,20 +14,7 @@ from header import Queue
 from gaussian import Gaussian, gaussianConvolution
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-score_threshold = rospy.get_param("/global_localizer/score_threshold", 5.0)
-=======
-score_threshold = rospy.get_param("/global_localizer/score_threshold", 5.)
->>>>>>> e6a0dea53026340178d05cc0311268b2b6fbb391
-
-
-def thresholdCallback(msg):
-    global score_threshold
-    score_threshold = msg.data
-=======
-score_threshold = rospy.get_param("/global_localizer/score_threshold", 0.5)
->>>>>>> 8d41b4996f5ba5a91c0a109914e47946ebee631a
+score_threshold = rospy.get_param("/global_localizer/score_threshold", 100)
 
 
 class Odom(object):
@@ -89,18 +76,10 @@ class ScanStatus(object):
 if __name__ == "__main__":
     rospy.init_node("global_localizer")\
 
-<<<<<<< HEAD
-    hz = 30
-    freq = 1 / hz
-
-    # hz = 100.
-    # freq = 1 / hz
-=======
     ignore = True
 
     hz = 30.
     freq = 1 / hz
->>>>>>> 8d41b4996f5ba5a91c0a109914e47946ebee631a
 
     map_frame = Odom(topic="/ndt_matching/ndt_pose")
     odom_frame = Odom(topic="/odometry/kalman")
@@ -110,9 +89,9 @@ if __name__ == "__main__":
     initial_pose_pub = rospy.Publisher(
         "/initialpose", PoseWithCovarianceStamped, queue_size=1)
 
-    tol_sub = rospy.Subscriber(
-        "/global_localizer/threshold", Float32, callback=thresholdCallback
-    )
+    # tol_sub = rospy.Subscriber(
+    #     "/global_localizer/threshold", Float32, callback=thresholdCallback
+    # )
 
 
     tf_pub = tf.TransformBroadcaster()
@@ -128,31 +107,6 @@ if __name__ == "__main__":
             # Subscribe odom / map
             if scan_status.queue.isTrue(threshhold=10):
                 # Trustable TF
-<<<<<<< HEAD
-                dyaw = map_frame.yaw - odom_frame.yaw
-
-                new_trans = (
-                    map_frame.pose.pose.position.x -
-                    (odom_frame.pose.pose.position.x * m.cos(dyaw) -
-                     odom_frame.pose.pose.position.y * m.sin(dyaw)),
-                    map_frame.pose.pose.position.y -
-                    (odom_frame.pose.pose.position.x * m.sin(dyaw) +
-                     odom_frame.pose.pose.position.y * m.cos(dyaw)),
-                    0.
-                )
-                new_rot = quaternion_from_euler(0., 0., dyaw)
-                d = np.hypot(new_trans[0] - trans[0], new_trans[1] - trans[0])
-                
-
-                print(dist)
-
-                if abs(dist - d) <= 1. or trans == (0., 0., 0.):
-                    trans = new_trans
-                    rot = new_rot
-
-                dist = d
-                
-=======
                 dist = np.hypot(map_frame.pose.pose.position.x - gps.point.x,
                                 map_frame.pose.pose.position.y - gps.point.y)
 
@@ -177,7 +131,6 @@ if __name__ == "__main__":
 
                     for _ in range(10):
                         scan_status.queue.inputValue(False)
->>>>>>> 8d41b4996f5ba5a91c0a109914e47946ebee631a
 
             elif scan_status.queue.isFalse(threshhold=10):
                 # Untrustable TF : Relocalize

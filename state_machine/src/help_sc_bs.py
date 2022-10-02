@@ -114,7 +114,7 @@ class StateMachine(object):
         # Parking
         self.parking = Parking(state=self.state)
         # self.horizontal_parking = HorizontalParking(
-        #     state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
+        #     state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/festi_parking.csv")
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -246,7 +246,7 @@ class StateMachine(object):
         dis = np.hypot([self.state.x - panel.x],
                        [self.state.y - panel.y])
 
-        if dis < 10:
+        if dis < 8:
             # Move to panel
             if self.delivery.is_delivery_path is True:
                 desired_speed *= 0.8
@@ -329,9 +329,14 @@ class StateMachine(object):
         return msg
 
     def horizontalParkingControl(self):
-        self.horizontal_parking.loop()
-        return self.horizontal_parking.cmd_msg
+        if self.horizontal_parking.search_path is None:
+            self.horizontal_parking.setSearchPath(self.path)
 
+        self.horizontal_parking.loop()
+        
+        return self.horizontal_parking.cmd_msg
+    
+    
     def parkingControl(self):
         # WTF
         desired_speed = self.selector.path.desired_speed
@@ -418,8 +423,8 @@ class StateMachine(object):
 
 
 if __name__ == "__main__":
-    # state = State(odometry_topic="/odometry/kalman", test=True)
-    state = OdomState(odometry_topic="/odometry/kalman")
+    state = State(odometry_topic="/ndt_matching/ndt_pose", test=False)
+    # state = OdomState(odometry_topic="/odometry/kalman")
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)

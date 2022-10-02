@@ -1,5 +1,6 @@
 <launch>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <arg name="odometry_enable" default="false" />
     <arg name="save_waypoint" default="false" />
     <arg name="db_name" default="/kcity_bs.db" />
@@ -8,8 +9,13 @@
     <arg name="save_waypoint" default="false" />
     <arg name="db_name" default="/0924_bs.db" />
 >>>>>>> e6a0dea53026340178d05cc0311268b2b6fbb391
+=======
+    <arg name="odometry_enable" default="false" />
+    <arg name="save_waypoint" default="false" />
+    <arg name="db_name" default="/festi.db" />
+>>>>>>> a4aea67535adcd07646a012095d22130c1630e9d
     <arg name="odom_topic" default="odometry/kalman"/>
-    <arg name="waypoints_file" default="bs_waypoint.csv" />
+    <arg name="waypoints_file" default="festi.csv" />
 
     <!-- <include file="$(find map_matching_localization)/launch/localization.launch" if="$(arg odometry_enable)" /> -->
 

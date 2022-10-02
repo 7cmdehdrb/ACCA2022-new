@@ -187,7 +187,11 @@ class StateMachine(object):
             #                                       desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
             return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0
+<<<<<<< HEAD
                                   )
+=======
+            )
+>>>>>>> a4aea67535adcd07646a012095d22130c1630e9d
 
         except IndexError as ie:
             rospy.logwarn(ie)

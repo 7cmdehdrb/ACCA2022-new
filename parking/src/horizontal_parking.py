@@ -70,7 +70,7 @@ class HorizontalParking(object):
             "/horizontal_parking/parking_area", MarkerArray, queue_size=5
         )
 
-        self.horizontal_parking_state = HorizontalParkingState.Straight
+        self.horizontal_parking_state = HorizontalParkingState.Search
         self.parking_areas = loadCSV(file_path)
 
         self.cmd_pub = cmd_pub
@@ -97,7 +97,7 @@ class HorizontalParking(object):
         self.parking_pub.publish(msg)
 
     # Loop : Stop for <duration> secs
-    def wait_for_stop(self, duration):
+    def wait_for_stop(self, duration, brake=70):
         current_time = rospy.Time.now()
         last_time = rospy.Time.now()
 
@@ -196,16 +196,19 @@ class HorizontalParking(object):
             [circle1.pose.orientation.x, circle1.pose.orientation.y, circle1.pose.orientation.z, circle1.pose.orientation.w])
 
         # Path : current state to horizontal position of lot
-        scx, scy, scyaw, _, _ = reeds_shepp_path_planning(
-            sx=self.state.x,
-            sy=self.state.y,
-            syaw=self.state.yaw,
-            gx=start_x,
-            gy=start_y,
-            gyaw=gyaw,
-            maxc=0.1,
-            step_size=0.1
-        )
+        # scx, scy, scyaw, _, _ = reeds_shepp_path_planning(
+        #     sx=self.state.x,
+        #     sy=self.state.y,
+        #     syaw=self.state.yaw,
+        #     gx=start_x,
+        #     gy=start_y,
+        #     gyaw=gyaw,
+        #     maxc=0.5,
+        #     step_size=0.1
+        # )
+        
+        scx, scy, scyaw, _, _ = calc_spline_course(
+            [self.state.x, start_x], [self.state.y, start_y], ds=0.1)
 
         # Path : Extra path for spath
         scx2, scy2, scyaw2, _, _ = calc_spline_course(
@@ -348,9 +351,11 @@ class HorizontalParking(object):
     def loop(self):
         msg = ControlMessage()
         reverse = False
+        
+        print(self.horizontal_parking_state)
 
         if self.horizontal_parking_state == HorizontalParkingState.Search:
-            msg.Speed = int(7)
+            msg.Speed = int(5)
             msg.Gear = int(2)
             self.current_path = self.search_path
 
@@ -359,7 +364,7 @@ class HorizontalParking(object):
                 self.target_idx = 0
 
                 self.horizontal_parking_state = HorizontalParkingState.Back
-                self.wait_for_stop(2)
+                self.wait_for_stop(2, 70)
 
         elif self.horizontal_parking_state == HorizontalParkingState.Back:
             msg.Speed = int(5)
@@ -424,35 +429,49 @@ class HorizontalParking(object):
         else:
             rospy.logfatal("Invalid Horizontal Parking State")
 
-        di, self.target_idx = self.stanley.stanley_control(
-            state=self.state,
-            cx=self.current_path.cx,
-            cy=self.current_path.cy,
-            cyaw=self.current_path.cyaw,
-            last_target_idx=self.target_idx,
-            reverse=reverse
-        )
 
-        di = np.clip(di, -m.radians(30), m.radians(30))
-        msg.Steer = m.degrees(di * (-1.0 if reverse is False else 1.0))
+        if self.target_idx >= len(self.current_path.cx) - 1:
+            self.target_idx = len(self.current_path.cx) - 5
 
-        car_vec = np.array([
-            m.cos(self.state.yaw + m.pi if reverse is True else 0.0), m.sin(
-                self.state.yaw + m.pi if reverse is True else 0.0)
-        ])
-        position_vec = np.array(
-            [self.current_path.cx[-1] - self.state.x,
-                self.current_path.cy[-1] - self.state.y]
-        )
+        try:
 
-        theta = m.acos(np.dot(car_vec, position_vec) /
-                       (np.hypot(car_vec[0], car_vec[1]) * np.hypot(position_vec[0], position_vec[1])))
+            di, self.target_idx = self.stanley.stanley_control(
+                state=self.state,
+                cx=self.current_path.cx,
+                cy=self.current_path.cy,
+                cyaw=self.current_path.cyaw,
+                last_target_idx=self.target_idx,
+                reverse=reverse
+            )
 
-        if self.target_idx >= len(self.current_path.cx) - 5 and abs(theta) >= m.pi / 2.0:
+            di = np.clip(di, -m.radians(30), m.radians(30))
+            msg.Steer = m.degrees(di * (-1.0 if reverse is False else 1.0))
+
+            car_vec = np.array([
+                m.cos(self.state.yaw + m.pi if reverse is True else 0.0), m.sin(
+                    self.state.yaw + m.pi if reverse is True else 0.0)
+            ])
+            position_vec = np.array(
+                [self.current_path.cx[-1] - self.state.x,
+                    self.current_path.cy[-1] - self.state.y]
+            )
+
+            theta = m.acos(np.dot(car_vec, position_vec) /
+                        (np.hypot(car_vec[0], car_vec[1]) * np.hypot(position_vec[0], position_vec[1])))
+
+            if self.target_idx >= len(self.current_path.cx) - 20:
+                self.horizontal_parking_state = HorizontalParkingState(
+                    int(self.horizontal_parking_state) + 1)
+                self.target_idx = 0
+                self.wait_for_stop(2)
+
+        except Exception as ex:
+            rospy.logwarn(ex)
             self.horizontal_parking_state = HorizontalParkingState(
-                int(self.horizontal_parking_state) + 1)
+                    int(self.horizontal_parking_state) + 1)
             self.target_idx = 0
             self.wait_for_stop(2)
+
 
         print("State : %d\tTarget idx : %d\tLength : %d" %
               (int(self.horizontal_parking_state), self.target_idx, len(self.current_path.cx)))
@@ -467,8 +486,13 @@ if __name__ == "__main__":
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 
-    hp = HorizontalParking(state=state, cmd_pub=cmd_pub,
-                           file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/bs_parking.csv", search_path=None)
+    # state, cmd_pub, stanley, search_path, file_path
+    hp = HorizontalParking(state=state, cmd_pub=cmd_pub, stanley=stanley,
+                           file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/festi_parking.csv", search_path=None)
+
+    hp.horizontal_parking_state = HorizontalParkingState.Straight
+    hp.target_idx = 1
+    hp.createPath()
 
     r = rospy.Rate(30)
     while not rospy.is_shutdown():

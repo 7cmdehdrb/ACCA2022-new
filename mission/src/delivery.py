@@ -39,31 +39,32 @@ class Delivery():
         self.markers = msg
         
     def delivery_A(self):
-        for marker in self.markers.markers:
-            for i in range(3):
-                if (marker.id)//10000 in self.panel[i]:
-                    m_to_p = PoseStamped()
+        if len(self.markers.markers)>0:
+            for marker in self.markers:
+                for i in range(3):
+                    if (marker.id)//10000 in self.panel[i]:
+                        m_to_p = PoseStamped()
 
-                    m_to_p.header.frame_id = "velodyne"
-                    m_to_p.header.stamp = rospy.Time(0)
-                    m_to_p.pose.position.x = marker.pose.position.x
-                    m_to_p.pose.position.y = marker.pose.position.y
-                    m_to_p.pose.position.z = 0
-                    m_to_p.pose.orientation.x = 0
-                    m_to_p.pose.orientation.y = 0
-                    m_to_p.pose.orientation.z = 0
-                    m_to_p.pose.orientation.w = 1
+                        m_to_p.header.frame_id = "velodyne"
+                        m_to_p.header.stamp = rospy.Time(0)
+                        m_to_p.pose.position.x = marker.pose.position.x
+                        m_to_p.pose.position.y = marker.pose.position.y
+                        m_to_p.pose.position.z = 0
+                        m_to_p.pose.orientation.x = 0
+                        m_to_p.pose.orientation.y = 0
+                        m_to_p.pose.orientation.z = 0
+                        m_to_p.pose.orientation.w = 1
 
-                    m_to_p = self.tf_sub.transformPose("map", m_to_p)
+                        m_to_p = self.tf_sub.transformPose("map", m_to_p)
 
-                    self.ax.append(m_to_p.pose.position.x)
-                    self.ay.append(m_to_p.pose.position.y)
+                        self.ax.append(m_to_p.pose.position.x)
+                        self.ay.append(m_to_p.pose.position.y)
 
-                    self.panel_id[i] += 1
+                        self.panel_id[i] += 1
 
-        self.panel_A.x = np.mean(self.ax)
-        self.panel_A.y = np.mean(self.ay)
-          
+            self.panel_A.x = np.mean(self.ax)
+            self.panel_A.y = np.mean(self.ay)
+            
     def delivery_B(self, panel_id):
         for marker in self.markers.markers:
             if (marker.id)//10000 == self.panel[panel_id.index(max(panel_id))][1]:
