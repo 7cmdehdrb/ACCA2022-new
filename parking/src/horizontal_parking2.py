@@ -12,6 +12,7 @@ from cubic_spline_planner import calc_spline_course
 from load_parking_area import loadCSV
 from enum import Enum
 from time import sleep
+from parking_area_selector import ParkingAreaSelector
 
 # msgs
 from std_msgs.msg import *
@@ -49,12 +50,14 @@ class ParkingState(Enum):
 
 
 class HorizontalParking(object):
-    def __init__(self, state, stanley, cmd_pub):
+    def __init__(self, state, stanley, cmd_pub, area):
         self.state = state
         self.stanely = stanley
-
+        self.area = area
+        
         file = rospkg.RosPack().get_path("parking") + "/parking/" + \
             rospy.get_param("/horizontal_parking/file", "hor_parking.csv")
+            
         self.parking_areas = loadCSV(file)
         self.parking_idx = 0
         self.target_area = self.parking_areas[self.parking_idx]
@@ -360,11 +363,12 @@ if __name__ == "__main__":
 
     state = State(odometry_topic="/odometry/kalman", hz=30, test=True)
     stanley = Stanley()
-
+    parking_area = ParkingAreaSelector()
+    
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 
-    hp = HorizontalParking(state, stanley, cmd_pub)
+    hp = HorizontalParking(state, stanley, cmd_pub, parking_area)
 
     r = rospy.Rate(30)
     while not rospy.is_shutdown():
