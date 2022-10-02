@@ -146,8 +146,8 @@ class PathPlanner(object):
             "/cone_tracker/node", PointStamped, queue_size=1)
         self.node = Node(data=[self.state.x, self.state.y], parent=None)
 
-        xrange = [-5, 50]
-        yrange = [-30, 30]
+        xrange = [-5, 25]
+        yrange = [-25, 5]
         size = 0.25
 
         self.mapper = Mapper(xrange, yrange, size, False)
@@ -155,16 +155,13 @@ class PathPlanner(object):
     def planning(self):
         if len(self.mapper.obstacles) < 4:
             rospy.logwarn("No Obstacle Datas")
-            return PathResponse()
+            return None
 
         min_cost = float("inf")
         node_dist = 0.0
         best_point = None
 
         points = self.getMiddlePoints(obstacles=self.mapper.obstacles)
-
-        # state_vec = np.array(
-        #     [m.cos(self.state.yaw), m.sin(self.state.yaw)])
 
         if self.node.parent is None:
             state_vec = np.array(
@@ -230,8 +227,7 @@ class PathPlanner(object):
                 (dot) / (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
 
         except Exception as ex:
-            print(point_vec)
-            print(state_vec)
+            rospy.logwarn("WTF")
             rospy.logwarn(ex)
             return False, 0
 
@@ -291,11 +287,6 @@ class PathPlanner(object):
                 total_cost += cost
 
         return total_cost
-
-    # def _createPath(self, goal):
-    #     cx, cy, cyaw, _, _ = calc_spline_course(
-    #         [self.state.x, goal[0]], [self.state.y, goal[1]], ds=0.1)
-    #     return PathResponse(None, None, None, cx, cy, cyaw)
 
     def getMiddlePoints(self, obstacles):
         centers = []
@@ -391,11 +382,11 @@ class Node(object):
                     best_grid = grid
                     best_cost = new_cost
 
-        if self.parent.data[0] == best_grid.x and self.parent.data[1] == best_grid.y:
-            return False
+        if self.parent is not None:
+            if self.parent.data[0] == best_grid.x and self.parent.data[1] == best_grid.y:
+                return False
 
         self.data = [best_grid.x, best_grid.y]
-        print(self.data)
         return True
 
     def rollback(self):
@@ -419,8 +410,11 @@ def createPathFromNode(node):
         if node is None:
             break
 
+        # node.findBestNode(planner.mapper.map)
+
         xs.append(node.data[0])
         ys.append(node.data[1])
+
         node = node.parent
 
     try:
@@ -433,18 +427,7 @@ def createPathFromNode(node):
         rospy.logwarn("Cannot create path from nodes")
         rospy.logwarn(ex)
 
-    return PathResponse()
-
-
-def threadMapping():
-    global planner, grid_pub
-
-    while not rospy.is_shutdown():
-        layer = GridMap(planner.mapper.xrange, planner.mapper.yrange,
-                        planner.mapper.size, obstacles=planner.mapper.obstacles)
-        planner.mapper.map = planner.mapper.map + layer
-        grid_pub.publish(planner.mapper.map.parseOccupiedGrid())
-        sleep(0.5)
+    return None
 
 
 if __name__ == "__main__":
@@ -459,9 +442,10 @@ if __name__ == "__main__":
 
     grid_pub = rospy.Publisher(
         "/cone_tracker/gridmap", OccupancyGrid, queue_size=1)
-    path_pub = rospy.Publisher("/cone_path", Path, queue_size=10)
+    path_pub = rospy.Publisher("/cone_tracker/cone_path", Path, queue_size=10)
     cmd_pub = rospy.Publisher("/cmd_msg", ControlMessage, queue_size=1)
 
+    path = None
     target_idx = 0
 
     r = rospy.Rate(10)
@@ -476,21 +460,37 @@ if __name__ == "__main__":
         if grid_pub.get_num_connections() > 0:
             grid_pub.publish(planner.mapper.map.parseOccupiedGrid())
 
-        path = planner.planning()
+        temp = planner.planning()
+
+        if temp is not None:
+            path = temp
 
         try:
-            di, target_idx = stanley.stanley_control(
-                state, path.cx, path.cy, path.cyaw, last_target_idx=target_idx)
-            di = np.clip(di, -m.radians(30), m.radians(30))
+            if path is not None:
+                di, target_idx = stanley.stanley_control(
+                    state, path.cx, path.cy, path.cyaw, last_target_idx=target_idx)
+                di = np.clip(di, -m.radians(30), m.radians(30))
 
-            msg.Speed = int(3)
-            msg.Steer = int(m.degrees(-di))
+                msg.Speed = int(3)
+                msg.Steer = int(m.degrees(-di))
+
+                path_pub.publish(planner.parsePath(path))
+
+            else:
+                print("HELLO WORLD!")
+
+        except IndexError as ie:
+            target_idx = 0
+            rospy.logwarn(ie)
 
         except Exception as ex:
-            msg.Speed = int(0)
-            # rospy.logwarn(ex)
+            rospy.logwarn("Cannot make cmd_msg")
+            rospy.logwarn(ex)
 
-        path_pub.publish(planner.parsePath(path))
+        finally:
+            msg.Speed = int(0)
+            msg.brake = int(70)
+
         cmd_pub.publish(msg)
 
         r.sleep()
