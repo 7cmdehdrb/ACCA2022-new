@@ -30,7 +30,6 @@ try:
 except Exception as ex:
     rospy.logfatal(ex)
 
-
 class ParkingState(Enum):
     NONE = 0
     SEARCH = 1
@@ -68,6 +67,8 @@ class HorizontalParking(object):
 
         self.search_path, self.back_path = None
         self.alignPath1, self.alignPath2 = None
+
+        self.cmd_msg = ControlMessage()
 
         # ETC
         self.cmd_pub = cmd_pub
@@ -299,6 +300,8 @@ class HorizontalParking(object):
         di = np.clip(di, -m.radians(30), m.radians(30))
         msg.Steer = int(m.degrees(di * (-1.0 if reverse is False else 1.0)))
         msg.Gear = 2 if reverse is False else 0
+
+        self.cmd_msg = msg
 
         # self.cmd_pub.publish(msg)
         return msg

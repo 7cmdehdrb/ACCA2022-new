@@ -20,7 +20,6 @@ from geometry_msgs.msg import PoseStamped
 
 rospy.init_node("state_machine")
 
-
 try:
     sys.path.append(rospkg.RosPack().get_path("erp42_control") + "/src")
 
@@ -35,7 +34,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
-    from horizontal_parking import HorizontalParking
+    from horizontal_parking2 import HorizontalParking, ParkingState
     
 except Exception as ex:
     rospy.logfatal(ex)
@@ -111,9 +110,8 @@ class StateMachine(object):
         self.dynamic = Lidar(state=self.state)
 
         # Parking
-        self.file_path = "/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv"
         self.horizontal_parking = HorizontalParking(
-            state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path=self.file_path)
+            state=self.state, stanley=self.stanley, cmd_pub=cmd_pub)
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -205,7 +203,7 @@ class StateMachine(object):
             self.traffic.main()
             # rospy.logfatal(str(self.traffic.msg.straight))
 
-            if len(self.path.cx) - 25 < self.target_idx:
+            if len(self.path.cx) - 30 < self.target_idx:
                 # Stop if required
                 try:
                     if self.selector.path.next.path_type == PathType.STRAIGHT:
@@ -315,10 +313,17 @@ class StateMachine(object):
         return msg
 
     def horizontalParkingControl(self):
+        desired_speed = self.selector.path.desired_speed
+
         if self.horizontal_parking.search_path is None:
             self.horizontal_parking.setSearchPath(self.path)
 
-        self.horizontal_parking.loop()
+        msg = self.horizontal_parking.control()
+        
+        if self.horizontal_parking.parking_state == ParkingState.NONE:
+            msg = self.mainControl(desired_speed=desired_speed)
+            
+        return msg
         
     def rightControl(self):
         desired_speed = self.selector.path.desired_speed

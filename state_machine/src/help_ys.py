@@ -35,7 +35,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
-    from horizontal_parking import HorizontalParking
+    from horizontal_parking2 import HorizontalParking
     
 except Exception as ex:
     rospy.logfatal(ex)
@@ -203,7 +203,7 @@ class StateMachine(object):
             self.traffic.main()
             # rospy.logfatal(str(self.traffic.msg.straight))
 
-            if len(self.path.cx) - 25 < self.target_idx:
+            if len(self.path.cx) - 30 < self.target_idx:
                 # Stop if required
                 try:
                     if self.selector.path.path_type == PathType.STRAIGHT:
