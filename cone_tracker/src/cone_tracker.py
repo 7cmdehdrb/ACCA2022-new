@@ -43,7 +43,7 @@ except Exception as ex:
     rospy.logfatal(ex)
 
 
-frame_id = "map"
+frame_id = "odom"
 
 
 class Cone(object):
@@ -64,6 +64,7 @@ class Cone(object):
 
 class Mapper(object):
     def __init__(self):
+        
         self.cones = []
 
         self.cone_pub = rospy.Publisher(
@@ -108,6 +109,8 @@ class Mapper(object):
                 self.cones += [new_cone]
 
         return self.cones
+
+
 
     def parseArray(self):
         res = []
@@ -318,7 +321,7 @@ if __name__ == "__main__":
     r = rospy.Rate(30)
     while not rospy.is_shutdown():
 
-        if len(cone_tracker.map.cones) < 10:
+        if len(cone_tracker.map.cones) < 4:
             r.sleep()
             continue
 

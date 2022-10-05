@@ -15,11 +15,12 @@ from sensor_msgs.point_cloud2 import read_points
 
 
 def pclCallback(msg):
+    print(msg.header)
     msg.header.frame_id = "velodyne"
     msg.header.stamp = rospy.Time.now()
     pcl_pub.publish(msg)
     rospy.loginfo("Publishing...")
-
+    
 
 if __name__ == "__main__":
     rospy.init_node("velodyne2")

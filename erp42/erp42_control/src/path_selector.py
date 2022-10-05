@@ -86,7 +86,7 @@ class PathSelector(object):
             return 0
 
         # rospy.loginfo("Send Request...")
-        # rospy.loginfo(self.path.data)
+        rospy.loginfo(self.path.start)
 
         self.req_pub.publish(self.path.data)
 
