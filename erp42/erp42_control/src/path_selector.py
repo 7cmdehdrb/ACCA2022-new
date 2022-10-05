@@ -28,6 +28,9 @@ class MissionState(Enum):
     RIGHT = 7
     END = 9
 
+    def __int__(self):
+        return self.value
+        
 
 class Waypoint(object):
     def __init__(self, id, is_end):

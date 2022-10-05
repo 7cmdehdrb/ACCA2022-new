@@ -8,6 +8,7 @@ import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from geometry_msgs.msg import *
 from visualization_msgs.msg import*
+from std_msgs.msg import UInt8
 from parking_area import ParkingArea
 import sys
 import rospkg
@@ -38,25 +39,30 @@ class ParkingAreaSelector():
         self.tf_sub = tf.TransformListener()
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray,
                                              callback=self.obstacleCallback)
-
+        rospy.Subscriber("/mission_state", UInt8, callback=self.missionCallback)
+        
+    def missionCallback(self, msg):
+        self.mission_state = msg
+        
     def obstacleCallback(self, msg):
-        self.obstacle_zone = []
+        if self.mission_state == 6:
+            self.obstacle_zone = []
 
-        if self.tf_sub.canTransform("map", "velodyne", rospy.Time(0)):
-            for p in msg.poses:
-                pose = PoseStamped()
-                pose.header.frame_id = "velodyne"
-                pose.header.stamp = rospy.Time(0)
+            if self.tf_sub.canTransform("map", "velodyne", rospy.Time(0)):
+                for p in msg.poses:
+                    pose = PoseStamped()
+                    pose.header.frame_id = "velodyne"
+                    pose.header.stamp = rospy.Time(0)
 
-                pose.pose = p
+                    pose.pose = p
+                    
+                    temp = self.tf_sub.transformPose(ps=pose, target_frame="map")
+                    self.obstacles.append(
+                        [temp.pose.position.x, temp.pose.position.y])
+            else:
+                rospy.loginfo("tf error")
                 
-                temp = self.tf_sub.transformPose(ps=pose, target_frame="map")
-                self.obstacles.append(
-                    [temp.pose.position.x, temp.pose.position.y])
-        else:
-            rospy.loginfo("tf error")
-            
-        self.loop()
+            self.loop()
 
     def isPossibleParkingArea(self, obstacle, box):
         dist = np.hypot(box.position.x - obstacle[0],

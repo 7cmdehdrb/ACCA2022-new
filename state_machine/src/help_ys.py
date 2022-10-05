@@ -15,7 +15,7 @@ from geometry_msgs.msg import PoseStamped
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
-from std_msgs.msg import Float32, Int16
+from std_msgs.msg import Float32, Int16, UInt8
 from geometry_msgs.msg import PoseStamped
 
 rospy.init_node("state_machine")
@@ -35,7 +35,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
-    from horizontal_parking import HorizontalParking
+    from horizontal_parking2 import HorizontalParking
     
 except Exception as ex:
     rospy.logfatal(ex)
@@ -112,9 +112,7 @@ class StateMachine(object):
 
         # Parking
         self.parking = Parking(state=self.state)
-        # self.horizontal_parking = HorizontalParking(
-        #     state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking_csv/hor_parking5.csv")
-
+    
         # Static
         self.static = Obstacle(state=self.state)
 
@@ -205,7 +203,7 @@ class StateMachine(object):
             self.traffic.main()
             # rospy.logfatal(str(self.traffic.msg.straight))
 
-            if len(self.path.cx) - 25 < self.target_idx:
+            if len(self.path.cx) - 30 < self.target_idx:
                 # Stop if required
                 try:
                     if self.selector.path.path_type == PathType.STRAIGHT:
@@ -284,24 +282,6 @@ class StateMachine(object):
 
         return msg
 
-    # bs
-    # def staticControl(self):
-    #     desired_speed = self.selector.path.desired_speed
-
-    #     self.static.main()
-        
-    #     if self.target_idx > len(self.path.cx) - 60:
-    #         msg = self.trafficControl()
-        
-    #     else:
-    #         if self.static.obs_state == True:
-    #             msg = self.static.msg
-    #         else:
-    #             msg = self.mainControl(desired_speed=desired_speed)
-        
-    #     return msg
-
-
     # ys    
     def staticControl(self):
         desired_speed = self.selector.path.desired_speed
@@ -326,10 +306,6 @@ class StateMachine(object):
             return ControlMessage(0, 0, 2, 0, 0, 150, 0)
 
         return msg
-
-    def horizontalParkingControl(self):
-        self.horizontal_parking.loop()
-        return self.horizontal_parking.cmd_msg
 
     def parkingControl(self):
         # WTF
@@ -401,10 +377,6 @@ class StateMachine(object):
 
         elif self.mission_state == MissionState.PARKING:
             msg = self.parkingControl()
-            # msg = self.horizontalParkingControl()
-
-        elif self.mission_state == MissionState.RIGHT:
-            msg = self.rightControl()
 
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()
@@ -425,6 +397,8 @@ if __name__ == "__main__":
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
+    
+    mission_state_pub = rospy.Publisher("/mission_state", UInt8, queue_size=1) 
 
     last_time = rospy.Time.now()
     current_time = rospy.Time.now()
@@ -438,4 +412,7 @@ if __name__ == "__main__":
             cmd_pub.publish(msg)
             print(controller.mission_state)
             print(msg)
+
+        mission_state_pub.publish(int(controller.mission_state))
+    
         r.sleep()

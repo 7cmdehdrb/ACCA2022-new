@@ -15,7 +15,7 @@ from geometry_msgs.msg import *
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
-from std_msgs.msg import Float32, Int16
+from std_msgs.msg import Float32, Int16, UInt8
 from geometry_msgs.msg import PoseStamped
 
 
@@ -36,7 +36,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
-    from horizontal_parking2 import HorizontalParking
+    from horizontal_parking2 import HorizontalParking, ParkingState
     
 except Exception as ex:
     rospy.logfatal(ex)
@@ -210,7 +210,7 @@ class StateMachine(object):
             self.traffic.main()
             # rospy.logfatal(str(self.traffic.msg.straight))
 
-            if len(self.path.cx) - 25 < self.target_idx:
+            if len(self.path.cx) - 30 < self.target_idx:
                 # Stop if required
                 try:
                     if self.selector.path.path_type == PathType.STRAIGHT:
@@ -362,6 +362,7 @@ class StateMachine(object):
             return ControlMessage(0, 0, 2, 0, 0, 150, 0)
 
         return msg
+    
 
     
     def horizontalParkingControl(self):
@@ -469,6 +470,9 @@ if __name__ == "__main__":
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 
+    mission_state_pub = rospy.Publisher("/mission_state", UInt8, queue_size=1) 
+
+
     last_time = rospy.Time.now()
     current_time = rospy.Time.now()
 
@@ -481,4 +485,7 @@ if __name__ == "__main__":
             cmd_pub.publish(msg)
             print(controller.mission_state)
             print(msg)
+            
+        mission_state_pub.publish(int(controller.mission_state))
+
         r.sleep()
