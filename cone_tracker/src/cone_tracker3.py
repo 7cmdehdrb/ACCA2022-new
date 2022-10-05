@@ -91,7 +91,7 @@ class Mapper(object):
         elif tendency < -10.0:
             rospy.loginfo("RIGHT : %.4f" % tendency)
         else:
-            rospy.loginfo("Tendency : %.4f" % tendency)
+            rospy.loginfo("STRAIGHT : %.4f" % tendency)
 
         self.tendency = tendency
 
@@ -289,7 +289,7 @@ class PathPlanner(object):
                 self.loop_closure = True
 
             self.node = new_node
-            self.node.findBestNode(self.mapper.map)
+            # self.node.findBestNode(self.mapper.map)
 
             if self.node.idx > self.last_idx:
                 self.last_idx = self.node.idx
@@ -316,7 +316,9 @@ class PathPlanner(object):
 
     def _calculateCurveCost(self, state_vec, point):
         state_vec = np.array([state_vec[0], state_vec[1], 0.0])
+
         car_vec = np.array([m.cos(self.state.yaw), m.sin(self.state.yaw), 0.0])
+
         target_vec = np.array(
             [point[0] - self.state.x, point[1] - self.state.y, 0.0])
         point_vec = np.array([
@@ -334,15 +336,19 @@ class PathPlanner(object):
             # if d2 < 0 => cone is right
             # if tendency > 0 is left
             dot = np.dot(state_vec, point_vec)
-            theta = abs(m.acos(
-                (dot) / (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
+            det_s = np.hypot(state_vec[0], state_vec[1])
+            det_p = np.hypot(point_vec[0], point_vec[1])
+
+            # print(dot, det_s, det_p)
+
+            theta = abs((dot / (det_s * det_p)))
 
             if (abs(d2) >= 10.0):
                 theta = abs(theta - m.radians(20))
 
                 if (d2 < 0 and self.mapper.tendency < -10.0) or (d2 > 0 and self.mapper.tendency > 10.0):
                     cost_gain = 0.7
-                    gain *= 0.5
+                    gain *= 0.8
 
                 elif (d2 < 0 and self.mapper.tendency > 10.0) or (d2 > 0 and self.mapper.tendency < -10.0):
                     gain *= float("inf")
@@ -496,6 +502,7 @@ class Node(object):
         best_cost = best_grid.count
 
         if best_cost == 0:
+            self.data = [best_grid.x, best_grid.y]
             return True
 
         for a in range(-1, 2):
@@ -535,17 +542,24 @@ def createPathFromNode(node):
         if node is None:
             break
 
-        # if node.parent is not None:
-        #     c = planner._calculateGridCost(node.parent.data, node.data)
-        #     if c == float("inf"):
-        #         return None
-
         # node.findBestNode(planner.mapper.map)
 
         xs.append(node.data[0])
         ys.append(node.data[1])
 
+        # if len(xs) == 0:
+        #     xs.append(node.data[0])
+        #     ys.append(node.data[1])
+
+        # if not (node.data[0] == xs[-1] and node.data[1] == ys[-1]):
+        #     xs.append(node.data[0])
+        #     ys.append(node.data[1])
+
         node = node.parent
+
+    # print(xs)
+    # print(ys)
+    # print("")
 
     try:
         cx, cy, cyaw, _, _ = calc_spline_course(
