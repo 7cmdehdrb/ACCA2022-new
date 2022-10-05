@@ -10,12 +10,12 @@ import numpy as np
 from enum import Enum
 from time import sleep
 # msgs
-from std_msgs.msg import Float32, Int16
-from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import *  
+from geometry_msgs.msg import *
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
-from std_msgs.msg import Float32, Int16
+from std_msgs.msg import Float32, Int16, UInt8
 from geometry_msgs.msg import PoseStamped
 
 
@@ -36,7 +36,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
-    from horizontal_parking import HorizontalParking
+    from horizontal_parking2 import HorizontalParking, ParkingState
     
 except Exception as ex:
     rospy.logfatal(ex)
@@ -84,6 +84,9 @@ class StateMachine(object):
         """
             Important Objects for Driving
         """
+        
+        # TODO: REMOVE
+        self.test_pub = rospy.Publisher("/test_point", PointStamped, queue_size=1)
 
         # Car State Object. Subscribe odometry and update [x, y, v, theta]
         self.state = state
@@ -112,9 +115,10 @@ class StateMachine(object):
         self.dynamic = Lidar(state=self.state)
 
         # Parking
-        self.parking = Parking(state=self.state)
-        # self.horizontal_parking = HorizontalParking(
-        #     state=self.state, cmd_pub=cmd_pub, stanley=self.stanley, search_path=None, file_path="/home/acca/catkin_ws/src/ACCA2022-new/parking/parking/festi_parking.csv")
+        # self.parking = Parking(state=self.state)
+        self.horizontal_parking = HorizontalParking(
+            state=self.state, stanley=self.stanley, cmd_pub=cmd_pub)
+
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -206,7 +210,7 @@ class StateMachine(object):
             self.traffic.main()
             # rospy.logfatal(str(self.traffic.msg.straight))
 
-            if len(self.path.cx) - 25 < self.target_idx:
+            if len(self.path.cx) - 30 < self.target_idx:
                 # Stop if required
                 try:
                     if self.selector.path.path_type == PathType.STRAIGHT:
@@ -232,30 +236,71 @@ class StateMachine(object):
     def deliveryControl(self):
         desired_speed = self.selector.path.desired_speed
         
+        panel = None
+        dis = None
+        
         if self.mission_state == MissionState.DELIVERY_A:
             self.delivery.delivery_A()
             panel = self.delivery.panel_A
             self.panel_id = self.delivery.panel_id
-            
+            rospy.logwarn(str(self.panel_id))
+
         elif self.mission_state == MissionState.DELIVERY_B:
+            rospy.logwarn(str(self.panel_id))
             self.delivery.delivery_B(self.panel_id)
             panel = self.delivery.panel_B
 
         # between delivery sign and erp distance
+        if panel != None:
+            dis = np.hypot([self.state.x - panel.x],
+                            [self.state.y - panel.y])
+        rospy.logwarn(str(dis))
+        rospy.logwarn(str(panel))
+        rospy.logwarn(str(self.state.x))
+        rospy.logwarn(str(self.state.y))
         
-        dis = np.hypot([self.state.x - panel.x],
-                       [self.state.y - panel.y])
-
-        if dis < 8:
+        if dis != None and dis < 15:
             # Move to panel
             if self.delivery.is_delivery_path is True:
-                desired_speed *= 0.8
+                desired_speed *= 0.5
                 msg = self.mainControl(desired_speed=desired_speed)
+                
+                if self.delivery.delivery == False:
+                    dists = []
 
-                if self.target_idx >= self.delivery.target_idx:
+                    for i in range(len(self.path.cx)):
+                        dist = np.hypot(
+                            self.path.cx[i] - panel.x, self.path.cy[i] - panel.y)
+                        dists.append(dist)
+
+                    dists = np.array(dists)
+                    self.delivery.target_idx = np.argmin(dists)
+
+                # car_vec = np.array([m.cos(self.state.yaw), m.sin(self.state.yaw)])
+                # panel_vec = np.array([panel.x - self.state.x, panel.y - self.state.y])
+
+                # theta = abs(np.dot(car_vec, panel_vec) / (np.hypot(panel_vec[0], panel_vec[1])))
+                # print(theta)
+
+                print(self.target_idx, self.delivery.target_idx)
+
+                # if theta > (m.pi / 2) * 0.8:
+                if self.target_idx >= self.delivery.target_idx-5:
+                    
+                    p = PointStamped(
+                        Header(None, rospy.Time.now(), "map"),
+                        Point(self.path.cx[self.delivery.target_idx], self.path.cy[self.delivery.target_idx], 0.0)
+                    )
+                    
+                    self.test_pub.publish(p)
+                    
+                    rospy.logfatal("stop!!!!!!!")
+                    rospy.logfatal("stop!!!!!!!")
+                    rospy.logfatal("stop!!!!!!!")
+                    rospy.logfatal("stop!!!!!!!")
                     
                     wait_for_stop(5)
-
+                    
                     self.delivery.is_delivery_path = False
                     self.request_time = rospy.Time.now()
                     self.selector.goNext()
@@ -266,15 +311,7 @@ class StateMachine(object):
                 self.request_time = rospy.Time.now()
                 self.selector.goNext()
                 self.selector.makeRequest()
-
-                dists = []
-                for i in range(len(self.path.cx)):
-                    dist = np.hypot(
-                        self.path.cx[i] - panel.x, self.path.cy[i] - panel.y)
-                    dists.append(dist)
-
-                dists = np.array(dists)
-                self.delivery.target_idx = np.argmin(dists)
+                
                 self.delivery.is_delivery_path = True
 
                 msg = self.mainControl(desired_speed=desired_speed)
@@ -327,15 +364,21 @@ class StateMachine(object):
             return ControlMessage(0, 0, 2, 0, 0, 150, 0)
 
         return msg
+    
 
+    
     def horizontalParkingControl(self):
+        desired_speed = self.selector.path.desired_speed
+
         if self.horizontal_parking.search_path is None:
             self.horizontal_parking.setSearchPath(self.path)
 
-        self.horizontal_parking.loop()
+        msg = self.horizontal_parking.control()
         
-        return self.horizontal_parking.cmd_msg
-    
+        if self.horizontal_parking.parking_state == ParkingState.NONE:
+            msg = self.mainControl(desired_speed=desired_speed)
+            
+        return msg
     
     def parkingControl(self):
         # WTF
@@ -406,8 +449,8 @@ class StateMachine(object):
             msg = self.dynamicControl()
 
         elif self.mission_state == MissionState.PARKING:
-            msg = self.parkingControl()
-            # msg = self.horizontalParkingControl()
+            # msg = self.parkingControl()
+            msg = self.horizontalParkingControl()
 
         elif self.mission_state == MissionState.RIGHT:
             msg = self.rightControl()
@@ -423,11 +466,14 @@ class StateMachine(object):
 
 
 if __name__ == "__main__":
-    state = State(odometry_topic="/ndt_matching/ndt_pose", test=False)
-    # state = OdomState(odometry_topic="/odometry/kalman")
+    # state = State(odometry_topic="/ndt_matching/ndt_pose", test=False)
+    state = OdomState(odometry_topic="/odometry/kalman")
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
+
+    mission_state_pub = rospy.Publisher("/mission_state", UInt8, queue_size=1) 
+
 
     last_time = rospy.Time.now()
     current_time = rospy.Time.now()
@@ -436,9 +482,13 @@ if __name__ == "__main__":
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
+        mission_state_pub.publish(int(controller.mission_state))
+        
         if cmd_pub.get_num_connections() > 0 or True:
             msg = controller.makeControlMessage()
             cmd_pub.publish(msg)
             print(controller.mission_state)
             print(msg)
+            
+
         r.sleep()

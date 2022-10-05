@@ -28,6 +28,9 @@ class MissionState(Enum):
     RIGHT = 7
     END = 9
 
+    def __int__(self):
+        return self.value
+        
 
 class Waypoint(object):
     def __init__(self, id, is_end):
@@ -86,7 +89,7 @@ class PathSelector(object):
             return 0
 
         # rospy.loginfo("Send Request...")
-        # rospy.loginfo(self.path.data)
+        rospy.loginfo(self.path.start)
 
         self.req_pub.publish(self.path.data)
 

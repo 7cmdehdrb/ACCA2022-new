@@ -36,6 +36,7 @@ class DB():
             self.__cur.execute(
                 query, (path.path_id, i, path.cx[i], path.cy[i], path.cyaw[i]))
         self.__conn.commit()
+        rospy.logwarn("save_path")
 
     def checkDB(self):
         query = "SELECT COUNT(*) FROM sqlite_master WHERE Name = '%s' OR Name = '%s';"

@@ -21,7 +21,11 @@ class DB():
         self.__cur.execute(
             "CREATE TABLE PathPoint(Start_point CHAR, End_point CHAR, path_id CHAR key unique);")
         self.__cur.execute(
-            "CREATE TABLE PathInfo(path_id CHAR,idx INT, x FLOAT, y FlOAT, yaw FLOAT);")
+            "CREATE TABLE PathInfo(path_id CHAR,idx INT, x FLOAT, y FlOAT, yaw FLOAT);")        
+        
+        # add GPS data
+        # self.__cur.execute(
+        #     "CREATE TABLE PathInfo(path_id CHAR,idx INT, x FLOAT, y FlOAT, yaw FLOAT, log FLOAT, lat FLOAT);")
 
     def savePoint(self, start, end, path_id):
         query = "INSERT INTO PathPoint VALUES(?, ?, ?);"
@@ -36,6 +40,23 @@ class DB():
             self.__cur.execute(
                 query, (path.path_id, i, path.cx[i], path.cy[i], path.cyaw[i]))
         self.__conn.commit()
+        
+        
+    def savePath(self, path, gps):
+        # path = PathResponse()
+        self.savePoint(path.start, path.end, path.path_id)
+    
+        # add GPS data
+        for i in range(len(path.cx)):
+            query = "INSERT INTO PathInfo VALUES(?, ?, ?, ?, ?, ?, ?);"
+            self.__cur.execute(
+                query, (path.path_id, i, path.cx[i], path.cy[i], path.cyaw[i]))
+        
+        
+        
+        self.__conn.commit()
+        
+        
 
     def checkDB(self):
         query = "SELECT COUNT(*) FROM sqlite_master WHERE Name = '%s' OR Name = '%s';"

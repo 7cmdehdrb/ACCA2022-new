@@ -67,8 +67,8 @@ class State(object):
 
 
 class OdomState(State):
-    def __init__(self, odometry_topic="/odometry/kalman", hz=30):
-        super(OdomState, self).__init__(odometry_topic, hz)
+    def __init__(self, odometry_topic="/odometry/kalman", hz=30, test=False):
+        super(OdomState, self).__init__(odometry_topic, hz, test)
         self.tf_sub = tf.TransformListener()
 
     def odomCallback(self, msg):
@@ -79,9 +79,17 @@ class OdomState(State):
             return 0
 
         msg = self.transformFrame(data=msg, target_frame="map")
+        
+        quat = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
+                msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
+        _, _, yaw = euler_from_quaternion(quat)
 
-        self.x = msg.pose.pose.position.x
-        self.y = msg.pose.pose.position.y
+
+        self.x = msg.pose.pose.position.x - \
+            (0.0 if self.test is True else (1.040 / 2) * math.cos(yaw))
+        self.y = msg.pose.pose.position.y - \
+            (0.0 if self.test is True else (1.040 / 2) * math.sin(yaw))
+
 
         dx = msg.pose.pose.position.x - self.data.pose.pose.position.x
         dy = msg.pose.pose.position.y - self.data.pose.pose.position.y
@@ -90,9 +98,6 @@ class OdomState(State):
 
         self.v = distance / dt
 
-        quat = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
-                msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
-        _, _, yaw = euler_from_quaternion(quat)
 
         self.omega = (yaw - self.yaw) / dt
         self.yaw = yaw

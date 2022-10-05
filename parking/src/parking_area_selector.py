@@ -8,6 +8,7 @@ import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from geometry_msgs.msg import *
 from visualization_msgs.msg import*
+from std_msgs.msg import UInt8
 from parking_area import ParkingArea
 import sys
 import rospkg
@@ -42,15 +43,24 @@ class ParkingAreaSelector():
     def start(self):
         self.obstacle_sub = rospy.Subscriber("/adaptive_clustering/poses", PoseArray,
                                              callback=self.obstacleCallback)
+        rospy.Subscriber("/mission_state", UInt8,
+                         callback=self.missionCallback)
+
+        self.mission_state = 0
+
+    def missionCallback(self, msg):
+        self.mission_state = msg
+        rospy.logwarn(str(self.mission_state))
 
     def obstacleCallback(self, msg):
-        self.obstacle_zone = []
+        if self.mission_state == 6:
+            self.obstacle_zone = []
 
-        if self.tf_sub.canTransform("map", "velodyne", rospy.Time(0)):
-            for p in msg.poses:
-                pose = PoseStamped()
-                pose.header.frame_id = "velodyne"
-                pose.header.stamp = rospy.Time(0)
+            if self.tf_sub.canTransform("map", "velodyne", rospy.Time(0)):
+                for p in msg.poses:
+                    pose = PoseStamped()
+                    pose.header.frame_id = "velodyne"
+                    pose.header.stamp = rospy.Time(0)
 
                 pose.pose = p
 

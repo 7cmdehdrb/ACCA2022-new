@@ -18,15 +18,19 @@
     <arg name="waypoints_file" default="school_test_waypoint.csv" /> -->
 
     <!-- school bs -->
-    <!-- <arg name="db_name" default="/school_bs.db" />
+    <arg name="db_name" default="/school_bs.db" />
     <arg name="path_name" default="school_bs.csv" />
-    <arg name="waypoints_file" default="school_test_waypoint.csv" /> -->
-
-    <!-- school festi -->
-    <arg name="db_name" default="/festi.db" />
-    <arg name="path_name" default="festi_path.csv" />
     <arg name="waypoints_file" default="school_test_waypoint.csv" />
 
+    <!-- school festi -->
+    <!-- <arg name="db_name" default="/festi.db" />
+    <arg name="path_name" default="festi_path.csv" />
+    <arg name="waypoints_file" default="school_test_waypoint.csv" /> -->
+
+    <!-- school jo -->
+    <!-- <arg name="db_name" default="/jo.db" />
+    <arg name="path_name" default="school_jo.csv" />
+    <arg name="waypoints_file" default="school_test_waypoint.csv" /> -->
 
     <!-- waypoints -->
     <include file="$(find path_plan)/launch/waypoints.launch">

@@ -124,16 +124,24 @@ class GridMap(object):
 
     def addObstacles(self, obstacles):
         for obstacle in obstacles:
+
             i, j = self.getGridIdx(obstacle)
 
-            for a in range(-5, 6):
-                for b in range(-5, 6):
-                    cost = max_cost - np.clip(abs(a) + abs(b), 0, 10)
-                    if a == 0 and b == 0:
-                        cost = max_cost
+            try:
 
-                    self.map[i + a][j + b].set(cost)
-                    # self.map[i + a][j + b].add(cost)
+                for a in range(-5, 6):
+                    for b in range(-5, 6):
+                        cost = max_cost - np.clip(abs(a) + abs(b), 0, 10)
+                        if a == 0 and b == 0:
+                            cost = max_cost
+                        self.map[i + a][j + b].set(cost)
+                        # self.map[i + a][j + b].add(cost)
+
+            except IndexError:
+                pass
+
+            except Exception as ex:
+                rospy.logfatal(ex)
 
     def parseOccupiedGrid(self):
         msg = OccupancyGrid()

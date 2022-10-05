@@ -57,7 +57,7 @@ class HorizontalParking(object):
         self.r = rospy.Rate(30)
 
         # For test
-        # self.stanley.setCGain(1.0)
+        # self.stanley.setCGain(0.1)
         # self.stanley.setHdrRatio(1.0)
 
         self.circles_pub = rospy.Publisher(
@@ -111,8 +111,8 @@ class HorizontalParking(object):
                 last_time = current_time
                 return 0
 
-            self.cmd_msg = ControlMessage(0, 0, 2, 0, 0, brake, 0)
-            self.cmd_pub.publish(self.cmd_msg)
+            self.cmd_msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
+            # self.cmd_pub.publish(self.cmd_msg)
 
             r.sleep()
 
@@ -482,8 +482,7 @@ class HorizontalParking(object):
 if __name__ == "__main__":
     rospy.init_node("horizontal_parking")
 
-    state = State(odometry_topic="/ndt_matching/ndt_pose", hz=30)
-    stanley = Stanley()
+    state = OdomState("/odometry/kalman", test=True)
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 

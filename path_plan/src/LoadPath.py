@@ -10,7 +10,7 @@ from nav_msgs.msg import Path
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Int8
-# import pandas as pd
+import pandas as pd
 
 db_name = rospy.get_param("/LoadPath/db_name", "/path.db")
 
@@ -47,7 +47,7 @@ class LoadPath():
             Response.cyaw.append(info[2])
         
         # new = pd.DataFrame((zip(Response.cx, Response.cy, Response.cyaw)))
-        # new.to_csv("/home/acca/catkin_ws/src/ACCA2022-new/path_plan/path/static_test.csv", header=False, index=False)
+        # new.to_csv("/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path/cut_path.csv", header=False, index=False)
         # rospy.loginfo("df to csv")
 
         return Response

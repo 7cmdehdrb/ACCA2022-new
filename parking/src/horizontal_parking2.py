@@ -12,6 +12,7 @@ from cubic_spline_planner import calc_spline_course
 from load_parking_area import loadCSV
 from enum import Enum
 from time import sleep
+from parking_area_selector import ParkingAreaSelector
 
 # msgs
 from std_msgs.msg import *
@@ -48,14 +49,19 @@ class ParkingState(Enum):
         return self.value
 
 
+file = rospkg.RosPack().get_path("parking") + "/parking/" + \
+    rospy.get_param("/horizontal_parking/file", "festi_parking.csv")
+
+
 class HorizontalParking(object):
     def __init__(self, state, stanley, cmd_pub):
         self.state = state
         self.stanely = stanley
-
-        file = rospkg.RosPack().get_path("parking") + "/parking/" + \
-            rospy.get_param("/horizontal_parking/file", "hor_parking.csv")
         self.parking_areas = loadCSV(file)
+
+        self.selector = ParkingAreaSelector(
+            state=self.state, parking_areas=self.parking_areas)
+
         self.parking_idx = 0
         self.target_area = self.parking_areas[self.parking_idx]
 
@@ -65,7 +71,12 @@ class HorizontalParking(object):
         self.area_selector = ParkingAreaSelector(
             self.state, self.parking_areas)
 
-        self.searchPath, self.alignPath1 = self.alignPath2 = None
+        self.search_path = None
+        self.back_path = None
+        self.alignPath1 = None
+        self.alignPath2 = None
+
+        self.cmd_msg = ControlMessage()
 
         # ETC
         self.cmd_pub = cmd_pub
@@ -105,11 +116,15 @@ class HorizontalParking(object):
     def control(self):
         msg = ControlMessage()
         reverse = False
+        rospy.logwarn(str(self.parking_state))
 
         if self.parking_state == ParkingState.NONE:
             return 0
 
         elif self.parking_state == ParkingState.SEARCH:
+
+
+<< << << < HEAD
             if self.area_selector.obstacle_sub is None:
                 self.area_selector.start()
 
@@ -129,6 +144,31 @@ class HorizontalParking(object):
                 self.target_idx = 0
                 self.wait_for_stop(3)
                 self.parking_state = ParkingState.ALIGN1
+== == == =
+            msg.Speed = int(5)
+
+            di, self.target_idx = self.stanely.stanley_control(self.state, self.search_path.cx,
+                                                            self.search_path.cy, self.search_path.cyaw, self.target_idx, reverse=reverse)
+
+            if self.selector.flag is True:
+                self.wait_for_stop(3)
+                self.parking_state == ParkingState.BACK
+
+        elif self.parking_state == ParkingState.BACK:
+            msg.Speed = (5)
+            reverse = True
+            
+            di, self.target_idx = self.stanely.stanley_control(self.state, self.back_path.cx,
+                                                            self.back_path.cy, self.back_path.cyaw, self.target_idx, reverse=reverse)
+            
+
+            if self.target_idx >= len(self.back_path.cx) - 1:
+                self.target_idx = 0
+                self.alignPath1, self.alignPath2 = self.createAlignPath()
+                self.wait_for_stop(duration=1, brake=70)
+                self.parking_state = ParkingState.ALIGN1
+            
+>>>>>>> 7781db4803c8920bf89383a76fc36ba6890e7994
 
         elif self.parking_state == ParkingState.ALIGN1:
             msg.Speed = int(5)
@@ -304,6 +344,8 @@ class HorizontalParking(object):
         msg.Steer = int(m.degrees(di * (-1.0 if reverse is False else 1.0)))
         msg.Gear = 2 if reverse is False else 0
 
+        self.cmd_msg = msg
+
         # self.cmd_pub.publish(msg)
         return msg
 
@@ -336,6 +378,14 @@ class HorizontalParking(object):
             path.poses.append(p)
 
         self.path_pub.publish(path)
+        
+    def setSearchPath(self, path):
+        self.search_path = path
+        self.back_path = PathResponse(None, None, None, list(reversed(self.search_path.cx)), list(
+            reversed(self.search_path.cy)), [self.search_path.cyaw[i] + m.pi for i in range(len(self.search_path.cyaw) - 1, -1, -1)])
+        
+        return True
+            
 
     def createAlignPath(self):
         target_area = self.parking_areas[self.parking_idx]
@@ -393,7 +443,7 @@ if __name__ == "__main__":
 
     state = State(odometry_topic="/odometry/kalman", hz=30, test=True)
     stanley = Stanley()
-
+    
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
 
