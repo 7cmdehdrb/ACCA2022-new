@@ -106,7 +106,8 @@ class HorizontalParking(object):
 
     def control(self):
         msg = ControlMessage()
-        reverse = False
+        reverse = False 
+        rospy.logwarn(str(self.parking_state))
 
         if self.parking_state == ParkingState.NONE:
             return 0

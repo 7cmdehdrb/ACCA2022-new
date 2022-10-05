@@ -243,8 +243,10 @@ class StateMachine(object):
             self.delivery.delivery_A()
             panel = self.delivery.panel_A
             self.panel_id = self.delivery.panel_id
-            
+            rospy.logwarn(str(self.panel_id))
+
         elif self.mission_state == MissionState.DELIVERY_B:
+            rospy.logwarn(str(self.panel_id))
             self.delivery.delivery_B(self.panel_id)
             panel = self.delivery.panel_B
 
@@ -283,7 +285,7 @@ class StateMachine(object):
                 print(self.target_idx, self.delivery.target_idx)
 
                 # if theta > (m.pi / 2) * 0.8:
-                if self.target_idx >= self.delivery.target_idx - 5:
+                if self.target_idx >= self.delivery.target_idx-5:
                     
                     p = PointStamped(
                         Header(None, rospy.Time.now(), "map"),
@@ -480,12 +482,13 @@ if __name__ == "__main__":
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
+        mission_state_pub.publish(int(controller.mission_state))
+        
         if cmd_pub.get_num_connections() > 0 or True:
             msg = controller.makeControlMessage()
             cmd_pub.publish(msg)
             print(controller.mission_state)
             print(msg)
             
-        mission_state_pub.publish(int(controller.mission_state))
 
         r.sleep()

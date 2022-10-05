@@ -71,9 +71,7 @@ class Delivery():
     def delivery_B(self, panel_id):
         for marker in self.markers.markers:
             if (marker.id)//10000 == self.panel[panel_id.index(max(panel_id))][1]:
-                
-                rospy.logwarn(str(self.panel_id))
-                
+                                
                 m_to_p = PoseStamped()
 
                 m_to_p.header.frame_id = "velodyne"

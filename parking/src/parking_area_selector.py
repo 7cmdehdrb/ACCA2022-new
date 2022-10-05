@@ -41,8 +41,11 @@ class ParkingAreaSelector():
                                              callback=self.obstacleCallback)
         rospy.Subscriber("/mission_state", UInt8, callback=self.missionCallback)
         
+        self.mission_state = 0
+        
     def missionCallback(self, msg):
         self.mission_state = msg
+        rospy.logwarn(str(self.mission_state))
         
     def obstacleCallback(self, msg):
         if self.mission_state == 6:
