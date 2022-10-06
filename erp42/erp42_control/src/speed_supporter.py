@@ -18,9 +18,9 @@ class SpeedSupporter(object):
         self.hdr = None
         self.ctr = None
 
-        self.p_gain = rospy.get_param("/stanley_controller/p_gain", 2.0)
-        self.i_gain = rospy.get_param("/stanley_controller/i_gain", 0.0)
-        self.d_gain = rospy.get_param("/stanley_controller/d_gain", 0.0)
+        self.p_gain = rospy.get_param("/stanley_controller/p_gain", 3.0)
+        self.i_gain = rospy.get_param("/stanley_controller/i_gain", 0.1)
+        self.d_gain = rospy.get_param("/stanley_controller/d_gain", 1.0)
 
         self.p_err = 0.
         self.i_err = 0.

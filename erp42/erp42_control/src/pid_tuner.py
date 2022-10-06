@@ -14,17 +14,30 @@ from erp42_control.msg import *
 
 class PID(object):
     def __init__(self):
-        self.p_gain = 0.5
-        self.i_gain = 0.0
-        self.d_gain = 0.0
+        self.p_gain = 3.0
+        self.i_gain = 0.1
+        self.d_gain = 1.0
 
         self.p_err = 0.0
         self.i_err = 0.0
         self.d_err = 0.0
+        
+        self.speed = 0
+
+        self.current = rospy.Time.now()
+        self.last = rospy.Time.now()
+
+        rospy.Subscriber(
+            "/erp42_feedback", SerialFeedBack, callback=self.erpCallback
+        )
 
         rospy.Subscriber("p_gain", Float32, callback=self.p_callback)
         rospy.Subscriber("i_gain", Float32, callback=self.i_callback)
         rospy.Subscriber("d_gain", Float32, callback=self.d_callback)
+
+
+    def erpCallback(self, msg):
+        self.speed = mps2kph(msg.speed)
 
     def p_callback(self, msg):
         self.p_gain = msg.data
@@ -35,15 +48,20 @@ class PID(object):
     def d_callback(self, msg):
         self.d_gain = msg.data
 
-    def PIDControl(self, current_value, desired_value, dt):
-        err = desired_value - current_value
+    def PIDControl(self, desired_value):
+        self.current = rospy.Time.now()
+        
+        dt = (self.current - self.last).to_sec()
+        
+        err = desired_value - self.speed
 
         self.d_err = (err - self.p_err) / dt
         self.p_err = err
-        self.i_err += self.p_err * dt
+        self.i_err += self.p_err * dt * self.i_gain * (0.0 if self.speed == 0 else 1.0)
 
-        return current_value + (self.p_gain * self.p_err) + (self.i_gain *
-                                                             self.i_err) + (self.d_gain * self.d_err)
+        self.last = self.current
+
+        return np.clip(self.speed + (self.p_gain * self.p_err) + (self.i_gain) + (self.d_gain * self.d_err), 0, 25)
 
 
 def kph2mps(value):
