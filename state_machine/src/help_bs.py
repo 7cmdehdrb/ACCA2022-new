@@ -61,7 +61,7 @@ speed_control_enable = rospy.get_param(
 def wait_for_stop(duration):
     global current_time, last_time, r, cmd_pub
     
-    msg = ControlMessage(0, 0, 2, 0, 0, 120, 0)
+    msg = ControlMessage(0, 0, 2, 0, 0, 80, 0)
 
     dt = 0
     last_time = rospy.Time.now()
@@ -143,7 +143,7 @@ class StateMachine(object):
 
     def switchPath(self):
         # When current path is almost end
-        if len(self.path.cx) - 15 < self.target_idx:
+        if len(self.path.cx) - 20 < self.target_idx:
 
             rospy.logwarn("Try to change path...!")
 
@@ -181,11 +181,10 @@ class StateMachine(object):
             desired_speed = self.selector.path.desired_speed if desired_speed == 0 else desired_speed
             di = np.clip(di, -m.radians(max_steer), m.radians(max_steer))
 
-            # speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
-            #                                       desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
+            speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
+                                                  desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
 
-            return ControlMessage(0, 0, 2, int(desired_speed), m.degrees(-di), 0, 0
-            )
+            return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), brake, 0)
 
         except IndexError as ie:
             rospy.logwarn(ie)
@@ -197,7 +196,7 @@ class StateMachine(object):
     def trafficControl(self):
         desired_speed = self.selector.path.desired_speed
 
-        if len(self.path.cx) - 60 < self.target_idx:
+        if len(self.path.cx) - 80 < self.target_idx:
             # Almost in front of traffic sign
             desired_speed *= 0.5
             self.traffic.main()
@@ -225,7 +224,8 @@ class StateMachine(object):
         msg = self.mainControl(desired_speed=desired_speed)
 
         return msg
-
+    
+    # have to change after school bs test
     def deliveryControl(self):
         desired_speed = self.selector.path.desired_speed
         
@@ -324,7 +324,8 @@ class StateMachine(object):
             msg = self.mainControl(desired_speed=desired_speed)
             
         return msg
-        
+    
+    # have to change school bs test / change -> have to change bs path
     def rightControl(self):
         desired_speed = self.selector.path.desired_speed
         
@@ -401,12 +402,14 @@ if __name__ == "__main__":
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
+        
+        mission_state_pub.publish(int(controller.mission_state))
+        
         if cmd_pub.get_num_connections() > 0 or True:
             msg = controller.makeControlMessage()
             cmd_pub.publish(msg)
             print(controller.mission_state)
             print(msg)
             
-        mission_state_pub.publish(int(controller.mission_state))
         
         r.sleep()
