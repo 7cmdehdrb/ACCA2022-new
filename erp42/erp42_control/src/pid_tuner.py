@@ -14,7 +14,7 @@ from erp42_control.msg import *
 
 class PID(object):
     def __init__(self):
-        self.p_gain = 3.0
+        self.p_gain = 2.6
         self.i_gain = 0.1
         self.d_gain = 1.0
 

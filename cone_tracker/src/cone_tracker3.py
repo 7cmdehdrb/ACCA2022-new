@@ -50,6 +50,7 @@ except Exception as ex:
 
 
 frame_id = "odom"
+print_tendency = False
 
 
 class Mapper(object):
@@ -83,17 +84,18 @@ class Mapper(object):
         tendency = 0.0
 
         for p in msg.poses:
-            if p.position.x < 0.0 or p.position.x > 15 or abs(p.position.y) > 10.0:
+            if p.position.x < 0.0 or p.position.x > 10 or abs(p.position.y) > 10.0:
                 continue
 
             tendency += p.position.y
 
-        if tendency > 10.0:
-            rospy.loginfo("LEFT")
-        elif tendency < -10.0:
-            rospy.loginfo("RIGHT")
-        else:
-            rospy.loginfo("Tendency : %.4f" % tendency)
+        if print_tendency:
+            if tendency > 13.0:
+                rospy.loginfo("LEFT : %.4f" % tendency)
+            elif tendency < -13.0:
+                rospy.loginfo("RIGHT : %.4f" % tendency)
+            else:
+                rospy.loginfo("Tendency : %.4f" % tendency)
 
         self.tendency = tendency
 
@@ -170,7 +172,7 @@ class PathPlanner(object):
         self.state = state
 
         self.d_gain = 3.0
-        self.c_gain = 20.0
+        self.c_gain = 15.0
         self.g_gain = 0.10
         self.threshold = 0
 
@@ -178,6 +180,7 @@ class PathPlanner(object):
         self.stack = 0
 
         self.loop_closure = False
+        self.loop_closure_flag = False
 
         self.test_pub = rospy.Publisher(
             "/cone_tracker/node", PointStamped, queue_size=1)
@@ -185,7 +188,7 @@ class PathPlanner(object):
         self.first_node = self.node
         self.last_idx = self.node.idx
 
-        xrange = [-40, 40]
+        xrange = [-20, 40]
         yrange = [-40, 10]
         size = 0.25
 
@@ -227,38 +230,28 @@ class PathPlanner(object):
                     if p_distance:
                         i, j = self.mapper.map.getGridIdx(point)
 
-                        if self.mapper.map.map[i][j].count <= 5:
+                        if self.mapper.map.map[i][j].count <= 4:
                             grid_cost = self._calculateGridCost(self.node.data, point) * self.g_gain
 
                             total_cost = c_cost + d_cost + grid_cost
                             if total_cost <= min_cost:
-                                # print(c_cost, d_cost, grid_cost, node_dist)
                                 min_cost = total_cost
                                 best_point = point
             
             
-            print(c_cost, d_cost, grid_cost, node_dist)
-            print(self.stack)
-            print("")
-            
+            # print(d_cost, c_cost, grid_cost)
             
             if best_point is None or min_cost == float("inf"):
-                # rospy.logwarn("Cannot find best node...")
-                self.stack += 3
+                rospy.logwarn("Cannot find best node...")
+                self.stack += 1
+                
+                self.stack = np.clip(self.stack, 0, 2)
                 
                 for _ in range(self.stack):
                     self.node.rollback()
                 
                 path = createPathFromNode(self.node)
                 
-                if path is None:
-                    self.stack += 5
-                    
-                    for _ in range(self.stack):
-                        self.node.rollback()
-                        
-                    wait_for_stop(3, 60)
-                        
                 return path
             
             
@@ -290,11 +283,17 @@ class PathPlanner(object):
                     new_node.data[1] - self.first_node.data[1]
                 )
             
-            if dist < 2.0 and self.last_idx > 50 and self.loop_closure is False:
-                self.loop_closure = True
+            if dist < 2.0 and self.last_idx > 50 and self.loop_closure is False and self.loop_closure_flag is False:
+                self.loop_closure_flag = True
+                self.node = Node(data=self.first_node.data, idx=(self.node.idx + 1), parent=self.node)
+                
+            elif self.loop_closure_flag is True:
+                dist2 = np.hypot(self.first_node.data[0] - self.state.x, self.first_node.data[1] - self.state.y)
+                if dist2 < 5.0:
+                    self.loop_closure = True
             
-            self.node = new_node
-            self.node.findBestNode(self.mapper.map)
+            elif self.loop_closure is False and self.loop_closure_flag is False: 
+                self.node = new_node
 
             if self.node.idx > self.last_idx:
                 self.last_idx = self.node.idx
@@ -302,65 +301,72 @@ class PathPlanner(object):
             self.test_pub.publish(self.node.parsePoint())
 
             path = createPathFromNode(self.node)
-            
-            if path is None:
-                self.stack += 5
-                
-                for _ in range(self.stack):
-                    self.node.rollback()
 
             return path
 
     def _calculateDistanceCost(self, point):
         distance = np.hypot(
             self.node.data[0] - point[0], self.node.data[1] - point[1])
-
-        b = (distance > 0.1 and distance < 5.0)
+        car_dist = np.hypot(
+            self.state.x - point[0], self.state.y - point[1]
+        )
         
-        return b, distance * self.d_gain
+        b_dist = (distance > 0.2 and distance < 10.0)
+        b_car = (car_dist > 0.2 and car_dist < 10.0)
+        
+        return (b_dist and b_car), distance * self.d_gain
 
     def _calculateCurveCost(self, state_vec, point):
-        state_vec = np.array([state_vec[0], state_vec[1], 0.0])
+        
         car_vec = np.array([m.cos(self.state.yaw), m.sin(self.state.yaw), 0.0])
-        target_vec = np.array([point[0] - self.state.x, point[1] - self.state.y, 0.0])
+        state_vec = np.array([state_vec[0], state_vec[1], 0.0])
         point_vec = np.array([
             point[0] - self.node.data[0], point[1] - self.node.data[1], 0.0
         ])
-        up_vec = np.array([0., 0., 1.0])
-
-
-        cost_gain = 0.45
-        gain = self.c_gain
-
-        cross_vec = np.cross(target_vec, car_vec)
-        d2 = np.dot(cross_vec, up_vec)
+        
+        cost_gain = 0.33    # infinity range
+        gain = self.c_gain  # cost gain
+        
+        d2 = 0.0
+        
         
         try:
-            # if d2 < 0 => cone is right
-            # if tendency > 0 is left
-            dot = np.dot(state_vec, point_vec)
-            theta = abs(m.acos(
-                (dot) / (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
+            if np.dot(car_vec, point_vec) < 0:
+                return False, float("inf")
+    
+        
+            if abs(self.mapper.tendency) >= 13.0:
+                target_vec = np.array([point[0] - self.state.x, point[1] - self.state.y, 0.0])
+                up_vec = np.array([0., 0., 1.0])
+                
+                cross_vec = np.cross(target_vec, car_vec)
+                d2 = -np.dot(cross_vec, up_vec)
+                            
+                
+            dot = float(np.dot(state_vec, point_vec))
+            det_s = float(np.linalg.norm(state_vec))
+            det_p = float(np.linalg.norm(point_vec))
             
-            if (abs(d2) >= 10.0): 
+            if det_s == 0 or det_p == 0:
+                return False, float("inf")
+            
+            theta = abs(m.acos(dot / (det_s * det_p)))
                 
-                theta = abs(theta - m.radians(20))
+            if (abs(self.mapper.tendency) >= 13.0): 
+                theta = abs(theta - m.radians(abs(self.mapper.tendency) / 2))
                 
-                if (d2 < 0 and self.mapper.tendency < -10.0) or (d2 > 0 and self.mapper.tendency > 10.0):
-                    cost_gain = 0.6
+                if (d2 < 0 and self.mapper.tendency < -13.0) or (d2 > 0 and self.mapper.tendency > 13.0):
+                    cost_gain = 0.7
                     gain *= 0.8
                     
-                elif (d2 < 0 and self.mapper.tendency > 10.0) or (d2 > 0 and self.mapper.tendency < -10.0):
+                elif (d2 < 0 and self.mapper.tendency > 13.0) or (d2 > 0 and self.mapper.tendency < -13.0):
                     gain *= float("inf")
                     
-            else:
-                pass
-            
 
         except Exception as ex:
             rospy.logwarn("WTF")
             rospy.logwarn(ex)
-            return False, 0
+            return False, float("inf")
 
         cost = theta * gain
 
@@ -374,6 +380,10 @@ class PathPlanner(object):
 
         si, sj = self.mapper.map.getGridIdx(last)
         gi, gj = self.mapper.map.getGridIdx(point)
+        
+        # c = self.mapper.map.map[gi][gj].count
+        # if c == 0:
+        #     return float("inf")
 
         dist_x = gi - si
         dist_y = gj - sj
@@ -391,14 +401,14 @@ class PathPlanner(object):
             for i in range(abs(dist_y)):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost >= 8:
+                if cost >= 7:
                     return float("inf")
                 total_cost += cost
 
             for j in range(d):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1)) + (j * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost >= 8:
+                if cost >= 7:
                     return float("inf")
                 total_cost += cost
 
@@ -406,14 +416,14 @@ class PathPlanner(object):
             for i in range(abs(dist_x)):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost >= 8:
+                if cost >= 7:
                     return float("inf")
                 total_cost += cost
 
             for j in range(d):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1)) + (j * (1 if positive_y else -1))].count
-                if cost >= 8:
+                if cost >= 7:
                     return float("inf")
                 total_cost += cost
 
@@ -507,23 +517,28 @@ class Node(object):
         best_grid = map.map[i][j]
         best_cost = best_grid.count
         
-        if best_cost == 0:
-            return True
+        pi = pj = 0
+        
+        if best_cost < 2:
+            return i, j
+        
 
         for a in range(-1, 2):
             for b in range(-1, 2):
                 grid = map.map[i + a][j + b]
                 new_cost = grid.count
-                if new_cost < best_cost:
+                if new_cost < best_cost and new_cost != 0:
                     best_grid = grid
                     best_cost = new_cost
+                    pi = i + a
+                    pj = j + b
 
         if self.parent is not None:
             if self.parent.data[0] == best_grid.x and self.parent.data[1] == best_grid.y:
-                return False
+                return i, j
 
         self.data = [best_grid.x, best_grid.y]
-        return True
+        return pi, pj
 
     def rollback(self):
         if self.parent is not None:
@@ -539,25 +554,35 @@ class Node(object):
         return p
 
 
+
 def createPathFromNode(node):
     xs = []
     ys = []
+
+    last_i = last_j = 0
+    
+    t = True
 
     while True:
         if node is None:
             break
         
-        # if node.parent is not None:
-        #     c = planner._calculateGridCost(node.parent.data, node.data)
-        #     if c == float("inf"):
-        #         return None
+        if t is True:
+            xs.append(node.data[0])
+            ys.append(node.data[1])
 
-        # node.findBestNode(planner.mapper.map)
+        else:
+            i, j = node.findBestNode(planner.mapper.map)
 
-        xs.append(node.data[0])
-        ys.append(node.data[1])
+            if abs(i - last_i) + abs(j - last_j) != 0:
+                xs.append(node.data[0])
+                ys.append(node.data[1])
+                
+                last_i = i
+                last_j = j
 
         node = node.parent
+
 
     try:
         cx, cy, cyaw, _, _ = calc_spline_course(
@@ -566,11 +591,10 @@ def createPathFromNode(node):
         return PathResponse(None, None, None, cx, cy, cyaw)
 
     except Exception as ex:
-        rospy.logwarn("Cannot create path from nodes")
         rospy.logwarn(ex)
+        pass
 
     return None
-
 
 def wait_for_stop(duration, brake=60):
     global current_time, last_time, r, cmd_pub
@@ -589,7 +613,46 @@ def wait_for_stop(duration, brake=60):
 
         cmd_pub.publish(msg)
         r.sleep()
+        
+        
 
+class PurePursuit(object):
+    def __init__(self, state):
+        super(PurePursuit, self).__init__()
+
+        """ Input Var """
+
+        self.state = state
+
+        self.delta_ref = 0.0  # steer
+        
+        self.servo_bias = 0.0  # [rad] 0.03
+
+        self.v = 3.0
+        self.K = rospy.get_param("k_gain", 1.0)
+        self.L = 1.040
+
+        self.Lr = self.v * self.K - self.L
+        self.Ld = 0.0
+
+    def set_steering(self, goal):  # 5 calculate the new required steering angle
+        dx = goal[0] - self.state.x
+        dy = goal[1] - self.state.y
+
+        if dx == 0.0:
+            self.delta_ref = 0.0
+            return self.delta_ref
+
+        self.Ld = np.hypot(dx, dy)
+        alpha = m.atan(dy / dx) - self.state.yaw
+
+        if dx > 0:
+            alpha *= -1.0
+
+        self.delta_ref = m.atan(2 * self.L * m.sin(alpha) / self.Ld)
+
+        return self.delta_ref
+    
 
 if __name__ == "__main__":
     rospy.init_node("cone_tracker")
@@ -599,8 +662,9 @@ if __name__ == "__main__":
 
     state = State(odometry_topic="/odometry/kalman", hz=10, test=True)
     stanley = Stanley()
+    pp = PurePursuit(state)
     
-    stanley.setCGain(0.2)
+    stanley.setCGain(0.25)
     
     pid = PID()
 
@@ -625,14 +689,16 @@ if __name__ == "__main__":
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
+        t1 = rospy.Time.now()
+        
+        
         msg = ControlMessage()
         msg.Gear = int(2)
-
+        
         new_layer = GridMap(planner.mapper.xrange, planner.mapper.yrange,
                             planner.mapper.size, obstacles=planner.mapper.obstacles)
         planner.mapper.map = new_layer
         # planner.mapper.map.addObstacles(planner.mapper.obstacles)
-
 
         if grid_pub.get_num_connections() > 0:
             grid_pub.publish(planner.mapper.map.parseOccupiedGrid())
@@ -643,20 +709,79 @@ if __name__ == "__main__":
             path = temp
 
         try:
-            if path is not None:
+            if path is not None:    
                 
                 if planner.loop_closure is True:
-                    if target_idx >= len(path.cx) - 1:
+                    if target_idx >= len(path.cx) - 20:
                         target_idx = 0
                 
+                current_i, current_j = planner.mapper.map.getGridIdx(point=[state.x, state.y])
                 
-                di, target_idx = stanley.stanley_control(
-                    state, path.cx, path.cy, path.cyaw, last_target_idx=target_idx)
+                target_idx, _ = stanley.calc_target_index(state, path.cx, path.cy, False)
+                
+                ip = 0
+                
+                irange = range(0, 0)
+                jrange = range(0, 0)
+                
+                
+                if len(path.cx) - 20 < target_idx:
+                    m_target_idx = len(path.cx) - 5
+                else:
+                    m_target_idx = target_idx + 15   
+                               
+                while True:
+                    # print(target_idx, m_target_idx)
+                    
+                    target_i, target_j = planner.mapper.map.getGridIdx(point=[path.cx[m_target_idx + ip], path.cy[m_target_idx + ip]])
+                    direct_i = target_i - current_i
+                    direct_j = target_j - current_j
+                    
+                    if direct_i == 0 and direct_j == 0:
+                        ip += 1
+                        
+                    else:
+                        if target_i == 0:
+                            jrange = range(-2, 3)
+                        
+                        elif target_j == 0:
+                            irange = range(-2, 3)
+                            pass
+                        
+                        else:
+                            if direct_i > 0:
+                                irange = range(0, 3)
+                            else:
+                                irange = range(-2 ,1)
+                            
+                            if direct_j > 0:
+                                jrange = range(0, 3)
+                            else:
+                                jrange = range(-2, 1)
+                        
+                        
+                        m_best_grid = planner.mapper.map.map[target_i][target_j]
+                        t_cost = m_best_grid.count
+                        
+                        for a in irange:
+                            for b in jrange:
+                                m_grid = planner.mapper.map.map[target_i + a][target_j + b]
+                                m_new_cost = m_grid.count
+                                if m_new_cost < t_cost:
+                                    m_best_grid = m_grid
+                                    t_cost = m_new_cost
+                        
+                        di = pp.set_steering([m_best_grid.x, m_best_grid.y])
+                        
+                        break
+                
+                # di, target_idx = stanley.stanley_control(
+                #     state, path.cx, path.cy, path.cyaw, last_target_idx=target_idx)
+                
                 di = np.clip(di, -m.radians(30), m.radians(30))
-
-                print(target_idx, len(path.cx) - 1)
                 
-                target_speed = 5
+                
+                target_speed = 5 if (planner.loop_closure is False) else 7
                 dl = (len(path.cx) - 1) - target_idx
                 
                 if dl < 40:
@@ -666,30 +791,40 @@ if __name__ == "__main__":
                     target_speed = 0
 
 
+                target_speed *= (1 - abs(di) * 0.6)
+
                 p = PointStamped(
                     Header(None, rospy.Time.now(), frame_id),
-                    Point(path.cx[target_idx], path.cy[target_idx], 0.0)
+                    Point(m_best_grid.x, m_best_grid.y, 0.0)
                 )
+                
                 
                 pid_speed = pid.PIDControl(target_speed)
                 msg.Speed = int(pid_speed)
-                msg.Steer = int(m.degrees(-di))
+                msg.Steer = int(m.degrees(di))
 
                 target_pub.publish(p)
                 path_pub.publish(planner.parsePath(path))
 
+            else:
+                rospy.logwarn("NO PATH")
+
 
         except IndexError as ie:
+            rospy.logfatal(ie)
             target_idx = 0
-            # rospy.logwarn(ie)
 
         except Exception as ex:
+            rospy.logfatal(ex)
             rospy.logwarn("Cannot make cmd_msg")
-            # rospy.logwarn(ex)
-
-        # print("")
-        
+            msg.Speed = int(0)
+            msg.Steer = int(0)
 
         cmd_pub.publish(msg)
+        
+        
+        t2 = rospy.Time.now()
+        
+        # rospy.loginfo("TIME : %.6f" % (t2 - t1).to_sec())
 
         r.sleep()

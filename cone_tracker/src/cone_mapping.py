@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+
+
+
 import os
 import sys
 from time import sleep
@@ -40,9 +44,9 @@ class ConeMapping():
         
         self.state = state
         # parameter
-        self.r = 1.8
-        self.count = 4
-        self.threshold = 8
+        self.r = 1.5
+        self.count = 10
+        self.threshold = 20
 
         
     def ClusterCallback(self, msg):

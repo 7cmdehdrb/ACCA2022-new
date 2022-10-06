@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+
+
+
 
 import os
 import sys
@@ -18,14 +22,14 @@ class ClusterFilter():
     def __init__(self):
         rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.PosesCallback)
         self.pub = rospy.Publisher("cluster_filter", PoseArray, queue_size=1)
-        self.r = 12.
-        self.theta = 0.523
+        self.r = 12.0
+        self.theta = 1.5
         self.poses = []
         
     def PosesCallback(self, msg):
         self.poses = []
         for i in msg.poses:
-            if m.sqrt((i.position.x) **2 + (i.position.y) ** 2 ) < self.r and (2.0 >= m.atan2(i.position.y, i.position.x) and m.atan2(i.position.y, i.position.x) > -2.0):
+            if m.sqrt((i.position.x) **2 + (i.position.y) ** 2 ) < self.r and (self.theta >= m.atan2(i.position.y, i.position.x) and m.atan2(i.position.y, i.position.x) > -1*self.theta):
                 self.poses.append([i.position.x, i.position.y])
 
     def PubCluster(self):

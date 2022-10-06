@@ -129,12 +129,15 @@ class GridMap(object):
 
             try:
 
-                for a in range(-5, 6):
-                    for b in range(-5, 6):
-                        cost = max_cost - np.clip(abs(a) + abs(b), 0, 10)
+                for a in range(-10, 11):
+                    for b in range(-10, 11):
+                        cost = max_cost - int(np.clip(m.sqrt(a ** 2 + b ** 2), 0, 10))
                         if a == 0 and b == 0:
                             cost = max_cost
+                        
+                        # if a ** 2 + b ** 2 <= 10:
                         self.map[i + a][j + b].set(cost)
+                            
                         # self.map[i + a][j + b].add(cost)
 
             except IndexError:
@@ -162,6 +165,9 @@ class GridMap(object):
             for j in range(len(self.map[0])):
                 value = self.map[i][j].count
                 data.append(int(value * (100 / max_cost)))
+                
+        for i in range(11):
+            data[i] = i * 10
 
         msg.data = data
 
