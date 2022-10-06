@@ -37,7 +37,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
-    from horizontal_parking2 import HorizontalParking, ParkingState
+    from horizontal_parking2 import HorizontalParking, HorParkingState
     
 except Exception as ex:
     rospy.logfatal(ex)
@@ -241,7 +241,7 @@ class StateMachine(object):
             rospy.logwarn(str(self.panel_id))
 
         elif self.mission_state == MissionState.DELIVERY_B:
-            if self.panel_id == None:
+            if self.panel_id == None or self.panel_id == [0,0,0]:
                 self.panel_id = [10,0,0]
                 
             self.delivery.delivery_B(self.panel_id)
@@ -365,7 +365,7 @@ class StateMachine(object):
 
         msg = self.horizontal_parking.control()
         
-        if self.horizontal_parking.parking_state == ParkingState.NONE:
+        if self.horizontal_parking.parking_state == HorParkingState.DONE:
             msg = self.mainControl(desired_speed=desired_speed)
             
         return msg
