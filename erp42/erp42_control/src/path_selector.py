@@ -89,7 +89,7 @@ class PathSelector(object):
             return 0
 
         # rospy.loginfo("Send Request...")
-        rospy.loginfo(self.path.start)
+        # rospy.loginfo(self.path.start)
 
         self.req_pub.publish(self.path.data)
 
@@ -98,7 +98,6 @@ class PathSelector(object):
             rospy.get_param("/waypoints/waypoints_file", "waypoints.csv")
         file_path = rospkg.RosPack().get_path("path_plan") + "/path/" + \
             rospy.get_param("/LoadPath/path_name", "festi_path.csv")
-
         node = None
 
         with open(file_path, "r") as csvFile:

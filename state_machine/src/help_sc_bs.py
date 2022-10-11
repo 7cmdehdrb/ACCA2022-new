@@ -10,8 +10,8 @@ import numpy as np
 from enum import Enum
 from time import sleep
 # msgs
-from std_msgs.msg import *  
-from geometry_msgs.msg import *
+from std_msgs.msg import Float32, Int16
+from geometry_msgs.msg import PoseStamped
 from erp42_control.msg import ControlMessage
 from path_plan.msg import PathRequest, PathResponse
 from lidar_camera_calibration.msg import Signmsg
@@ -37,7 +37,7 @@ except Exception as ex:
 
 try:
     sys.path.append(rospkg.RosPack().get_path("parking") + "/src")
-    from horizontal_parking2 import HorizontalParking, ParkingState
+    from horizontal_parking2 import HorizontalParking, HorParkingState
     
 except Exception as ex:
     rospy.logfatal(ex)
@@ -85,13 +85,10 @@ class StateMachine(object):
         """
             Important Objects for Driving
         """
-        
-        # TODO: REMOVE
-        self.test_pub = rospy.Publisher("/test_point", PointStamped, queue_size=1)
 
         # Car State Object. Subscribe odometry and update [x, y, v, theta]
         self.state = state
-
+        self.pid = PID()
         # Stanley Controller Object
         self.stanley = Stanley()
         self.target_idx = 0
@@ -118,10 +115,8 @@ class StateMachine(object):
         self.dynamic = Lidar(state=self.state)
 
         # Parking
-        # self.parking = Parking(state=self.state)
         self.horizontal_parking = HorizontalParking(
             state=self.state, stanley=self.stanley, cmd_pub=cmd_pub)
-
 
         # Static
         self.static = Obstacle(state=self.state)
@@ -193,7 +188,8 @@ class StateMachine(object):
 
             speed, brake = self.supporter.control(current_value=self.state.v * 3.6,   # m/s to kph
                                                   desired_value=desired_speed, max_value=int(desired_speed + 2), min_value=5)
-
+            # speed = self.pid.PIDControl(desired_speed)
+            
             return ControlMessage(0, 0, 2, int(speed), m.degrees(-di), brake, 0)
 
         except IndexError as ie:
@@ -237,7 +233,6 @@ class StateMachine(object):
 
     def deliveryControl(self):
         desired_speed = self.selector.path.desired_speed
-
         
         if self.mission_state == MissionState.DELIVERY_A:
             self.delivery.delivery_A()
@@ -245,7 +240,6 @@ class StateMachine(object):
             self.panel_id = self.delivery.panel_id
             # for checking
             rospy.logwarn(str(self.panel_id))
-
         elif self.mission_state == MissionState.DELIVERY_B:
             if self.panel_id == None:
                 self.panel_id = [10,0,0]
@@ -259,7 +253,7 @@ class StateMachine(object):
         if self.panel != None:
             self.dis = np.hypot([self.state.x - self.panel.x],
                             [self.state.y - self.panel.y])
-            
+
         if self.dis != None and self.dis < 15:
             # Move to panel
             if self.delivery.is_delivery_path is True:
@@ -278,7 +272,7 @@ class StateMachine(object):
                     self.delivery.target_idx = np.argmin(dists)
                     
                     # have to test
-                    self.delivery.delivery = True
+                    # self.delivery.delivery = True
 
                 # car_vec = np.array([m.cos(self.state.yaw), m.sin(self.state.yaw)])
                 # panel_vec = np.array([panel.x - self.state.x, panel.y - self.state.y])
@@ -363,7 +357,6 @@ class StateMachine(object):
         return msg
     
 
-    
     def horizontalParkingControl(self):
         desired_speed = self.selector.path.desired_speed
 
@@ -372,7 +365,7 @@ class StateMachine(object):
 
         msg = self.horizontal_parking.control()
         
-        if self.horizontal_parking.parking_state == ParkingState.NONE:
+        if self.horizontal_parking.parking_state == HorParkingState.DONE:
             msg = self.mainControl(desired_speed=desired_speed)
             
         return msg
@@ -477,7 +470,7 @@ class StateMachine(object):
 
 if __name__ == "__main__":
     # state = State(odometry_topic="/ndt_matching/ndt_pose", test=False)
-    state = OdomState(odometry_topic="/odometry/kalman")
+    state = OdomState(odometry_topic="/odometry/kalman", hz=30, test=False)
 
     cmd_pub = rospy.Publisher(
         "/cmd_msg", ControlMessage, queue_size=1)
@@ -492,8 +485,9 @@ if __name__ == "__main__":
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
+
         mission_state_pub.publish(int(controller.mission_state))
-        
+
         if cmd_pub.get_num_connections() > 0 or True:
             msg = controller.makeControlMessage()
             cmd_pub.publish(msg)

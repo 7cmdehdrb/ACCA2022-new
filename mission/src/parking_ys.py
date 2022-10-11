@@ -20,6 +20,8 @@ try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
     from stanley import Stanley
+    from pid_tuner import PID
+
 except Exception as ex:
     rospy.logfatal(ex)
 
@@ -52,13 +54,13 @@ class AreaState(Enum):
 class Parking(object):
     def __init__(self, state):
 
-        # school
         path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/parking_path.csv")
         area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/parking_area.csv")
 
         # kcity
         # path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
         # area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking.csv")
+        self.pid = PID()
 
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()
@@ -83,14 +85,14 @@ class Parking(object):
         self.point3_inx = 40
         self.detect_start_idx = 20 # point3 - parameter
         self.obs_range = 1.5
-        self.obs_count = 3
+        self.obs_count = 5
         self.width = 2.3
         self.length_p = 4.5
         self.path_depth = 3
 
         self.parking_state = ParkingState.detect
         self.start_signal = False
-        self.area_num = [0, 0, 0, 0, 0, 0]
+        self.area_num = [500, 0, 0, 0, 0, 0]
 
         rospy.Subscriber("/adaptive_clustering/poses", PoseArray, callback=self.ObstacleCallback)
         self.obs_pub_parking = rospy.Publisher("parking_position", MarkerArray, queue_size=10)        
@@ -193,17 +195,16 @@ class Parking(object):
             
             if dis <= self.obs_range:
                 self.area_num[target_idx] += 1
-        print(self.area_num)
     
     def selectArea(self):
-        print("detect!!!")
 
         self.publishArea(self.area)
                 
         di, self.detect_target_idx = self.stanley.stanley_control(
         self.state, self.path_cx, self.path_cy, self.path_cyaw, self.detect_target_idx)
         
-        self.msg.Speed = int(5)
+        self.msg.Speed = int(self.pid.PIDControl(5))
+
         self.msg.Steer = int(-m.degrees(di))
         self.msg.Gear = 2
         self.msg.brake = 0
@@ -219,7 +220,6 @@ class Parking(object):
                 self.target_area = i
                 self.parking_state = ParkingState.area_in
                 self.CreatPath()
-        print(self.area_num)
 
     def CreatPath(self):
 
@@ -277,10 +277,8 @@ class Parking(object):
 
     def parking(self):  
         self.publishArea(self.area)
-        print(self.parking_state)
 
         if self.parking_state == ParkingState.area_in:
-            print("in!!!")
 
             self.publishPath(self.local_cx, self.local_cy, self.local_cyaw)
             
@@ -295,12 +293,12 @@ class Parking(object):
                 self.state, self.local_cx, self.local_cy, self.local_cyaw, self.local_target_idx
             )
 
-            self.msg.Speed = 3
+            self.msg.Speed = int(self.pid.PIDControl(5))
+
             self.msg.Steer = int(-m.degrees(di))
             self.msg.Gear = 2
 
-
-            if m.sqrt((self.state.x - self.local_cx[-1]) ** 2 + (self.state.y - self.local_cy[-1]) ** 2) <= 0.5:
+            if m.sqrt((self.state.x - self.local_cx[-1]) ** 2 + (self.state.y - self.local_cy[-1]) ** 2) <= 0.5 or self.local_target_idx > len(self.local_cx) - 4:
                 self.parking_state = ParkingState.brake
 
 
@@ -315,15 +313,15 @@ class Parking(object):
 
         elif self.parking_state == ParkingState.area_out:
 
-            self.msg.Speed = 5
+            self.msg.Speed = int(self.pid.PIDControl(5))
             self.msg.Steer = 0
             self.msg.brake = 0
             self.msg.Gear = 0
 
-            # target_idx = self.stanley.calc_target_index(self.state, self.path_cx, self.path_cy)
+            target_idx = self.stanley.calc_target_index(self.state, self.path_cx, self.path_cy)
             dist = self.GetDistance2(self.path, [self.state.x, self.state.y])
             
-            if dist < 0.2:
+            if dist < 0.2 :
                 self.msg.Speed = 0
                 self.msg.Steer = 0
                 self.msg.Gear = 2

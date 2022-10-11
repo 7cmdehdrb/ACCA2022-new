@@ -15,7 +15,7 @@ from erp42_control.msg import *
 class PID(object):
     def __init__(self):
         self.p_gain = 2.6
-        self.i_gain = 0.1
+        self.i_gain = 0.5
         self.d_gain = 1.0
 
         self.p_err = 0.0
@@ -61,7 +61,9 @@ class PID(object):
 
         self.last = self.current
 
-        return np.clip(self.speed + (self.p_gain * self.p_err) + (self.i_gain) + (self.d_gain * self.d_err), 0, 25)
+        speed = self.speed + (self.p_gain * self.p_err) + (self.i_gain * self.i_err) + (self.d_gain * self.d_err)
+        
+        return int(np.clip(speed, 0, 25))
 
 
 def kph2mps(value):
@@ -99,17 +101,15 @@ if __name__ == "__main__":
         current_time = rospy.Time.now()
         dt = (current_time - last_time).to_sec()
 
-        input_speed = pid.PIDControl(
-            current_value=speed,
-            desired_value=7,
-            dt=dt
-        )
+        input_speed = pid.PIDControl(desired_value=7)
 
         last_time = current_time
+        
+        print(pid.speed, input_speed)
 
         cmd_pub.publish(
             ControlMessage(
-                0, 0, 0, int(mps2kph(input_speed)), 0, 0, 0
+                0, 0, 2, (int(input_speed)), 0, 0, 0
             )
         )
 

@@ -80,9 +80,7 @@ class Traffic():
         self.msg = Signmsg()
         
         result = max(self.light, key=self.light.count)
-        
-        print(self.light)
-        
+                
         if result == 0 :
             self.msg.left = 0
             self.msg.straight = 0

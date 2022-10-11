@@ -1,0 +1,5 @@
+<launch>
+    <node name="clustering" type="clustering.py" pkg="cone_tracker" output="log" />
+    <node name="cone_mapping" type="cone_mapping.py" pkg="cone_tracker" output="log" />
+    <node name="cone_tracker" type="cone_tracker3.py" pkg="cone_tracker" output="screen" />
+</launch>

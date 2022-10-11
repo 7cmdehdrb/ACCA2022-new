@@ -46,7 +46,8 @@ class Lidar(object):
         self.obs_pub = rospy.Publisher("/obs_pub", MarkerArray, queue_size=10)        
         self.part_pub = rospy.Publisher("ob_TF", obTF, queue_size=5)
 
-
+        self.ranges = []
+        
     def laserCallback(self, msg):
         self.ranges = msg.ranges
 
@@ -115,8 +116,6 @@ class Lidar(object):
             
             if i[0] < self.thr_dis and i[1] < self.thr_path_dis and i[0] != 0.0:
                 obs_num += 1
-
-        print(obs_num)
 
         if obs_num >= 1:
             self.partTF.front_right = 1

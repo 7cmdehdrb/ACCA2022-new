@@ -27,11 +27,13 @@ try:
     sys.path.append(erp42_control_pkg_path)
     from state import State, OdomState
     from stanley import Stanley
+    from pid_tuner import PID
+    
 except Exception as ex:
     rospy.logfatal(ex)
 
-class ParkingState(Enum):
-    NONE = 0
+class HorParkingState(Enum):
+    DONE = 0
     SEARCH = 1
     BACK = 2
     ALIGN1 = 3
@@ -49,25 +51,26 @@ class ParkingState(Enum):
 
 
 file = rospkg.RosPack().get_path("parking") + "/parking/" + \
-    rospy.get_param("/horizontal_parking/file", "festi_parking.csv")
+    rospy.get_param("/horizontal_parking/file", "bs_parking.csv")
 
 class HorizontalParking(object):
     def __init__(self, state, stanley, cmd_pub):
         self.state = state
         self.stanely = stanley
+        self.pid = PID()
         self.parking_areas = loadCSV(file)
-        
+                
         self.selector = ParkingAreaSelector(state=self.state, parking_areas=self.parking_areas)
             
         self.parking_idx = 0
         self.target_area = self.parking_areas[self.parking_idx]
 
-        self.parking_state = ParkingState.ALIGN1
+        self.parking_state = HorParkingState.SEARCH
         self.target_idx = 0
 
-        self.search_path = None
+        self.search_path = None 
         self.back_path = None
-        self.alignPath1 = None 
+        self.alignPath1 = None
         self.alignPath2 = None
 
         self.cmd_msg = ControlMessage()
@@ -105,41 +108,46 @@ class HorizontalParking(object):
             r.sleep()
 
     def control(self):
-        msg = ControlMessage()
-        reverse = False 
         rospy.logwarn(str(self.parking_state))
+        msg = ControlMessage()
+        reverse = False
 
-        if self.parking_state == ParkingState.NONE:
+        if self.parking_state == HorParkingState.DONE:
             return 0
 
-        elif self.parking_state == ParkingState.SEARCH:
-            msg.Speed = int(5)
-            
+        elif self.parking_state == HorParkingState.SEARCH:
+            msg.Speed = self.pid.PIDControl(7.0)
+
             di, self.target_idx = self.stanely.stanley_control(self.state, self.search_path.cx,
                                                             self.search_path.cy, self.search_path.cyaw, self.target_idx, reverse=reverse)
-            
-            
-            if self.selector.flag is True:
+                        
+            if self.selector.flag == True:
                 self.wait_for_stop(3)
-                self.parking_state == ParkingState.BACK
-                
-        elif self.parking_state == ParkingState.BACK:
-            msg.Speed = (5)
+                self.parking_state = HorParkingState.BACK
+                self.parking_idx = self.selector.target_idx
+                self.target_area = self.parking_areas[self.parking_idx]
+
+                rospy.logwarn("search")
+
+        elif self.parking_state == HorParkingState.BACK:
+            msg.Speed = self.pid.PIDControl(7.0)
             reverse = True
             
             di, self.target_idx = self.stanely.stanley_control(self.state, self.back_path.cx,
                                                             self.back_path.cy, self.back_path.cyaw, self.target_idx, reverse=reverse)
             
 
-            if self.target_idx >= len(self.back_path.cx) - 1:
+            dist = np.hypot(self.target_area.position.x - self.state.x, self.target_area.position.y - self.state.y)
+
+            if self.target_idx >= len(self.back_path.cx) - 1 or dist > 5.0:
                 self.target_idx = 0
                 self.alignPath1, self.alignPath2 = self.createAlignPath()
                 self.wait_for_stop(duration=1, brake=70)
-                self.parking_state = ParkingState.ALIGN1
+                self.parking_state = HorParkingState.ALIGN1
             
 
-        elif self.parking_state == ParkingState.ALIGN1:
-            msg.Speed = int(5)
+        elif self.parking_state == HorParkingState.ALIGN1:
+            msg.Speed = self.pid.PIDControl(5.0)
 
             di, self.target_idx = self.stanely.stanley_control(self.state, self.alignPath1.cx,
                                                                self.alignPath1.cy, self.alignPath1.cyaw, self.target_idx, reverse=reverse)
@@ -150,11 +158,11 @@ class HorizontalParking(object):
             if self.target_idx >= len(self.alignPath1.cx) - 1:
                 self.target_idx = 0
                 self.wait_for_stop(duration=1, brake=90)
-                self.parking_state = ParkingState.ALIGN2
+                self.parking_state = HorParkingState.ALIGN2
 
-        elif self.parking_state == ParkingState.ALIGN2:
+        elif self.parking_state == HorParkingState.ALIGN2:
             reverse = True
-            msg.Speed = int(5)
+            msg.Speed = self.pid.PIDControl(4.0)
 
             di, self.target_idx = self.stanely.stanley_control(self.state, self.alignPath2.cx,
                                                                self.alignPath2.cy, self.alignPath2.cyaw, self.target_idx, reverse=reverse)
@@ -165,12 +173,11 @@ class HorizontalParking(object):
 
             if self.target_idx >= len(self.alignPath2.cx) - 1:
                 self.target_idx = 0
-                self.wait_for_stop(duration=1, brake=70)
-                self.parking_state = ParkingState.PARKING1
+                self.parking_state = HorParkingState.PARKING1
 
-        elif self.parking_state == ParkingState.PARKING1:
+        elif self.parking_state == HorParkingState.PARKING1:
             reverse = True
-            msg.Speed = int(3)
+            msg.Speed = self.pid.PIDControl(3.0)
 
             di = 30
 
@@ -184,11 +191,11 @@ class HorizontalParking(object):
             theta = abs(m.acos(np.dot(heading_vec, parking_vec)))
 
             if m.radians(45) - theta < m.radians(5):
-                self.parking_state = ParkingState.PARKING2
+                self.parking_state = HorParkingState.PARKING2
 
-        elif self.parking_state == ParkingState.PARKING2:
+        elif self.parking_state == HorParkingState.PARKING2:
             reverse = True
-            msg.Speed = int(5)
+            msg.Speed = self.pid.PIDControl(3.0)
 
             di = 0
 
@@ -218,11 +225,11 @@ class HorizontalParking(object):
             dot = np.dot(car_vec, parking_vec)
 
             if dot < 0:
-                self.parking_state = ParkingState.PARKING3
+                self.parking_state = HorParkingState.PARKING3
 
-        elif self.parking_state == ParkingState.PARKING3:
+        elif self.parking_state == HorParkingState.PARKING3:
             reverse = True
-            msg.Speed = int(3)
+            msg.Speed = self.pid.PIDControl(3.0)
 
             di = -30
 
@@ -235,12 +242,12 @@ class HorizontalParking(object):
 
             theta = abs(m.acos(np.dot(heading_vec, parking_vec)))
 
-            if theta < m.radians(5):
+            if theta < m.radians(10):
                 self.wait_for_stop(1)
-                self.parking_state = ParkingState.HOMING
+                self.parking_state = HorParkingState.HOMING
 
-        elif self.parking_state == ParkingState.HOMING:
-            msg.Speed = int(3)
+        elif self.parking_state == HorParkingState.HOMING:
+            msg.Speed = self.pid.PIDControl(3.0)
 
             _, _, parking_yaw = euler_from_quaternion(
                 [self.target_area.orientation.x, self.target_area.orientation.y, self.target_area.orientation.z, self.target_area.orientation.w])
@@ -255,24 +262,24 @@ class HorizontalParking(object):
             dot = np.dot(car_vec, parking_vec)
 
             if dot > 0:
-                self.wait_for_stop(10)
-                self.parking_state = ParkingState.END1
+                self.wait_for_stop(10, 70)
+                self.parking_state = HorParkingState.END1
 
-        elif self.parking_state == ParkingState.END1:
+        elif self.parking_state == HorParkingState.END1:
             reverse = True
-            msg.Speed = int(3)
+            msg.Speed = self.pid.PIDControl(3.0)
 
             di = 0
 
             dist = np.hypot(self.state.x - self.target_area.position.x,
                             self.state.y - self.target_area.position.y)
 
-            if dist > 0.7:
-                self.wait_for_stop(1)
-                self.parking_state = ParkingState.END2
+            if dist > 0.95:
+                self.wait_for_stop(1, 70)
+                self.parking_state = HorParkingState.END2
 
-        elif self.parking_state == ParkingState.END2:
-            msg.Speed = int(5)
+        elif self.parking_state == HorParkingState.END2:
+            msg.Speed = self.pid.PIDControl(5.0)
 
             di = 30
 
@@ -286,19 +293,18 @@ class HorizontalParking(object):
             theta = abs(m.acos(np.dot(heading_vec, parking_vec)))
 
             if m.radians(45) - theta < m.radians(5):
-                self.parking_state = ParkingState.OUT
+                self.parking_state = HorParkingState.OUT
 
-        elif self.parking_state == ParkingState.OUT:
-            msg.Speed = int(5)
+        elif self.parking_state == HorParkingState.OUT:
+            msg.Speed = self.pid.PIDControl(7.0)
 
             di = 0
 
             dist = np.hypot(self.state.x - self.target_area.position.x,
                             self.state.y - self.target_area.position.y)
 
-            if dist > 5.0:
-                self.wait_for_stop(5)
-                self.parking_state = ParkingState.NONE
+            if dist > 3.0:
+                self.parking_state = HorParkingState.DONE
 
         di = np.clip(di, -m.radians(30), m.radians(30))
         msg.Steer = int(m.degrees(di * (-1.0 if reverse is False else 1.0)))

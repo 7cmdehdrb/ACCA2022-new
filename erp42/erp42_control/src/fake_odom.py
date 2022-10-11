@@ -28,6 +28,7 @@ class FakeOdom(object):
             "/odometry/kalman", Odometry, queue_size=1)
         self.cmd_sub = rospy.Subscriber(
             "/cmd_msg", ControlMessage, callback=self.cmdCallback)
+        self.init_pub = rospy.Subscriber("/initialpose", PoseWithCovarianceStamped, callback=self.initcallback)
         self.__tf_pub = tf.TransformBroadcaster()
 
         self.current_time = rospy.Time.now()
@@ -42,6 +43,12 @@ class FakeOdom(object):
         self.__odom.header.frame_id = "map"
         self.__odom.child_frame_id = "base_link"
 
+    def initcallback(self, msg):
+        
+        # msg = PoseWithCovarianceStamped()
+        self.__odom.pose = msg.pose
+        
+        
     def cmdCallback(self, msg):
         self.__cmd_msg = msg
 

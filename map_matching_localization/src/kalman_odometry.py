@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from matplotlib.transforms import BboxBase
 import rospy
 import numpy as np
 import math as m
@@ -201,7 +202,9 @@ class ERP42(Sensor):
 
     def handleData(self, msg):
         self.gear = msg.Gear
-        speed = msg.speed
+        
+        direction = 1.0 if self.gear == 2 else -1.0
+        speed = msg.speed * direction
         cov = getEmpty((4, 4))
         cov[2][2] = 0.01
 
@@ -222,18 +225,25 @@ class Xsens(Sensor):
         ])
 
         self.yaw = 0.
+        self.last_value = 0.
         self.init_yaw = None
 
     def handleData(self, msg):
         quat = msg.orientation
         _, _, yaw = euler_from_quaternion([quat.x, quat.y, quat.z, quat.w])
-
         if self.init_yaw is None:
             self.init_yaw = yaw
 
-        self.yaw = normalize_angle(
+        temp = normalize_angle(
             yaw - self.init_yaw)
+        self.yaw = temp
 
+        # dyaw = temp - self.last_value
+        # self.last_value = temp
+        
+        # if abs(dyaw) < 0.001:
+        #     self.yaw += dyaw
+            
         # print("%.4f\t%.4f\t%.4f" % (yaw, self.init_yaw, self.yaw))
 
         cov = getEmpty((4, 4))
@@ -276,12 +286,16 @@ class GPS(Sensor):
 
         distance = self.calculateDistance(self.last_position, current_point)
 
+        direction = 1.0 if erp.gear == 2 else -1.0
+        
         self.last_position = current_point
 
         if distance < 0.012:
             distance = 0
+            
+        print(distance)
 
-        return distance
+        return distance * direction
 
     def handleData(self, msg):
         distance = self.calculateDistanceFromGPS(
@@ -345,6 +359,8 @@ if __name__ == "__main__":
 
             x, P = kf.filter(gps, erp, imu,
                              dt=(current_time - last_time).to_sec())
+            
+            # print(x)
 
             kf.publishOdom(x, P)
 

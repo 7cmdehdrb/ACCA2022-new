@@ -20,6 +20,7 @@ try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
     from stanley import Stanley
+    from pid_tuner import PID
 except Exception as ex:
     rospy.logfatal(ex)
 
@@ -59,7 +60,8 @@ class Parking(object):
         # kcity
         # path_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking_path.csv")
         # area_data = pd.read_csv("/home/acca/catkin_ws/src/ACCA2022-new/mission/data/ys/ys_parking.csv")
-
+        self.pid = PID()
+        
         self.path_cx = path_data.cx.tolist()
         self.path_cy = path_data.cy.tolist()
         self.path_cyaw = path_data.cyaw.tolist()
@@ -202,7 +204,7 @@ class Parking(object):
         di, self.detect_target_idx = self.stanley.stanley_control(
         self.state, self.path_cx, self.path_cy, self.path_cyaw, self.detect_target_idx)
         
-        self.msg.Speed = int(5)
+        self.msg.Speed = self.pid.PIDControl(5.0)
         self.msg.Steer = int(-m.degrees(di))
         self.msg.Gear = 2
         self.msg.brake = 0
@@ -294,7 +296,7 @@ class Parking(object):
                 self.state, self.local_cx, self.local_cy, self.local_cyaw, self.local_target_idx
             )
 
-            self.msg.Speed = 3
+            self.msg.Speed = self.pid.PIDControl(5.0)
             self.msg.Steer = int(-m.degrees(di))
             self.msg.Gear = 2
 
@@ -314,7 +316,7 @@ class Parking(object):
 
         elif self.parking_state == ParkingState.area_out:
 
-            self.msg.Speed = 5
+            self.msg.Speed = self.pid.PIDControl(5.0)
             self.msg.Steer = 0
             self.msg.brake = 0
             self.msg.Gear = 0

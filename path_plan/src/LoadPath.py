@@ -45,10 +45,6 @@ class LoadPath():
             Response.cy.append(info[1])
             Response.cyaw.append(info[2])
         
-        # new = pd.DataFrame((zip(Response.cx, Response.cy, Response.cyaw)))
-        # new.to_csv("/home/enbang/catkin_ws/src/ACCA2022-new/path_plan/path/cut_path.csv", header=False, index=False)
-        # rospy.loginfo("df to csv")
-
         return Response
 
     def toRosPath(self):

@@ -84,7 +84,7 @@ class Mapper(object):
         tendency = 0.0
 
         for p in msg.poses:
-            if p.position.x < 0.0 or p.position.x > 10 or abs(p.position.y) > 10.0:
+            if p.position.x < 0.0 or p.position.x > 10 or abs(p.position.y) > 5.0:
                 continue
 
             tendency += p.position.y
@@ -241,7 +241,7 @@ class PathPlanner(object):
             
             # print(d_cost, c_cost, grid_cost)
             
-            if best_point is None or min_cost == float("inf"):
+            if (best_point is None or min_cost == float("inf")) and self.loop_closure_flag is False:
                 rospy.logwarn("Cannot find best node...")
                 self.stack += 1
                 
@@ -276,27 +276,30 @@ class PathPlanner(object):
                             self.node.rollback()
             
             
-            new_node = Node(data=best_point, idx=(self.node.idx + 1), parent=self.node)
-            
-            dist = np.hypot(
-                    new_node.data[0] - self.first_node.data[0],
-                    new_node.data[1] - self.first_node.data[1]
-                )
-            
-            if dist < 2.0 and self.last_idx > 50 and self.loop_closure is False and self.loop_closure_flag is False:
-                self.loop_closure_flag = True
-                self.node = Node(data=self.first_node.data, idx=(self.node.idx + 1), parent=self.node)
+            if self.loop_closure_flag is False:
+                new_node = Node(data=best_point, idx=(self.node.idx + 1), parent=self.node)
                 
+                dist = np.hypot(
+                        new_node.data[0] - self.first_node.data[0],
+                        new_node.data[1] - self.first_node.data[1]
+                    )
+                
+                if dist < 2.0 and self.last_idx > 50 and self.loop_closure is False:
+                    self.loop_closure_flag = True
+                    self.node = Node(data=self.first_node.data, idx=(self.node.idx + 1), parent=self.node)
+
+                elif self.loop_closure is False: 
+                    self.node = new_node
+                        
             elif self.loop_closure_flag is True:
                 dist2 = np.hypot(self.first_node.data[0] - self.state.x, self.first_node.data[1] - self.state.y)
                 if dist2 < 5.0:
                     self.loop_closure = True
             
-            elif self.loop_closure is False and self.loop_closure_flag is False: 
-                self.node = new_node
-
             if self.node.idx > self.last_idx:
                 self.last_idx = self.node.idx
+
+            rospy.loginfo(self.node)
 
             self.test_pub.publish(self.node.parsePoint())
 
@@ -401,14 +404,14 @@ class PathPlanner(object):
             for i in range(abs(dist_y)):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost >= 7:
+                if cost >= 10:
                     return float("inf")
                 total_cost += cost
 
             for j in range(d):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1)) + (j * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost >= 7:
+                if cost >= 10:
                     return float("inf")
                 total_cost += cost
 
@@ -416,14 +419,14 @@ class PathPlanner(object):
             for i in range(abs(dist_x)):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1))].count
-                if cost >= 7:
+                if cost >= 10:
                     return float("inf")
                 total_cost += cost
 
             for j in range(d):
                 cost = self.mapper.map.map[si +
                                            (i * (1 if positive_x else -1))][sj + (i * (1 if positive_y else -1)) + (j * (1 if positive_y else -1))].count
-                if cost >= 7:
+                if cost >= 10:
                     return float("inf")
                 total_cost += cost
 
@@ -508,6 +511,9 @@ class Node(object):
         self.data = data
         self.idx = idx
         self.parent = parent
+        
+    def __str__(self):
+        return "Node(%.4f\t%.4f)" % (self.data[0], self.data[1])
 
 
     def findBestNode(self, map):
@@ -660,7 +666,7 @@ if __name__ == "__main__":
     last_time = rospy.Time.now()
     current_time = rospy.Time.now()
 
-    state = State(odometry_topic="/odometry/kalman", hz=10, test=True)
+    state = State(odometry_topic="/odometry/kalman", hz=30, test=True)
     stanley = Stanley()
     pp = PurePursuit(state)
     
@@ -781,14 +787,15 @@ if __name__ == "__main__":
                 di = np.clip(di, -m.radians(30), m.radians(30))
                 
                 
-                target_speed = 5 if (planner.loop_closure is False) else 7
+                target_speed = 5
                 dl = (len(path.cx) - 1) - target_idx
                 
-                if dl < 40:
-                    target_speed = 3
-                
-                elif dl < 20:
-                    target_speed = 0
+                if planner.loop_closure is False:
+                    if dl < 40:
+                        target_speed = 3
+                    
+                    elif dl < 20:
+                        target_speed = 0
 
 
                 target_speed *= (1 - abs(di) * 0.6)

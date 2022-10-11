@@ -1,4 +1,5 @@
 <launch>
-    <include file="/home/acca/catkin_ws/src/LMS/laser_filters/my_laser_cloud_filter.launch"/>
+    <!-- <include file="/home/acca/catkin_ws/src/LMS/laser_filters/my_laser_cloud_filter.launch"/> -->
     <include file="/home/acca/catkin_ws/src/adaptive_clustering/launch/adaptive_clustering.launch"/>
-</launch>
+    <include file="/home/acca/catkin_ws/src/lidar_camera_calibration/launch/display_camera_lidar_calibration1.launch"/>
+</launch> 

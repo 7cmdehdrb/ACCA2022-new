@@ -339,11 +339,11 @@ class StateMachine(object):
         self.parking.main()
         
         if self.parking.parking_state == ParkingState.brake:
-            wait_for_stop(5)
+            wait_for_stop(10)
         
         elif self.parking.parking_state == ParkingState.complete:
             self.parking.parking_state = ParkingState.done
-            wait_for_stop(2)
+            wait_for_stop(1)
         
         elif self.parking.parking_state == ParkingState.done:
             pass

@@ -38,8 +38,8 @@ class ConeMapping():
         self.object_pub = rospy.Publisher("/cone_simulator/detected_cones", PoseArray, queue_size=1)
         
         self.list1 = []
-        self.list2 = deque(maxlen=200)
-        self.list3 = deque(maxlen=200)
+        self.list2 = deque(maxlen=500)
+        self.list3 = deque(maxlen=500)
         self.list4 = []
         
         self.state = state
@@ -103,7 +103,7 @@ class ConeMapping():
                 (dot) / (np.hypot(state_vec[0], state_vec[1]) * np.hypot(point_vec[0], point_vec[1]))))
 
 
-            if i[2] >= self.threshold and 3.15 >= theta:
+            if i[2] >= self.threshold and 3.14 >= theta:
                 self.list4.append([i[0], i[1]])
         print(len(self.list4))
                     

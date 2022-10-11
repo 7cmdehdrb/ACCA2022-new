@@ -16,7 +16,7 @@
     <arg name="scene_num" default="noupdate" />
     <arg name="path_area_list" default='""' />    
 
-    <arg name="path_pcd" default='$(find map_matching_localization)/data/school.pcd' />
+    <arg name="path_pcd" default='$(find map_matching_localization)/data/bs.pcd' />
     <!-- <arg name="path_pcd" default='/home/acca/pcd/school_jo/cloudGlobal.pcd' /> -->
 
     <node pkg="map_file" type="points_map_loader" name="points_map_loader" output="screen">
@@ -55,7 +55,7 @@
     <arg name="output_log_data" default="false" />
     <arg name="output_tf_frame_id" default="base_link"/>
     <arg name="gnss_reinit_fitness" default="500.0" />
-    <arg name="is_publish_tf" default="=false" />
+    <arg name="is_publish_tf" default="false" />
     
     <!-- tf -->
     <param name="tf_x" value="$(arg tf_x)" />
@@ -80,7 +80,7 @@
         <param name="output_log_data" value="$(arg output_log_data)" />
         <param name="output_tf_frame_id" value="$(arg output_tf_frame_id)" />
         <param name="gnss_reinit_fitness" value="$(arg gnss_reinit_fitness)" />
-        <param name="is_publish_tf" value="$(arg is_publish_tf)" />
+        <param name="is_publish_tf" value="$(arg is_publish_tf)" type="bool" />
         <remap from="/points_raw" to="/sync_drivers/points_raw" if="$(arg sync)" />
         <remap from="vehicle/odom" to="odometry/kalman" />
     </node>

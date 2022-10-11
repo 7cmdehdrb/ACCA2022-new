@@ -14,7 +14,6 @@ import sys
 import rospkg
 from load_parking_area import loadCSV
 
-
 try:
     erp42_control_pkg_path = rospkg.RosPack().get_path("erp42_control") + "/src"
     sys.path.append(erp42_control_pkg_path)
@@ -41,11 +40,12 @@ class ParkingAreaSelector():
                                              callback=self.obstacleCallback)
         rospy.Subscriber("/mission_state", UInt8, callback=self.missionCallback)
         
+        self.pub = rospy.Publisher("/detect_p", PoseStamped, queue_size=1)
+        
         self.mission_state = 0
         
     def missionCallback(self, msg):
-        self.mission_state = msg
-        rospy.logwarn(str(self.mission_state))
+        self.mission_state = msg.data
         
     def obstacleCallback(self, msg):
         if self.mission_state == 6:
@@ -68,20 +68,22 @@ class ParkingAreaSelector():
             self.loop()
 
     def isPossibleParkingArea(self, obstacle, box):
-        dist = np.hypot(box.position.x - obstacle[0],
-                        box.position.y - obstacle[1])
         _, _, box_yaw = euler_from_quaternion(
             [box.orientation.x, box.orientation.y, box.orientation.z, box.orientation.w])
 
         # if dist <= box.scale.x / 2.0:
         #     return True
+        detect_x, detect_y = self.parkingTomap(box, box_yaw)
 
+        dist = np.hypot(detect_x - obstacle[0],
+                        detect_y - obstacle[1])
+        
         area_VEC = np.array([
             m.cos(box_yaw - m.radians(90.0)), m.sin(box_yaw - m.radians(90.0))
         ])
 
         ob_VEC = np.array([
-            obstacle[0] - box.position.x, obstacle[1] - box.position.y
+            obstacle[0] - detect_x, obstacle[1] - detect_y
         ])
 
         theta = m.acos(np.dot(area_VEC, ob_VEC) /np.hypot(ob_VEC[0], ob_VEC[1]))
@@ -89,7 +91,7 @@ class ParkingAreaSelector():
         x_dist = abs(dist * m.cos(theta))
         y_dist = abs(dist * m.sin(theta))
         
-        if (x_dist <= box.scale.x / 2.0) and (y_dist <= box.scale.y / 2.0):
+        if (x_dist <= (box.scale.x - 0.8) / 2.0) and (y_dist <= (box.scale.y - 1.2) / 2.0):
             return True
 
         return False
@@ -137,8 +139,29 @@ class ParkingAreaSelector():
                     
         print(self.parking_possibilities)
         self.obstacles = []
+    
+    def parkingTomap(self, box, box_yaw):
+        t = np.array([[m.cos(box_yaw), -m.sin(box_yaw), 0, box.position.x],
+                      [m.sin(box_yaw), m.cos(box_yaw), 0, box.position.y],
+                      [0, 0, 1, 0],
+                      [0, 0, 0, 1]])
         
+        p = np.array([[0],[1.35],[0],[1]])
         
+        detect_p = np.dot(t, p)
+        
+        pose = PoseStamped()
+        pose.header.frame_id = "map"
+        pose.header.stamp = rospy.Time(0)
+        
+        pose.pose.position.x = detect_p[0]
+        pose.pose.position.y = detect_p[1]
+        pose.pose.position.z = 0
+        
+        self.pub.publish(pose)
+    
+        return detect_p[0], detect_p[1]
+    
 if __name__ == "__main__":
 
     rospy.init_node("parking_area_selector")

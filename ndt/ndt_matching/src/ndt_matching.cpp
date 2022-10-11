@@ -211,7 +211,7 @@ static bool _use_imu = false;
 static bool _use_odom = false;
 static bool _imu_upside_down = false;
 static bool _output_log_data = false;
-static bool _is_publish_tf = true;
+static bool _is_publish_tf = false;
 static std::string _output_tf_frame_id = "base_link";
 
 static std::string _imu_topic = "/imu_raw";
@@ -1387,6 +1387,7 @@ static void points_callback(const sensor_msgs::PointCloud2::ConstPtr& input)
 
     predict_pose_pub.publish(predict_pose_msg);
     health_checker_ptr_->CHECK_RATE("topic_rate_ndt_pose_slow", 8, 5, 1, "topic ndt_pose publish rate slow.");
+    ROS_INFO("tlqkf");
     ndt_pose_pub.publish(ndt_pose_msg);
     localizer_pose_pub.publish(localizer_pose_msg);
 

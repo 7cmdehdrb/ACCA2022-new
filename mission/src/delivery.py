@@ -62,7 +62,7 @@ class Delivery():
                     self.ay.append(m_to_p.pose.position.y)
 
                     self.panel_id[i] += 1
-
+        
         self.panel_A = Point()
         self.panel_A.x = np.mean(self.ax)
         self.panel_A.y = np.mean(self.ay)

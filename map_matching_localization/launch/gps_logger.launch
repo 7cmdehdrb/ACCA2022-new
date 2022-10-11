@@ -4,6 +4,6 @@
     </include>
 
     <node name="gps_logger" pkg="map_matching_localization" type="gps_logger.py" output="screen">
-        <param name="file_name" type="string" value="kcity1.csv"></param>
+        <param name="file_name" type="string" value="kcity_ys.csv"></param>
     </node>
 </launch>
